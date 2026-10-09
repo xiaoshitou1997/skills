@@ -2,7 +2,7 @@
 
 [中文说明](README.zh-CN.md)
 
-Team-reusable Agent Skills for development, Git publishing and Docker delivery. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
+Team-reusable Agent Skills for development, Git publishing, Docker delivery and engineering documentation. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
 
 This collection contains team engineering practices, not an official product or certification from an agent, framework or endpoint-security vendor.
 
@@ -16,6 +16,7 @@ This collection contains team engineering practices, not an official product or 
 | `docker-delivery` | Container builds, Compose deployment, same-image promotion, health checks and application rollback |
 | `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
 | `windows-dlp-environment` | Machine-specific Windows DLP/EDR diagnosis, file access and WSL build observations |
+| `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
 
 Renamed skills: `application-delivery` → `docker-delivery`, `java-backend-standards` → `spring-boot-standards`, `dlp-machine-env` → `windows-dlp-environment`. If an old version is already installed, remove it explicitly and install the new name to avoid duplicate triggers.
 

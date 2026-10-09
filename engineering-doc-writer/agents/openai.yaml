@@ -1,0 +1,3 @@
+interface:
+  display_name: "Engineering Doc Writer"
+  short_description: "Write reviewable PRD, HLD, LLD, RFC, API docs, and production MOPs."
