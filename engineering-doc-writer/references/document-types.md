@@ -1,196 +1,196 @@
-# Document Type Structures
+# 文档类型结构
 
-Use these as default structures, not mandatory empty templates. Omit sections that add no information. Add sections when the domain requires them.
+以下为默认结构，不是必须填满的空模板。不增加信息的章节直接省略；领域需要时自行增加。
 
 ## PRD
 
 ```markdown
-# [Product / Feature Name]
+# [产品 / 功能名称]
 
-## 1. Background
-## 2. Problem Statement
-## 3. Goals
-## 4. Non-Goals
-## 5. Users and Actors
-## 6. Scope
+## 1. 背景
+## 2. 问题陈述
+## 3. 目标
+## 4. 非目标
+## 5. 用户与角色
+## 6. 范围
 ### 6.1 In Scope
 ### 6.2 Out of Scope
-## 7. Requirements
-## 8. User / Business Flow
-## 9. Acceptance Criteria
-## 10. Dependencies and Constraints
-## 11. Risks
-## 12. Open Questions
+## 7. 需求
+## 8. 用户 / 业务流程
+## 9. 验收标准
+## 10. 依赖与约束
+## 11. 风险
+## 12. 开放问题
 ```
 
-PRD rules:
+PRD 规则：
 
-- State the problem before the solution.
-- Express requirements as observable behavior.
-- Keep technology choices out of requirements unless they are themselves constraints.
-- Use requirement IDs such as `REQ-001` only when traceability materially helps review or implementation.
+- 先陈述问题，再谈方案。
+- 需求表述为可观察的行为。
+- 技术选型不写入需求，除非选型本身就是约束。
+- 仅当可追溯性确实有助于评审或实施时使用 `REQ-001` 类需求编号。
 
 ## HLD
 
 ```markdown
-# [System / Feature] High-Level Design
+# [系统 / 功能] 高层设计
 
-## 1. Overview
-## 2. Goals and Non-Goals
-## 3. System Context
-## 4. Architecture
-## 5. Component Responsibilities
-## 6. Key Flows
-## 7. External Interfaces
-## 8. Data and State
-## 9. Deployment Topology
-## 10. Non-Functional Constraints
-## 11. Failure Handling
-## 12. Security Considerations
-## 13. Observability
-## 14. Trade-offs and Alternatives
-## 15. Risks and Open Questions
+## 1. 概述
+## 2. 目标与非目标
+## 3. 系统上下文
+## 4. 总体架构
+## 5. 组件职责
+## 6. 关键流程
+## 7. 外部接口
+## 8. 数据与状态
+## 9. 部署拓扑
+## 10. 非功能约束
+## 11. 故障处理
+## 12. 安全考量
+## 13. 可观测性
+## 14. 权衡与备选方案
+## 15. 风险与开放问题
 ```
 
-HLD rules:
+HLD 规则：
 
-- Define boundaries and responsibilities before class/module detail.
-- Use architecture and sequence diagrams when interactions are not obvious from prose.
-- Capture failure domains, external dependencies, and major capacity assumptions.
+- 先定义边界与职责，再进入类/模块细节。
+- 交互从文字不易看清时，使用架构图和时序图。
+- 记录故障域、外部依赖和主要容量假设。
 
 ## LLD
 
 ```markdown
-# [Module / Feature] Low-Level Design
+# [模块 / 功能] 详细设计
 
-## 1. Overview
-## 2. Scope
-## 3. Module Structure
-## 4. Detailed Flow
-## 5. Interface Definitions
-## 6. Data Model
-## 7. State Model
-## 8. Validation Rules
-## 9. Error Handling
-## 10. Concurrency, Idempotency, and Retry
-## 11. Configuration
-## 12. Logging, Metrics, and Tracing
-## 13. Security Controls
-## 14. Test Design
-## 15. Deployment / Compatibility Notes
-## 16. Open Questions
+## 1. 概述
+## 2. 范围
+## 3. 模块结构
+## 4. 详细流程
+## 5. 接口定义
+## 6. 数据模型
+## 7. 状态模型
+## 8. 校验规则
+## 9. 错误处理
+## 10. 并发、幂等与重试
+## 11. 配置
+## 12. 日志、指标与追踪
+## 13. 安全控制
+## 14. 测试设计
+## 15. 部署 / 兼容性说明
+## 16. 开放问题
 ```
 
-LLD rules:
+LLD 规则：
 
-- Make implementation behavior testable.
-- Keep names aligned with actual code, schema, API, and configuration where provided.
-- Document edge cases and error paths, not only the happy path.
+- 实现行为要可测试。
+- 提供了代码、表结构、API、配置时，命名与实际保持一致。
+- 记录边界情况和错误路径，不只写正常路径。
 
-## RFC / Technical Proposal
+## RFC / 技术提案
 
 ```markdown
-# RFC: [Title]
+# RFC: [标题]
 
-## Abstract
-## 1. Context and Problem
-## 2. Goals
-## 3. Non-Goals
-## 4. Constraints
-## 5. Proposal
-## 6. Detailed Design
-## 7. Compatibility and Migration
-## 8. Alternatives Considered
-## 9. Decision
-## 10. Rationale
-## 11. Consequences and Trade-offs
-## 12. Risks
-## 13. Rollout / Rollback
-## 14. Open Questions
+## 摘要
+## 1. 背景与问题
+## 2. 目标
+## 3. 非目标
+## 4. 约束
+## 5. 方案
+## 6. 详细设计
+## 7. 兼容性与迁移
+## 8. 已考虑的备选方案
+## 9. 决策
+## 10. 理由
+## 11. 影响与权衡
+## 12. 风险
+## 13. 上线 / 回滚
+## 14. 开放问题
 ```
 
-RFC rules:
+RFC 规则：
 
-- A design RFC must converge toward a decision.
-- If the decision is unresolved, write `Decision: TBD` and list blocking questions.
-- Do not present multiple options as if choosing among them were outside the document's purpose.
+- 设计类 RFC 必须收敛到决策。
+- 决策未定时写 `Decision: TBD`，并列出阻塞问题。
+- 不把多个选项并列呈现，仿佛“选择”不属于本文档的任务。
 
-## API Documentation
+## API 文档
 
 ```markdown
-# [API Name]
+# [API 名称]
 
-## 1. Overview
-## 2. Endpoint / RPC
-## 3. Authentication and Authorization
-## 4. Request
-### 4.1 Headers / Metadata
-### 4.2 Path / Query Parameters
-### 4.3 Body / Message Schema
-## 5. Response
-### 5.1 Success Response
-### 5.2 Error Response
-## 6. Validation Rules
-## 7. Idempotency and Retry
-## 8. Examples
-## 9. Compatibility and Versioning
-## 10. Operational Notes
+## 1. 概述
+## 2. 端点 / RPC
+## 3. 认证与授权
+## 4. 请求
+### 4.1 Headers / 元数据
+### 4.2 路径 / 查询参数
+### 4.3 Body / 消息结构
+## 5. 响应
+### 5.1 成功响应
+### 5.2 错误响应
+## 6. 校验规则
+## 7. 幂等与重试
+## 8. 示例
+## 9. 兼容性与版本
+## 10. 运维注意事项
 ```
 
-API rules:
+API 规则：
 
-- Use tables for fields: name, type, required, constraints, description.
-- Match exact names and casing from source specifications or code.
-- Do not invent fields, default values, error codes, or authentication methods.
-- For asynchronous APIs, document callback/event correlation and retry behavior if known.
+- 字段用表格：名称、类型、必填、约束、说明。
+- 名称与大小写严格对齐来源规格或代码。
+- 不虚构字段、默认值、错误码或认证方式。
+- 异步 API 在已知时补充回调/事件关联与重试行为。
 
-## Upgrade / Deployment MOP
+## 升级 / 部署 MOP
 
 ```markdown
-# [System] [Version] Upgrade MOP
+# [系统] [版本] 升级 MOP
 
-## 1. Change Overview
-## 2. Scope and Impact
-## 3. Preconditions
-## 4. Required Access and Artifacts
-## 5. Backup and Recovery Preparation
-## 6. Execution Procedure
-## 7. Checkpoints and Verification
-## 8. Rollback Triggers
-## 9. Rollback Procedure
-## 10. Post-Change Validation
-## 11. Known Risks
-## 12. Contacts / Owners
+## 1. 变更概述
+## 2. 范围与影响
+## 3. 前置条件
+## 4. 所需权限与物料
+## 5. 备份与恢复准备
+## 6. 执行步骤
+## 7. 检查点与验证
+## 8. 回滚触发条件
+## 9. 回滚步骤
+## 10. 变更后验证
+## 11. 已知风险
+## 12. 联系人 / 责任人
 ```
 
-MOP rules:
+MOP 规则：
 
-- Load `mop-guide.md` before drafting.
-- Keep commands copyable and ordered.
-- Put validation immediately after risky or irreversible steps when possible.
-- Do not claim a rollback is available unless the rollback path is actually defined.
+- 起草前先读 `mop-guide.md`。
+- 命令保持可复制、有序。
+- 风险高或不可逆的步骤之后尽量紧跟验证。
+- 回滚路径未真正定义时，不得声称可以回滚。
 
 ## Runbook
 
-Use sections such as purpose, trigger/alert, diagnosis, decision tree, remediation, verification, escalation, and recovery. Separate routine operations from emergency actions.
+按用途、触发条件/告警、诊断、决策树、处置、验证、升级上报和恢复组织章节。例行操作与紧急操作分开。
 
-## Postmortem
+## 故障复盘（Postmortem）
 
-Use sections such as summary, impact, timeline, detection, root cause, contributing factors, response, recovery, lessons, corrective actions, and evidence. Do not assign motives or blame without evidence.
+按摘要、影响、时间线、发现、根因、促成因素、响应、恢复、经验教训、整改动作和证据组织章节。无证据时不归因动机或指名责任。
 
-## Implementation Plan
+## 实施计划
 
-Use sections such as objective, scope, work breakdown, dependencies, milestones, migration, test plan, rollout, rollback, risks, and open questions. Do not fabricate dates or owners.
+按目标、范围、工作分解、依赖、里程碑、迁移、测试计划、上线、回滚、风险和开放问题组织章节。不虚构日期和责任人。
 
-## Filename conventions
+## 文件命名
 
-Prefer lowercase names with hyphens:
+优先小写加连字符：
 
-- `prd-<feature>.md`
-- `hld-<system>.md`
-- `lld-<module>.md`
-- `rfc-<topic>.md`
-- `api-<service>.md`
-- `mop-<system>-<version>.md`
+- `prd-<功能>.md`
+- `hld-<系统>.md`
+- `lld-<模块>.md`
+- `rfc-<主题>.md`
+- `api-<服务>.md`
+- `mop-<系统>-<版本>.md`
 
-Keep one canonical document instead of `final-v2-latest` style suffixes.
+保留单一权威版本，不使用 `final-v2-latest` 式后缀。

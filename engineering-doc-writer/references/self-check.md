@@ -1,39 +1,39 @@
-# Final Quality Gate
+# 最终质量门
 
-Run this check before delivery.
+交付前执行本检查。
 
 ## Critical
 
-- No invented metrics, fields, versions, owners, dates, dependencies, commands, thresholds, or capabilities.
-- Requirements, decisions, assumptions, and open questions are not conflated.
-- No contradiction between prose, tables, and diagrams.
-- No API field, status code, or behavior is stated without support from the input/source.
-- For MOP, rollback covers every materially changed state or explicitly states the irreversible gap.
-- For MOP, risky steps have checkpoints and post-change verification is defined.
+- 无编造的指标、字段、版本、责任人、日期、依赖、命令、阈值或能力。
+- 需求、决策、假设和开放问题未被混用。
+- 正文、表格和图之间无矛盾。
+- 无输入/来源不支撑的 API 字段、状态码或行为描述。
+- MOP 的回滚覆盖所有实质变更的状态，或显式说明不可逆缺口。
+- MOP 的高风险步骤有检查点，且变更后验证已定义。
 
 ## Major
 
-- The document has one clear purpose and logical through-line.
-- Scope boundaries are explicit where needed.
-- Terminology is consistent from first use to last use.
-- RFC/HLD trade-offs are present when a real decision is made.
-- LLD covers error paths, validation, concurrency/idempotency/retry when relevant.
-- API documentation distinguishes request, response, validation, error, and compatibility behavior.
-- Unknowns are labeled rather than filled with plausible defaults.
+- 文档有单一明确目的和贯穿逻辑。
+- 必要处范围边界显式。
+- 术语从首次使用到最后使用保持一致。
+- RFC/HLD 在真实决策处给出权衡。
+- LLD 覆盖相关时的错误路径、校验、并发/幂等/重试。
+- API 文档区分请求、响应、校验、错误和兼容性行为。
+- 未知项被显式标注，而不是用看似合理的默认值填充。
 
-## Style and maintainability
+## 文风与可维护性
 
-- No chat-history phrases or drafting meta-commentary.
-- No source-material leakage unless listed as a formal reference.
-- No first/second-person wording in the deliverable unless the user explicitly wants instructional prose.
-- No filler sections or duplicated conclusions.
-- Heading levels are valid.
-- Chinese punctuation and Chinese/English spacing are consistent.
-- Code/config/commands are copyable.
-- Mermaid diagrams match prose and do not introduce new facts.
+- 无对话痕迹用语或起草过程元叙述。
+- 无来源材料泄露，正式引用除外。
+- 交付物无人称呼语，除非用户明确要求教学式行文。
+- 无填充章节或重复结论。
+- 标题层级有效。
+- 中文标点与中英文间距一致。
+- 代码/配置/命令可复制。
+- Mermaid 图与正文一致，不引入新事实。
 
-## Final test
+## 最终检验
 
-Ask: could a reviewer, developer, tester, or operator use this document correctly without reading the conversation that produced it?
+自问：评审者、开发者、测试者或运维者不读产生文档的对话，能否正确使用本文档？
 
-If not, revise before returning it.
+不能，则先修订再交付。

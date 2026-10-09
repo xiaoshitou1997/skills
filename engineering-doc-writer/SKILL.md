@@ -1,123 +1,122 @@
 ---
 name: engineering-doc-writer
 description: >-
-  Create, rewrite, review, and standardize software-engineering documents in Chinese or bilingual engineering contexts. Use for PRD, HLD/architecture design, LLD/detailed design, RFC/technical proposals, API documentation, production upgrade or deployment MOP (Method of Procedure), runbooks, troubleshooting guides, postmortems, implementation plans, README/CHANGELOG delivery sections, and similar engineering artifacts. Apply when the user wants a document that can stand alone, be reviewed, implemented, operated, or archived. Preserve source facts, separate facts/requirements/assumptions/open questions, avoid invented details, keep terminology and decisions consistent, and produce repository-friendly Markdown unless another artifact format is explicitly requested.
+  编写、重写、评审和规范化软件工程文档时使用，覆盖 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产升级/部署 MOP（Method of Procedure）、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节等工程产物。需要产出可独立阅读、可评审、可实施、可运维、可归档的文档时适用。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节，术语与决策全程一致；除非用户明确要求其他格式，默认产出仓库友好的 Markdown。
 ---
 
-# Engineering Document Writer
+# Engineering Doc Writer
 
-Produce engineering documents as independent deliverables rather than extensions of the current chat.
+将工程文档作为独立交付物产出，而不是当前对话的延伸。
 
-## Core workflow
+## 核心流程
 
-1. Determine the task mode:
-   - Create: build a new document from requirements, notes, source files, code, or discussion.
-   - Rewrite: transform an existing draft into a reviewable engineering document.
-   - Review: identify defects, ambiguity, missing decisions, contradictions, unverifiable claims, and operational gaps.
-2. Determine the document type from user intent. Prefer PRD, HLD, LLD, RFC, API, or MOP when applicable.
-3. Classify input statements before drafting:
-   - Fact: confirmed system behavior, data, code, configuration, interface, or observed result.
-   - Requirement: explicitly required behavior or constraint.
-   - Decision: an explicitly selected solution or trade-off.
-   - Assumption: necessary but unverified condition.
-   - Open Question: unresolved decision or missing input.
-   - Discussion: exploratory content that should not silently become a requirement.
-4. Load only the relevant structure from `references/document-types.md`. For production upgrade/deployment procedures, also load `references/mop-guide.md`.
-5. Apply `references/quality-rules.md` while drafting.
-6. Run the final checks in `references/self-check.md` before returning the document.
+1. 确定任务模式：
+   - 新建（Create）：依据需求、笔记、源文件、代码或讨论产出新文档。
+   - 重写（Rewrite）：把既有草稿整理为可评审的工程文档。
+   - 评审（Review）：识别缺陷、歧义、缺失决策、前后矛盾、不可验证的论断和运维缺口。
+2. 从用户意图判断文档类型，适用时优先按 PRD、HLD、LLD、RFC、API 或 MOP 处理。
+3. 起草前先对输入语句分类：
+   - Fact（事实）：已确认的系统行为、数据、代码、配置、接口或实测结果。
+   - Requirement（需求）：明确要求的行为或约束。
+   - Decision（决策）：已明确选定的方案或取舍。
+   - Assumption（假设）：设计所需但未经验证的条件。
+   - Open Question（开放问题）：未决的决策或缺失的输入。
+   - Discussion（讨论）：探索性内容，不得静默升级为需求。
+4. 仅从 `references/document-types.md` 加载与本次相关的结构。生产升级/部署流程类任务同时加载 `references/mop-guide.md`。
+5. 起草过程遵循 `references/quality-rules.md`。
+6. 交付前执行 `references/self-check.md` 的最终检查。
 
-Do not ask for missing details if a useful draft can be produced safely. Use `TBD`, `Assumption`, `Open Question`, or an explicit placeholder instead of inventing values.
+只要能安全产出有用的草稿，就不为缺失细节反复追问；用 `TBD`、`Assumption`、`Open Question` 或显式占位符代替编造取值。
 
-## Source fidelity
+## 来源忠实
 
-When source files, screenshots, tickets, meeting notes, code, or user-provided text are the basis of the document:
+当源文件、截图、工单、会议纪要、代码或用户提供的文本是文档依据时：
 
-- Preserve what the sources actually support.
-- Preserve established terminology, identifiers, endpoint names, configuration keys, version labels, and responsibility boundaries.
-- Do not silently correct, reconcile, or expand unsupported points.
-- If external knowledge or inference is added, distinguish it from source-derived content.
-- Do not expose source filenames, chat history, or drafting process in the final document unless the source itself is a formal reference that should appear in `References`.
+- 只陈述来源能够支撑的内容。
+- 保留既有的术语、标识符、端点名、配置键、版本号和职责边界。
+- 不静默修正、调和或扩展来源未支持的内容。
+- 补充外部知识或推理时，与来源推导的内容明确区分。
+- 除来源本身是应列入 `References` 的正式引用外，最终文档不暴露源文件名、聊天记录或起草过程。
 
-## Content rules
+## 内容规则
 
-- Make the document independently understandable without access to the conversation.
-- Use objective engineering language.
-- Keep one concept under one stable term throughout the document.
-- Separate requirements from implementation choices.
-- Separate decisions from alternatives and unresolved questions.
-- Make non-trivial claims traceable to code, configuration, interfaces, requirements, data, logs, or formal references when such evidence is available.
-- Prefer explicit unknowns over plausible-sounding completion.
-- Include trade-offs when a design decision has meaningful cost or risk.
-- Include `In Scope` and `Out of Scope` when scope expansion is plausible.
-- Do not add empty sections merely to make the document look complete.
+- 文档脱离当前对话仍可独立理解。
+- 使用客观的工程语言。
+- 同一概念全文使用同一个稳定术语。
+- 需求与实现选择分开；决策与备选方案、未决问题分开。
+- 关键论断在有证据（代码、配置、接口、需求、数据、日志或正式引用）时可追溯到证据。
+- 宁可显式标注未知，不用看似合理的补全。
+- 设计决策有明显成本或风险时给出权衡。
+- 范围可能被扩大时给出 `In Scope` 与 `Out of Scope`。
+- 不为“看起来完整”添加空洞章节。
 
-## Default writing style
+## 默认文风
 
-Use Chinese engineering prose unless the user requests another language.
+默认使用中文工程书面语，用户另有要求除外。
 
-- Avoid first- and second-person wording such as `我们`、`你`、`您`.
-- Avoid chat phrases such as `根据您的要求`、`以下是`、`结合之前讨论`、`本次调整`.
-- Avoid unsupported praise such as `高性能`、`高可用`、`先进`、`优雅`.
-- Avoid colloquial wording such as `搞`、`弄`、`东西`、`到时候`、`回头`、`搞定`.
-- Keep Chinese and English/number boundaries readable, for example `TLS 1.3`、`P99 18 ms`、`Redis 集群`.
-- Prefer plain Markdown. Avoid decorative emoji, excessive emphasis, and ornamental separators.
-- Use Mermaid for architecture, flow, and sequence diagrams when a diagram materially improves understanding.
+- 不用“我们”“你”“您”等人称措辞。
+- 不用“根据您的要求”“以下是”“结合之前讨论”“本次调整”等对话痕迹用语。
+- 不用“高性能”“高可用”“先进”“优雅”等无依据的夸饰。
+- 不用“搞”“弄”“东西”“到时候”“回头”“搞定”等口语。
+- 中英文与数字边界保持可读，如 `TLS 1.3`、`P99 18 ms`、`Redis 集群`。
+- 优先朴素的 Markdown；不用装饰性 emoji、过量强调和装饰性分隔线。
+- 架构、流程、时序用图能显著提升理解时使用 Mermaid。
 
-## Document-type behavior
+## 文档类型行为
 
 ### PRD
 
-Focus on problem, target users/actors, goals, scope, requirements, acceptance criteria, dependencies, and open questions. Do not prematurely turn implementation ideas into requirements.
+聚焦问题、目标用户/角色、目标、范围、需求、验收标准、依赖和开放问题。不把实现想法过早写成需求。
 
 ### HLD
 
-Focus on system context, architecture, components, boundaries, interfaces, data flow, deployment topology, major non-functional constraints, failure domains, and key trade-offs. Keep implementation details at a level appropriate for architecture review.
+聚焦系统上下文、架构、组件、边界、接口、数据流、部署拓扑、主要非功能约束、故障域和关键权衡。实现细节保持在架构评审所需的层次。
 
 ### LLD
 
-Focus on module/class/component behavior, detailed flows, data models, interfaces, state transitions, validation, error handling, concurrency/idempotency, configuration, observability, and testable implementation details.
+聚焦模块/类/组件行为、详细流程、数据模型、接口、状态迁移、校验、错误处理、并发/幂等、配置、可观测性和可测试的实现细节。
 
 ### RFC
 
-Make the decision process explicit. Include the problem, goals/non-goals, proposal, alternatives considered, rationale, consequences/trade-offs, compatibility/migration concerns, risks, and unresolved questions. If no decision has been made, write `Decision: TBD`.
+让决策过程显式化。包含问题、目标/非目标、方案、已考虑的备选、理由、影响/权衡、兼容性/迁移、风险和未决问题。决策未定时写 `Decision: TBD`。
 
-### API documentation
+### API 文档
 
-Describe contract behavior precisely: purpose, endpoint or RPC name, method, path, authentication, request fields, response fields, status/error codes, validation rules, idempotency, examples, and compatibility/versioning when supported by the input. Never invent request fields or error codes.
+精确描述契约行为：用途、端点或 RPC 名、方法、路径、认证、请求字段、响应字段、状态/错误码、校验规则、幂等、示例，以及来源支持的兼容性/版本策略。绝不虚构请求字段或错误码。
 
 ### MOP
 
-Treat an upgrade/deployment MOP as an executable production procedure, not a generic guide. Include preconditions, change scope, prerequisites, backup, step-by-step commands/actions, checkpoints, success criteria, rollback triggers, rollback procedure, post-change validation, and ownership only when confirmed. Load `references/mop-guide.md`.
+升级/部署 MOP 是可执行的生产变更操作文件，不是泛泛的升级介绍。仅在已确认时包含前置条件、变更范围、准备项、备份、逐步命令/动作、检查点、成功标准、回滚触发条件、回滚步骤、变更后验证和责任人。加载 `references/mop-guide.md`。
 
-## Rewrite behavior
+## 重写行为
 
-When rewriting an existing document:
+重写既有文档时：
 
-- Preserve confirmed meaning unless the user requests a design change.
-- Remove conversation traces, unsupported assumptions, duplicated sections, terminology drift, and formalistic filler.
-- Resolve obvious structural defects without changing facts.
-- Do not emit a change log unless requested.
-- If a contradiction cannot be resolved from the material, retain both sides and mark the conflict as an `Open Question`.
+- 除非用户要求变更设计，保持已确认的含义不变。
+- 清除对话痕迹、无依据假设、重复章节、术语漂移和形式化套话。
+- 只解决明显的结构缺陷，不改变事实。
+- 除非用户要求，不输出变更日志。
+- 矛盾无法依据材料裁断时，两侧都保留，并标记为 `Open Question`。
 
-## Review behavior
+## 评审行为
 
-When reviewing rather than rewriting, classify findings by impact:
+只评审不重写时，按影响分级：
 
-- Critical: could cause wrong implementation, unsafe production execution, incompatible API behavior, data loss, or unrecoverable change.
-- Major: missing decision, contradiction, ambiguous ownership/boundary, unverifiable key claim, incomplete rollback or failure handling.
-- Minor: terminology, formatting, wording, local clarity, or maintainability issues.
+- Critical：可能导致错误实现、不安全的生产执行、不兼容的 API 行为、数据丢失或不可恢复的变更。
+- Major：缺失决策、前后矛盾、责任/边界歧义、关键论断不可验证、回滚或失败处理不完整。
+- Minor：术语、格式、措辞、局部可读性或可维护性问题。
 
-For each finding, state the problem, why it matters, and a concrete correction. Do not invent missing project facts to demonstrate a fix.
+每条发现说明问题、影响和具体修改建议。不为展示修改能力而虚构项目事实。
 
-## Artifact composition
+## 产物组合
 
-If the user explicitly requests DOCX, PDF, slides, or another rendered artifact, apply this skill to the content and structure, then use the appropriate artifact-generation capability for the file format.
+用户明确要求 DOCX、PDF、幻灯片等渲染产物时，先用本 skill 确定内容与结构，再用相应的能力生成目标文件格式。
 
-## References
+## 参考
 
-Read only what the current task needs:
+按需读取，不全文加载：
 
-- `references/document-types.md`: structures and section expectations for PRD, HLD, LLD, RFC, API, MOP, and related documents.
-- `references/quality-rules.md`: anti-hallucination, traceability, terminology, style, and Markdown rules.
-- `references/mop-guide.md`: detailed production MOP requirements, checkpoints, rollback, and validation rules.
-- `references/self-check.md`: final quality gate before delivery.
+- `references/document-types.md`：PRD、HLD、LLD、RFC、API、MOP 等类型的结构与章节要求。
+- `references/quality-rules.md`：反虚构、可追溯、术语、文风与 Markdown 规则。
+- `references/mop-guide.md`：生产 MOP 的详细要求、检查点、回滚与验证规则。
+- `references/self-check.md`：交付前的最终质量门。

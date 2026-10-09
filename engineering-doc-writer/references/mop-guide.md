@@ -1,138 +1,138 @@
-# Production Upgrade / Deployment MOP Guide
+# 生产升级 / 部署 MOP 指南
 
-A MOP (Method of Procedure) is an executable production change procedure. Treat it as an operational control document, not a descriptive upgrade article.
+MOP（Method of Procedure）是可执行的生产变更操作文件。把它当作运维控制文档，而不是描述性的升级介绍文章。
 
-## 1. Minimum information model
+## 1. 最小信息集
 
-Capture the following when known:
+已知时逐项记录：
 
-- target system/service;
-- source version and target version;
-- affected environment/region/site;
-- change window;
-- expected service impact;
-- deployment package/checksum/location;
-- required accounts/permissions;
-- configuration or database changes;
-- backup method;
-- rollback method;
-- verification criteria;
-- confirmed owner/contact.
+- 目标系统/服务；
+- 源版本与目标版本；
+- 受影响的环境/区域/站点；
+- 变更窗口；
+- 预期业务影响；
+- 部署包/校验和/存放位置；
+- 所需账号/权限；
+- 配置或数据库变更；
+- 备份方式；
+- 回滚方式；
+- 验证标准；
+- 已确认的责任人/联系人。
 
-If any critical item is unknown, mark it `TBD` rather than inventing it.
+关键项未知时标注 `TBD`，不编造。
 
-## 2. Procedure properties
+## 2. 步骤性质
 
-Every execution step should be:
+每个执行步骤应当：
 
-- ordered;
-- atomic enough to execute and verify;
-- explicit about host/component when multiple targets exist;
-- explicit about commands, files, parameters, and expected results when provided;
-- followed by a checkpoint when failure would materially increase recovery cost.
+- 有序；
+- 原子到可执行、可验证；
+- 存在多个目标时明确主机/组件；
+- 提供了命令、文件、参数和预期结果时写明确；
+- 失败会显著推高恢复成本的步骤之后设置检查点。
 
-Avoid vague steps such as `确认系统正常` or `执行升级操作` without defining what to check or execute.
+避免“确认系统正常”“执行升级操作”这类未定义检查项或动作的模糊步骤。
 
-## 3. Recommended step table
+## 3. 推荐步骤表
 
-For operational changes, prefer a table when it improves execution clarity:
+运维类变更在有助于执行清晰时优先用表格：
 
-| Step | Target | Action / Command | Expected Result | Failure Action |
+| 步骤 | 目标 | 动作 / 命令 | 预期结果 | 失败处理 |
 |---|---|---|---|---|
-| 1 | [host/service] | [action] | [observable result] | [stop/rollback/escalate] |
+| 1 | [主机/服务] | [动作] | [可观察结果] | [停止/回滚/上报] |
 
-Do not fabricate commands. If the command is unknown, write `Command: TBD`.
+不编造命令。命令未知时写 `Command: TBD`。
 
-## 4. Pre-change checks
+## 4. 变更前检查
 
-Check only items relevant to the supplied system, for example:
+只检查与目标系统相关的项，例如：
 
-- service status;
-- active/standby role;
-- current version;
-- disk/memory/CPU headroom;
-- database health;
-- replication status;
-- current traffic/alarms;
-- package integrity;
-- backup completion;
-- change dependencies.
+- 服务状态；
+- 主备角色；
+- 当前版本；
+- 磁盘/内存/CPU 余量；
+- 数据库健康；
+- 复制状态；
+- 当前流量/告警；
+- 安装包完整性；
+- 备份完成情况；
+- 变更依赖。
 
-Do not mechanically include every check for every system.
+不机械地为所有系统套用全部检查项。
 
-## 5. Backup and recovery preparation
+## 5. 备份与恢复准备
 
-Define:
+定义：
 
-- what is backed up;
-- backup location;
-- backup command/process;
-- restore procedure;
-- validation that the backup can be used.
+- 备份什么；
+- 备份存放位置；
+- 备份命令/流程；
+- 恢复步骤；
+- 备份可用性的验证方式。
 
-Configuration copy alone is not a complete rollback plan if the change also modifies database schema, data, or external dependencies.
+变更同时修改数据库结构、数据或外部依赖时，仅复制配置不构成完整的回滚方案。
 
-## 6. Checkpoints
+## 6. 检查点
 
-Place checkpoints after meaningful risk transitions, such as:
+检查点设置在有实质风险切换的位置之后，例如：
 
-- stopping traffic or service;
-- database DDL/DML;
-- configuration replacement;
-- binary/package deployment;
-- restart;
-- traffic restoration.
+- 停流量或停服务；
+- 数据库 DDL/DML；
+- 配置替换；
+- 二进制/安装包部署；
+- 重启；
+- 恢复流量。
 
-A checkpoint should define an observable pass condition.
+检查点应定义可观察的通过条件。
 
-## 7. Rollback triggers
+## 7. 回滚触发条件
 
-Use explicit triggers when known, such as:
+已知时使用显式触发条件，例如：
 
-- service cannot start;
-- health check fails for a defined period;
-- critical API error rate exceeds a defined threshold;
-- data migration validation fails;
-- compatibility check fails;
-- agreed business verification fails.
+- 服务无法启动；
+- 健康检查持续失败超过设定时长；
+- 关键 API 错误率超过设定阈值；
+- 数据迁移校验失败；
+- 兼容性检查失败；
+- 约定的业务验证失败。
 
-If thresholds are unknown, do not invent numbers. State the condition qualitatively and mark threshold values `TBD`.
+阈值未知时不编造数字。定性描述条件，阈值标注 `TBD`。
 
-## 8. Rollback procedure
+## 8. 回滚步骤
 
-Rollback must be executable and in a safe order. Cover all changed state:
+回滚必须可执行且顺序安全。覆盖所有被变更的状态：
 
-- binaries/packages;
-- configuration;
-- database schema/data;
-- traffic routing;
-- caches/state if relevant;
-- dependent-system changes if applicable.
+- 二进制/安装包；
+- 配置；
+- 数据库结构/数据；
+- 流量路由；
+- 相关时的缓存/状态；
+- 适用时的依赖系统变更。
 
-State irreversibility explicitly when rollback is not technically available.
+技术上无法回滚时，显式说明不可逆。
 
-## 9. Post-change validation
+## 9. 变更后验证
 
-Validate at multiple levels when relevant:
+相关时在多个层面验证：
 
-- process/service health;
-- component/API health;
-- key business flow;
-- database state;
-- monitoring/alarms/logs;
-- external integration;
-- version confirmation;
-- traffic restoration.
+- 进程/服务健康；
+- 组件/API 健康；
+- 关键业务流程；
+- 数据库状态；
+- 监控/告警/日志；
+- 外部集成；
+- 版本确认；
+- 流量恢复。
 
-`服务启动成功` alone is not sufficient evidence that an upgrade succeeded.
+仅“服务启动成功”不足以证明升级成功。
 
-## 10. MOP versus related documents
+## 10. MOP 与相关文档的区分
 
-- Upgrade Guide: explains how to upgrade in general.
-- MOP: controls a concrete production execution procedure.
-- Deployment Guide: covers installation/deployment patterns, sometimes broader than one change.
-- Rollback Plan: focuses only on recovery.
-- Runbook: covers recurring operational procedures.
-- Release Notes: records what changed in the release.
+- 升级指南（Upgrade Guide）：讲一般性的升级方法。
+- MOP：控制一次具体的生产执行过程。
+- 部署指南（Deployment Guide）：覆盖安装/部署模式，范围可能大于单次变更。
+- 回滚方案（Rollback Plan）：只聚焦恢复。
+- Runbook：覆盖重复发生的运维流程。
+- Release Notes：记录版本发布内容。
 
-When the user says `升级文档` and the content is intended for production execution with ordered actions, checks, and rollback, default to MOP.
+用户说“升级文档”，且内容面向生产执行、包含有序动作、检查和回滚时，默认按 MOP 处理。
