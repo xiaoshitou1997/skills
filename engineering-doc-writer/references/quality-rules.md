@@ -1,10 +1,10 @@
-# Engineering Document Quality Rules
+# 工程文档质量规则
 
-## 1. Independent deliverable
+## 1. 独立交付物
 
-The reader should understand the document without access to the chat, previous revisions, meeting history, or author intent.
+读者不接触对话、历史版本、会议背景或作者意图，也能理解文档。
 
-Remove phrases such as:
+删除以下措辞：
 
 - `根据您的要求`
 - `结合之前的讨论`
@@ -13,104 +13,104 @@ Remove phrases such as:
 - `本次调整后`
 - `之前的版本`
 
-Replace them with stable system statements.
+用稳定的系统陈述替换。
 
-## 2. Do not fabricate completeness
+## 2. 不虚构完整性
 
-Never invent:
+绝不编造：
 
-- performance numbers or SLOs;
-- capacity claims;
-- interface fields or error codes;
-- owners or responsible teams;
-- release dates or milestones;
-- product or middleware versions;
-- dependencies such as Redis, Kafka, Prometheus, Grafana, ELK;
-- security, availability, or compliance claims.
+- 性能数字或 SLO；
+- 容量结论；
+- 接口字段或错误码；
+- 责任人或责任团队；
+- 发布日期或里程碑；
+- 产品或中间件版本；
+- Redis、Kafka、Prometheus、Grafana、ELK 之类的依赖；
+- 安全、可用性或合规声明。
 
-Use one of:
+使用以下之一：
 
 - `TBD`
 - `Unknown`
 - `Assumption`
 - `Open Question`
 
-## 3. Separate statement types
+## 3. 区分语句类型
 
-Treat input carefully:
+谨慎对待输入：
 
-| Type | Meaning | Document behavior |
+| 类型 | 含义 | 文档处理 |
 |---|---|---|
-| Fact | Confirmed current behavior/evidence | State directly |
-| Requirement | Required future/target behavior | Express as requirement |
-| Decision | Selected design/approach | Record with rationale |
-| Assumption | Unverified condition required by the design | Label explicitly |
-| Open Question | Missing decision/information | Keep unresolved |
-| Discussion | Exploration or suggestion | Do not silently promote |
+| Fact | 已确认的现状/证据 | 直接陈述 |
+| Requirement | 要求的将来/目标行为 | 按需求表述 |
+| Decision | 已选定的设计/路线 | 连同理由记录 |
+| Assumption | 设计依赖但未验证的条件 | 显式标注 |
+| Open Question | 缺失的决策/信息 | 保持未决 |
+| Discussion | 探索或建议 | 不得静默升级 |
 
-Example:
+示例：
 
-Input: `以后会不会支持三个 Region？`
+输入：`以后会不会支持三个 Region？`
 
-Do not write: `系统支持三个 Region。`
+不要写：`系统支持三个 Region。`
 
-Write: `Open Question: 是否需要扩展至三个 Region？当前输入未确认。`
+应写：`Open Question: 是否需要扩展至三个 Region？当前输入未确认。`
 
-## 4. Requirements versus design
+## 4. 需求与设计
 
-Do not write technology choices as business/functional requirements unless the technology is a mandated constraint.
+技术选型不是强制约束时，不得写成业务/功能需求。
 
-Bad:
+错误：
 
 `Requirement: 使用 Redis 保存状态。`
 
-Better:
+正确：
 
 `Requirement: 跨 Region 状态最终一致。`
 
 `Design: 使用 Redis 保存状态。`
 
-## 5. Decisions and trade-offs
+## 5. 决策与权衡
 
-For RFC/HLD decisions, capture:
+RFC/HLD 中的决策要记录：
 
-- selected option;
-- why it was selected;
-- rejected alternatives;
-- cost, risk, compatibility impact, or operational burden.
+- 选定的方案；
+- 选择理由；
+- 被否决的备选；
+- 成本、风险、兼容性影响或运维负担。
 
-If no option is selected, use `Decision: TBD`.
+没有选定方案时使用 `Decision: TBD`。
 
-## 6. Traceability
+## 6. 可追溯性
 
-When evidence exists, make key claims traceable to one of:
+存在证据时，关键论断可追溯到：
 
-- requirement ID;
-- code symbol and location;
-- endpoint or schema;
-- configuration key;
-- log/event evidence;
-- observed measurement and time window;
-- formal external specification.
+- 需求编号；
+- 代码符号与位置；
+- 端点或表结构；
+- 配置键；
+- 日志/事件证据；
+- 实测值与时间窗口；
+- 正式外部规范。
 
-Do not create fake citations or source labels.
+不伪造引用或来源标签。
 
-## 7. Terminology control
+## 7. 术语控制
 
-- Define abbreviations on first meaningful use when the audience may not know them.
-- Lock one term per concept.
-- Do not interchange `Session`, `Token`, `Credential`, `Cookie`, and `Auth State` without defining differences.
-- Match actual code/config/API casing when supplied.
+- 受众可能不认识的缩略语在首次实质使用处定义。
+- 一个概念锁定一个术语。
+- `Session`、`Token`、`Credential`、`Cookie`、`Auth State` 未定义差异前不得混用。
+- 提供了代码/配置/API 时，大小写与实际一致。
 
-## 8. Scope control
+## 8. 范围控制
 
-Use `In Scope` / `Out of Scope` when boundaries are important.
+边界重要时使用 `In Scope` / `Out of Scope`。
 
-Do not add adjacent themes such as OAuth, SSO, JWT, monitoring, CI/CD, audit, multi-region, caching, or message queues unless supported by requirements or design inputs.
+需求或设计输入不支持时，不引入相邻主题：OAuth、SSO、JWT、监控、CI/CD、审计、多 Region、缓存、消息队列等。
 
-## 9. Verifiable language
+## 9. 可验证的语言
 
-Avoid:
+避免：
 
 - `性能优异`
 - `高可用`
@@ -118,42 +118,42 @@ Avoid:
 - `支持大规模并发`
 - `显著提升`
 
-Prefer:
+改用：
 
-- `P99 latency target: TBD.`
-- `Availability target: TBD.`
-- `Capacity must be verified against [known workload].`
+- `P99 延迟目标：TBD。`
+- `可用性目标：TBD。`
+- `容量需针对[已知负载]实测验证。`
 
-## 10. Style
+## 10. 文风
 
-Use neutral engineering language.
+使用中性的工程语言。
 
-Avoid:
+避免：
 
-- first/second person;
-- subjective praise;
-- filler paragraphs;
-- meta-narration such as `本节将介绍`;
-- colloquial wording;
-- repeated conclusions across sections.
+- 人称呼语；
+- 主观夸饰；
+- 填充段落；
+- `本节将介绍`之类的元叙述；
+- 口语化措辞；
+- 跨章节重复结论。
 
-Each paragraph should add information.
+每段都应提供新信息。
 
 ## 11. Markdown
 
-- Use headings in order without skipping levels.
-- Prefer headings, lists, tables, code fences, links, and Mermaid.
-- Do not use decorative emoji.
-- Avoid bold/italic/strikethrough as the primary structure mechanism.
-- Keep JSON/YAML expanded and readable.
-- Keep shell commands copyable and omit shell prompt characters.
-- Use Mermaid instead of ASCII architecture diagrams.
+- 标题按层级递进，不跳级。
+- 优先使用标题、列表、表格、代码块、链接和 Mermaid。
+- 不用装饰性 emoji。
+- 不以加粗/斜体/删除线作为主要结构手段。
+- JSON/YAML 保持展开、可读。
+- shell 命令保持可复制，不带提示符字符。
+- 架构图用 Mermaid，不用 ASCII 字符画。
 
-## 12. Diagram consistency
+## 12. 图文一致
 
-Before finalizing, verify:
+定稿前核对：
 
-- component names match prose;
-- sequence order matches described flow;
-- stores/protocols shown in diagrams also appear in prose;
-- diagrams do not introduce unconfirmed dependencies.
+- 图中组件名与正文一致；
+- 时序顺序与描述的流程一致；
+- 图中出现的存储/协议在正文中也出现；
+- 图不引入未经确认的依赖。
