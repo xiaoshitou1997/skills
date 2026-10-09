@@ -1,0 +1,22 @@
+# syntax=docker/dockerfile:1.7
+ARG BUILD_IMAGE=gradle:8-jdk17
+ARG RUNTIME_IMAGE=eclipse-temurin:17-jre
+FROM ${BUILD_IMAGE} AS builder
+WORKDIR /workspace
+COPY --chown=gradle:gradle . .
+USER gradle
+RUN --mount=type=cache,target=/home/gradle/.gradle,uid=1000,gid=1000 \
+    if [ -f ./gradlew ]; then sh ./gradlew --no-daemon build; else gradle --no-daemon build; fi
+USER root
+RUN set -eu; mkdir -p /out; \
+    find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' \
+      ! -name '*-sources.jar' > /tmp/skills-jars; \
+    test "$(wc -l < /tmp/skills-jars)" -eq 1; \
+    cp "$(cat /tmp/skills-jars)" /out/app.jar; \
+    test -s /out/app.jar
+FROM ${RUNTIME_IMAGE}
+WORKDIR /app
+COPY --from=builder /out/app.jar /app/app.jar
+EXPOSE 8080
+USER 10001
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
