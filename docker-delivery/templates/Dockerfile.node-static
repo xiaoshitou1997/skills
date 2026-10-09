@@ -1,0 +1,18 @@
+# syntax=docker/dockerfile:1.7
+ARG BUILD_IMAGE=node:22-alpine
+ARG RUNTIME_IMAGE=nginx:alpine
+FROM ${BUILD_IMAGE} AS builder
+WORKDIR /workspace
+COPY . .
+RUN set -eu; \
+    if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile && pnpm run build; \
+    elif [ -f yarn.lock ]; then corepack enable && yarn install --immutable && yarn build; \
+    elif [ -f package-lock.json ]; then npm ci && npm run build; \
+    else echo 'Missing Node lockfile' >&2; exit 1; fi
+RUN set -eu; mkdir -p /out; \
+    if [ -d dist ]; then cp -R dist/. /out/; \
+    elif [ -d build ]; then cp -R build/. /out/; \
+    else echo 'Missing static dist/build' >&2; exit 1; fi
+FROM ${RUNTIME_IMAGE}
+COPY --from=builder /out/ /usr/share/nginx/html/
+EXPOSE 80

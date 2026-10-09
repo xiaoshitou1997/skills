@@ -1,0 +1,8 @@
+services:
+  app:
+    image: "${FF_IMAGE:?FF_IMAGE is required}"
+    restart: unless-stopped
+    env_file:
+      - ".env.${APP_ENV:-dev}"
+    ports:
+      - "${HOST_PORT:-8080}:${CONTAINER_PORT:-8080}"
