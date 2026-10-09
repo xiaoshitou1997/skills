@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队本地开发、Git 发布和 Docker 交付的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队本地开发、Git 发布、Docker 交付和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 六个 skills
+## 七个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -13,6 +13,7 @@
 | `git-publisher` | 按逻辑变更提交、按需推送、创建与检查 GitHub PR |
 | `docker-delivery` | 容器内构建、Compose 部署、同镜像晋级、健康验证及应用回滚 |
 | `spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
+| `engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 
 
 

@@ -2,7 +2,7 @@
 
 [中文说明](README.zh-CN.md)
 
-Team-reusable Agent Skills for development, Git publishing and Docker delivery. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
+Team-reusable Agent Skills for development, Git publishing, Docker delivery and engineering documentation. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
 
 This collection contains team engineering practices, not an official product or certification from an agent, framework or endpoint-security vendor.
 
@@ -15,6 +15,7 @@ This collection contains team engineering practices, not an official product or 
 | `git-publisher` | Prepare logical commits, push when requested, and inspect or create GitHub PRs |
 | `docker-delivery` | Container builds, Compose deployment, same-image promotion, health checks and application rollback |
 | `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
+| `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
 
 
 

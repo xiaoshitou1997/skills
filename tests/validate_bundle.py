@@ -13,6 +13,7 @@ SKILLS = {
     'docker-delivery',
     'git-publisher',
     'spring-boot-standards',
+    'engineering-doc-writer',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;
@@ -80,7 +81,7 @@ def validate():
 
     for e in errors: print('FAIL:', e)
     if not errors:
-        print('PASS: 6 skills; frontmatter; references; Python + shell syntax')
+        print('PASS: 7 skills; frontmatter; references; Python + shell syntax')
     return int(bool(errors))
 
 
