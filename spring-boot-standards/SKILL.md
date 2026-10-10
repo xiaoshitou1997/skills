@@ -1,6 +1,6 @@
 ---
 name: spring-boot-standards
-description: 编写、修改、重构或审查 Spring Boot 后端代码时使用，覆盖分层、API、DTO/VO、异常、日志、事务、数据访问和测试；MyBatis-Plus 条款仅适用于使用该库的项目。优先遵循项目已采纳的规范和用户明确架构决策，不向其他 Java 框架强加 Spring 约定。
+description: 编写、修改、重构或审查 Spring Boot 后端代码时使用，覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；MyBatis-Plus 条款仅适用于使用该库的项目。优先遵循项目已采纳的规范和用户明确架构决策，不向其他 Java 框架强加 Spring 约定。
 ---
 
 # Spring Boot Standards
@@ -25,10 +25,12 @@ description: 编写、修改、重构或审查 Spring Boot 后端代码时使用
 8. 对高风险逻辑补齐单测和必要的集成测试：正常路径、边界条件、异常和并发/事务场景。使用项目现有 JUnit/Mockito/Testcontainers 等工具，不为规范而更换框架。
 9. 改动现有系统时保持最小必要变更，优先遵从项目已有模块、依赖版本与兼容性约束。涉及契约、数据库、升级或不兼容 API 要更新对应文档和迁移建议。
 10. 集成组件封装鉴权、协议包络、超时等技术机制，业务侧保留业务接口与决策；优先使用现有客户端的声明能力，不为复用另造通用路径调用门面或代理栈。只实现组件的任务，不自动扩展成服务接线与业务编排。
+11. 状态、类型、角色等枚举型字段用 Java 枚举全链路承载（存储、入参、返回值、判断），不以 String 中转；每个独立业务失败场景对应唯一错误码枚举，不复用扩展语义；用户可见文案走国际化资源，不在业务代码硬编码；结构化业务数据用强类型 POJO 承载，不用 Map/JsonNode 替代。项目已有错误码/文案体系优先。
+12. 集合与并发遵循通用 Java 基线：`ThreadPoolExecutor` 显式建池、`ThreadLocal` 用后 remove、foreach 中不增删元素、遍历 Map 用 entrySet、返回集合不返回 null；判空统一走标准工具类。
 
 ## 详细参考
 
-代码结构、命名、API、接口文档、日志、数据访问和单测的建议见 [references/java-guide.md](references/java-guide.md)；编写或审查设计、接口文档时读取其中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例不应覆盖项目实际库版本或性能特征。
+代码结构、命名、API、错误码与国际化、枚举与类型安全、接口文档、日志、数据访问、集合并发、配置与运行期约束、单测及交付自查清单见 [references/java-guide.md](references/java-guide.md)；编写或审查设计、接口文档时读取其中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
 
 ## 输出
 
