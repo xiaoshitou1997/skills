@@ -11,7 +11,7 @@ This collection contains team engineering practices, not an official product or 
 | Skill | Scope |
 | --- | --- |
 | `toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
-| `build-run-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
+| `wsl-build-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
 | `git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
 | `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
 | `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
@@ -57,10 +57,10 @@ Commit language and format follow the user and repository conventions. The defau
 
 ## WSL build & deploy
 
-`build-run-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Gradle projects build through a resident daemon container by default for incremental speed; `FF_GRADLE_DAEMON=0` opts back into in-image multistage builds. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](build-run-deploy/references/deployment-contract.md) and [security model](build-run-deploy/references/security-model.md).
+`wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Gradle projects build through a resident daemon container by default for incremental speed; `FF_GRADLE_DAEMON=0` opts back into in-image multistage builds. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](wsl-build-deploy/references/deployment-contract.md) and [security model](wsl-build-deploy/references/security-model.md).
 
 ```bash
-SKILL_ROOT="/absolute/path/to/build-run-deploy"
+SKILL_ROOT="/absolute/path/to/wsl-build-deploy"
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'

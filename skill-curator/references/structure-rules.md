@@ -33,6 +33,6 @@
 
 ## 命名先例
 
-- 按任务与流程命名（toolchain-manager、engineering-doc-writer、git-commit-push、build-run-deploy 的 build/run/deploy 三动词）；机制与硬约束写入 description（如 WSL 容器门禁），不占名字。
+- 名字对应团队场景的功能与流程（toolchain-manager、engineering-doc-writer、git-commit-push）；当机制/硬约束本身是团队标准的一部分时写进名字（wsl-build-deploy 的 WSL 门禁），看到名字即知边界，防误触发与误用。
 - 规范型 skill 用 `-standards` 后缀；避免与内置 skill（如 code-review、security-review）撞名。
 - 改名成本高（已安装副本会双触发），优先只改 description 与内容，不动名字。
