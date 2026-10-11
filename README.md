@@ -1,76 +1,76 @@
-# Team Engineering Skills
+# 团队工程 Skills
 
-[中文说明](README.zh-CN.md)
+[English](README.en.md)
 
-Team-reusable Agent Skills for Git publishing, WSL container build/debug/deploy, toolchains and engineering documentation. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
+面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
-This collection contains team engineering practices, not an official product or certification from an agent, framework or endpoint-security vendor.
+这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## Skills
+## 六个 skills
 
-| Skill | Scope |
+| Skill | 范围 |
 | --- | --- |
-| `toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
-| `wsl-build-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
-| `git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
-| `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
-| `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
-| `skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
+| `toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
+| `wsl-build-deploy` | 构建、本地调测、dev/prod 部署、同镜像晋级与回滚的统一 WSL 容器管线 |
+| `git-commit-push` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
+| `spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
+| `engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
+| `skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
 
 
-“Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before committing, keeping linear history and avoiding merge commits.
+这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为先 pull、解决冲突，再 commit，并保持线性历史、禁止 merge commit。
 
-## Maintenance principles
+## 维护原则
 
-- Extract team-reusable methods, conventions and verification criteria from experience. Encode confirmed team rules directly rather than making them optional because other teams may differ. Do not copy project-specific business rules, fixed paths or credentials.
-- Keep the current workflow in SKILL.md and load environment/framework details from references as needed. Update descriptions, examples, entry points and links together so obsolete instructions do not remain active.
-- Report compilation, unit tests, mock integration and real-system integration separately. Static checks do not establish behavior; use scoped machine checks for recurring mechanical errors rather than accumulating reminders.
+- 从实际经验提炼团队可复用的方法、规范和验证标准；团队规则可直接写入 skill，不因其他团队可能不同而弱化为可选项。不复制项目业务口径、固定路径或凭据。
+- 主文件保留当前有效工作流，环境/框架细节按需放入 references；更新流程时同步描述、示例、执行入口与引用，避免旧操作指令残留。
+- 编译、单测、mock 联调和真实系统联调分别记录证据；静态检查不能替代行为验证。反复出现的机械错误优先增加范围明确的机器检查，而非堆叠提醒。
 
-## Install
+## 安装
 
-Install from this repository:
+从本仓库安装：
 
 ```bash
 npx skills@latest add xiaoshitou1997/skills --list
 npx skills@latest add xiaoshitou1997/skills
 npx skills@latest add xiaoshitou1997/skills --skill git-commit-push -g -a claude-code
-# Local checkout: list skills without installing
+# 本地仓库：只列出 skills，不安装
 npx skills@latest add . --list
 ```
 
-The CLI supports multiple agents; select the target with `-a`. Skills are loaded according to the selected agent's behavior. Node.js is needed for the CLI. Python utilities need Python 3 (`python3`, `python` or `py -3`, depending on the environment); shell utilities need Bash and their documented tools.
+CLI 支持多个 agent，使用 `-a` 选择目标；技能加载方式取决于目标 agent。CLI 需要 Node.js；Python 脚本需要 Python 3，按环境使用 `python3`、`python` 或 `py -3`。Shell 脚本需要 Bash 及对应工具。
 
-## Run bundled tools
+## 使用脚本
 
-Locate the installed skill through its loaded `SKILL.md`. `SKILL_ROOT` below is an explicitly assigned absolute path, not an agent-provided variable. Run project-oriented commands from your application repository:
+通过本次加载的 `SKILL.md` 定位实际安装目录。下文 `SKILL_ROOT` 需要明确赋值，不保证 agent 自动设置。项目命令应从用户应用仓库执行：
 
 ```bash
-SKILL_ROOT="/absolute/path/to/toolchain-manager"
+SKILL_ROOT="/实际绝对路径/toolchain-manager"
 python3 "$SKILL_ROOT/scripts/doctor.py" --project .
 
-SKILL_ROOT="/absolute/path/to/git-commit-push"
+SKILL_ROOT="/实际绝对路径/git-commit-push"
 python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```
 
-Commit language and format follow the user and repository conventions. The default in the absence of conventions is Chinese Conventional Commits. Existing staged changes are preserved and inspected before committing.
+提交语言与格式优先遵循用户和仓库约定；没有约定时可默认中文 Conventional Commits。已有暂存内容先识别、审查，不擅自清空。
 
-## WSL build & deploy
+## WSL 构建部署
 
-`wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Gradle projects build through a resident daemon container by default for incremental speed; `FF_GRADLE_DAEMON=0` opts back into in-image multistage builds. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](wsl-build-deploy/references/deployment-contract.md) and [security model](wsl-build-deploy/references/security-model.md).
+`wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条 WSL 容器管线。自带模板面向 Java 可执行 JAR 和 Node 静态前端；Gradle 项目默认经常驻 daemon 容器增量构建提速，`FF_GRADLE_DAEMON=0` 退回镜像内构建；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](wsl-build-deploy/references/security-model.md)。
 
 ```bash
-SKILL_ROOT="/absolute/path/to/wsl-build-deploy"
+SKILL_ROOT="/实际绝对路径/wsl-build-deploy"
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'
 bash "$SKILL_ROOT/scripts/deliver.sh" status dev myapp
 ```
 
-Docker/Compose is required; remote delivery uses SSH. Production deploy/rollback needs an explicitly requested action and target configuration. `--approve-prod` is a script guard, not proof of user authorization. Default production promotion requires a health-verified dev receipt for the same image ID. Runtime state is under `~/.local/share/skills/`. Application rollback does not revert database migrations or external side effects.
+构建需要 Docker/Compose，远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.local/share/skills/`。应用回滚不回滚数据库迁移或外部副作用。
 
-Optional Gitleaks/Trivy integrations report missing tools rather than claiming a scan passed. `FF_REQUIRE_SECURITY_SCAN=1` requires the relevant scanners. These skills install no automatic command hooks.
+Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库不安装自动命令 Hook。
 
-## Validation
+## 验证
 
-Before distribution, check skill names, references, documented script paths and Python/Bash syntax. Run focused verification in the target project when using the scripts. Passing discovery or static checks is not evidence of deployment success or universal agent compatibility.
+分发前检查 skill 名称、引用、文档脚本路径及 Python/Bash 语法；使用脚本时按目标项目运行针对性验证。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。
