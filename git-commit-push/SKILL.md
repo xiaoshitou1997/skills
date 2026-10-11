@@ -4,7 +4,7 @@ description: 用户要求提交并推送代码（commit&push 一体）、拆分�
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git remote:*)
 ---
 
-# Git Publisher
+# Git Commit Push
 
 本 skill 面向团队内跨项目复用；以下已确认的团队规则是默认基线，不因其他团队采用不同工作流而降为可选项。
 
