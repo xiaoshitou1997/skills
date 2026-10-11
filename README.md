@@ -12,7 +12,7 @@ This collection contains team engineering practices, not an official product or 
 | --- | --- |
 | `toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
 | `wsl-build-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
-| `git-publisher` | Prepare logical commits, push when requested, and inspect or create GitHub PRs |
+| `git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
 | `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
 | `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
 | `skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
@@ -33,7 +33,7 @@ Install from this repository:
 ```bash
 npx skills@latest add xiaoshitou1997/skills --list
 npx skills@latest add xiaoshitou1997/skills
-npx skills@latest add xiaoshitou1997/skills --skill git-publisher -g -a claude-code
+npx skills@latest add xiaoshitou1997/skills --skill git-commit-push -g -a claude-code
 # Local checkout: list skills without installing
 npx skills@latest add . --list
 ```
@@ -48,7 +48,7 @@ Locate the installed skill through its loaded `SKILL.md`. `SKILL_ROOT` below is 
 SKILL_ROOT="/absolute/path/to/toolchain-manager"
 python3 "$SKILL_ROOT/scripts/doctor.py" --project .
 
-SKILL_ROOT="/absolute/path/to/git-publisher"
+SKILL_ROOT="/absolute/path/to/git-commit-push"
 python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```

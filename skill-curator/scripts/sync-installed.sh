@@ -51,11 +51,21 @@ npx -y skills@latest add "$SRC" -s '*' -g -y "${agent_args[@]}"
 
 # 改名/合并前的旧版本:装了会导致双触发,必须显式移除(README 迁移记录同步维护此清单)。
 for name in "${STALE[@]}"; do
-  # 未安装时 remove 幂等返回成功,无需预检查。
-  npx -y skills@latest remove "$name" -g -y "${agent_args[@]}" >/dev/null 2>&1 || true
+  # 清旧不带 -a:remove 省略 agent 参数才清理全部 agent 链接(带 -a 只清指定 agent,universal 链接会残留)。
+  # 未安装时 remove 幂等返回成功;npx 在 Windows 上退出前可能崩溃,退出码不可靠,以清单复核为准。
+  npx -y skills@latest remove "$name" -g -y >/dev/null 2>&1 || true
 done
-echo "Stale names removed if present: ${STALE[*]}"
 
+# 复核已安装清单(剔除 ANSI 色码),旧版残留则显式告警。
+installed_list=$(npx -y skills@latest ls -g 2>/dev/null | sed -r 's/\x1b\[[0-9;]*m//g' || true)
 echo "--- installed skills (global) ---"
-npx -y skills@latest ls -g || true
+echo "$installed_list"
+stale_left=0
+for name in "${STALE[@]}"; do
+  if grep -q "^${name}[[:space:]]" <<< "$installed_list"; then
+    echo "WARNING: 旧版 $name 仍在全局安装,请重跑本脚本或手动执行 npx skills@latest remove $name -g" >&2
+    stale_left=1
+  fi
+done
+[[ $stale_left -eq 0 ]] || exit 4
 echo "对照上方清单:凡不在 Repo skills 里且不在 STALE 清单中的条目属于其他来源,本脚本不代删,请人工确认。"

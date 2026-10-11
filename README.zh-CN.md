@@ -10,7 +10,7 @@
 | --- | --- |
 | `toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
 | `wsl-build-deploy` | 构建、本地调测、dev/prod 部署、同镜像晋级与回滚的统一 WSL 容器管线 |
-| `git-publisher` | 按逻辑变更提交、按需推送、创建与检查 GitHub PR |
+| `git-commit-push` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
 | `spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
 | `engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
@@ -31,7 +31,7 @@
 ```bash
 npx skills@latest add xiaoshitou1997/skills --list
 npx skills@latest add xiaoshitou1997/skills
-npx skills@latest add xiaoshitou1997/skills --skill git-publisher -g -a claude-code
+npx skills@latest add xiaoshitou1997/skills --skill git-commit-push -g -a claude-code
 # 本地仓库：只列出 skills，不安装
 npx skills@latest add . --list
 ```
@@ -46,7 +46,7 @@ CLI 支持多个 agent，使用 `-a` 选择目标；技能加载方式取决于�
 SKILL_ROOT="/实际绝对路径/toolchain-manager"
 python3 "$SKILL_ROOT/scripts/doctor.py" --project .
 
-SKILL_ROOT="/实际绝对路径/git-publisher"
+SKILL_ROOT="/实际绝对路径/git-commit-push"
 python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```

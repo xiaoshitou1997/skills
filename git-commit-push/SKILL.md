@@ -1,6 +1,6 @@
 ---
-name: git-publisher
-description: 用户要求提交代码、拆分原子 commit、推送分支、创建 PR 或查看 PR 检查结果时使用。按独立逻辑变更精细暂存，审查最终 staged diff，并遵循仓库提交规范；仅解释 Git 概念时无需加载完整发布流程。
+name: git-commit-push
+description: 用户要求提交并推送代码（commit&push 一体）、拆分原子 commit、创建 PR 或查看 PR 检查结果时使用。按独立逻辑变更精细暂存，审查最终 staged diff，并遵循仓库提交规范；仅解释 Git 概念时无需加载完整发布流程。
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git remote:*)
 ---
 
@@ -34,8 +34,8 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 5. 逐组暂存审查：`git diff --cached --check`、`git diff --cached --name-status`、`git diff --cached --`，确认暂存内容**只**属于当前组。可运行 `python3 "${SKILL_ROOT}/scripts/stage_audit.py"` 检查常见 secret/大文件风险。
 6. 按涉及代码运行项目已有且可用的轻量检查（lint / typecheck / targeted tests）。没有配置的检查不虚构成功；失败时停止本组提交并报告。
 7. 提交信息采用用户或仓库约定的语言与格式。没有既有约定时默认中文 Conventional Commits，例如 `feat(auth): 增加短信登录验证码校验`。标题基于本组 staged diff，避免含糊通用信息。
-8. `git commit -m '...'` 后再次查看状态及 SHA；所有组处理完再按用户意图 push。
-9. 仅指定 `commit` 时不自动 push。用户明确要求 `push` 或「提交并推送」时使用安全普通 push；上游缺失时先确认远端与分支再设置。
+8. `git commit -m '...'` 后再次查看状态及 SHA。
+9. **commit&push 是一个整体动作：全部组提交完成后即执行一次安全普通 push**，不把 push 拆成需要用户再次显式请求的独立步骤。仅用户明确「只要 commit、不要 push」时停在本地。上游缺失时先确认远端与分支再设置；推送失败如实报告，不重试 `--force`。
 10. 汇报每组提交的 hash、type、变更目的、检查情况、push 结果，以及明确保留的未提交内容。
 
 ## 同文件不同 Feature
@@ -66,7 +66,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 
 1. 检查本次 PR 相对目标分支的全部提交与 diff。已有合适提交时直接复用，不为创建 PR 新增 commit。
 2. 仍有待提交修改时按独立功能分组，避免加入无关变更。
-3. 用户明确要求 Push 才执行 `git push`。确认当前分支正确、上游已设置、远端没有不明变更。
+3. 创建 PR 本身就是明确请求，push 是它的组成部分：确认当前分支正确、上游已设置、远端没有不明变更后安全普通 push。
 4. GitHub 项目可复用 `gh`，先运行 `gh auth status`。创建 PR：`bash "${SKILL_ROOT}/scripts/pr.sh" create <base> <title> <body.md>`。脚本要求干净工作区及已配置上游，不会自动 Push。
 5. CI 状态：`bash "${SKILL_ROOT}/scripts/pr.sh" checks`。失败不能宣称发布质量通过。审查意见用 agent 可用工具或 gh 读取，不自动合并或覆盖别人提交。
 6. PR 检查覆盖相对目标分支的实际变更，不依赖此时可能为空的 staged diff。按项目需求运行 `bash "${SKILL_ROOT}/scripts/quality-check.sh" quick` 或 `full`；缺工具时停止或明确报告未执行。

@@ -10,7 +10,7 @@ ROOT = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path(_
 SKILLS = {
     'toolchain-manager',
     'wsl-build-deploy',
-    'git-publisher',
+    'git-commit-push',
     'spring-boot-standards',
     'engineering-doc-writer',
     'skill-curator',
@@ -21,10 +21,10 @@ SKILLS = {
 DUPLICATE_GROUPS = [
     ['toolchain-manager/scripts/doctor.py',
      'wsl-build-deploy/scripts/doctor.py'],
-    ['git-publisher/scripts/quality-check.sh',
+    ['git-commit-push/scripts/quality-check.sh',
      'wsl-build-deploy/scripts/quality-check.sh',
      'spring-boot-standards/scripts/quality-check.sh'],
-    ['git-publisher/scripts/security-scan.sh',
+    ['git-commit-push/scripts/security-scan.sh',
      'wsl-build-deploy/scripts/security-scan.sh'],
 ]
 

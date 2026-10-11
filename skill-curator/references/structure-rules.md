@@ -33,6 +33,6 @@
 
 ## 命名先例
 
-- 按任务域命名（toolchain-manager、git-publisher、engineering-doc-writer）或按团队硬约束命名（wsl-build-deploy 的 WSL 门禁）。
+- 按任务域命名（toolchain-manager、engineering-doc-writer、git-commit-push）或按团队硬约束命名（wsl-build-deploy 的 WSL 门禁）。
 - 规范型 skill 用 `-standards` 后缀；避免与内置 skill（如 code-review、security-review）撞名。
 - 改名成本高（已安装副本会双触发），优先只改 description 与内容，不动名字。
