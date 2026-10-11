@@ -97,6 +97,49 @@ init_runtime() {
   fi
 }
 
+# daemon 快速路径仅服务默认 Gradle 模板;Dockerfile.delivery 的构建由项目全权定义,不接管。
+gradle_daemon_enabled() {
+  [[ "$DOCKERFILE" == "$SKILL_ROOT/templates/Dockerfile.gradle" ]] || return 1
+  [[ "${FF_GRADLE_DAEMON:-1}" != 0 ]]
+}
+
+# daemon 构建:暂存树整树替换到稳定构建目录,常驻 daemon 容器内出 boot jar,再以运行时镜像打包。
+# 产物选择规则与 templates/Dockerfile.gradle 的 builder 阶段一致(唯一 boot jar,拒绝歧义)。
+build_gradle_daemon() { # $1=bridge|native;依赖 BUILD_CTX/IMAGE/ARGS/APP/WSL_HOME
+  local mode=$1 daemon_root ws_dir
+  if grep -Eq '^[[:space:]]*(\*\*/)?out([[:space:]]|$)' .dockerignore; then
+    echo '.dockerignore 排除了 out/,daemon 产物无法进入镜像;请放行 out/ 或改用 Dockerfile.delivery' >&2
+    exit 3
+  fi
+  if [[ "$mode" == bridge ]]; then
+    [[ -n "$WSL_HOME" ]] || { echo 'WSL home 不可用,无法放置 daemon 构建目录' >&2; exit 3; }
+    daemon_root="$WSL_HOME/.local/share/skills/build/$APP"
+    ws_dir="$daemon_root/ws"
+    # 整树替换:daemon 容器挂载固定路径;Gradle 缓存在命名卷,不受替换影响。
+    wsl_bash bash -c 'rm -rf "$1" && mkdir -p "$1/ws" && tar -C "$2" -cf - . | tar -C "$1/ws" -xf -' _ "$daemon_root" "$BUILD_CTX"
+    bash "$HERE/wsl-bridge.sh" push "$SKILL_ROOT/templates/Dockerfile.gradle.prebuilt" "$daemon_root/Dockerfile.gradle.prebuilt"
+    # wsl.exe 不继承 Windows 环境变量,FF_GRADLE_* 需显式传入。
+    local daemon_env=(env)
+    [[ -z "${FF_GRADLE_IMAGE:-}" ]] || daemon_env+=("FF_GRADLE_IMAGE=$FF_GRADLE_IMAGE")
+    [[ -z "${FF_GRADLE_UID:-}" ]] || daemon_env+=("FF_GRADLE_UID=$FF_GRADLE_UID")
+    [[ -z "${FF_GRADLE_TASKS:-}" ]] || daemon_env+=("FF_GRADLE_TASKS=$FF_GRADLE_TASKS")
+    bash "$HERE/wsl-bridge.sh" plain "$SKILL_ROOT/scripts/gradle-daemon.sh"
+    cat "$SKILL_ROOT/scripts/gradle-daemon.sh" | wsl_bash "${daemon_env[@]}" bash -s build "$ws_dir" "$APP"
+    wsl_bash env DOCKER_BUILDKIT=1 docker build --pull \
+      -f "$daemon_root/Dockerfile.gradle.prebuilt" -t "$IMAGE" "${ARGS[@]}" "$ws_dir"
+  else
+    daemon_root="$HOME/.local/share/skills/build/$APP"
+    ws_dir="$daemon_root/ws"
+    rm -rf "$ws_dir"
+    mkdir -p "$ws_dir"
+    tar -C "$PWD" -cf - . | tar -C "$ws_dir" -xf -
+    bash "$SKILL_ROOT/scripts/gradle-daemon.sh" build "$ws_dir" "$APP"
+    DOCKER_BUILDKIT=1 docker build --pull \
+      -f "$SKILL_ROOT/templates/Dockerfile.gradle.prebuilt" -t "$IMAGE" "${ARGS[@]}" "$ws_dir"
+  fi
+  echo "GRADLE_DAEMON=on tasks=${FF_GRADLE_TASKS:-build} container=ff-gradle-daemon-$APP"
+}
+
 # 统一 docker 入口:桥接模式下在 WSL 内执行,并关闭 MSYS 路径转换,防止 /mnt、镜像、路径参数被改写。
 docker_cli() {
   if [[ -n "$WSL_DISTRO" ]]; then
@@ -144,14 +187,20 @@ case "$ACTION" in
     if [[ -n "$WSL_DISTRO" ]]; then
       # 暂存管线:git archive HEAD 基线 + 工作区叠加,经管道直灌 WSL ext4,规避宿主盘密文读取。
       BUILD_CTX=$(bash "$HERE/wsl-bridge.sh" stage "$PWD" overlay)
-      if [[ "$DOCKERFILE" == */* ]]; then
+      if gradle_daemon_enabled; then
+        build_gradle_daemon bridge
+      elif [[ "$DOCKERFILE" == */* ]]; then
         DOCKERFILE=$(bash "$HERE/wsl-bridge.sh" topath "$DOCKERFILE")
       else
         DOCKERFILE="$BUILD_CTX/$DOCKERFILE"
       fi
       wsl_bash env DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" "$BUILD_CTX"
     else
-      DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" .
+      if gradle_daemon_enabled; then
+        build_gradle_daemon native
+      else
+        DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" .
+      fi
     fi
     if [[ "${FF_REQUIRE_SECURITY_SCAN:-0}" == 1 ]]; then
       if [[ -n "$WSL_DISTRO" ]]; then

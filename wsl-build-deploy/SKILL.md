@@ -63,7 +63,7 @@ bash "${SKILL_ROOT}/scripts/deliver.sh" rollback prod app-name --approve-prod
 
 ## 构建提速与常见故障
 
-- **Gradle 常驻 daemon 容器**：`docker run -d --restart unless-stopped -v <构建目录>:/ws -v <gradle 缓存 volume>:/root/.gradle <gradle 镜像> sleep infinity`，之后每次 `docker exec <容器> gradle --build-cache --console=plain :模块:bootJar -x test`。daemon 不死则配置阶段缓存命中 + JIT 预热 + 文件监视增量判定，增量 1-2 分钟；对比 `docker run --rm` 每次多付 40-60s 纯配置开销。构建报 `Timeout waiting to lock fileHashes.lock` 是上次构建容器被杀的残留锁，删除构建树内 `.gradle` 下的 `*.lock` 再试。
+- **Gradle 常驻 daemon 自动提速**：`deliver.sh build` 对默认 Gradle 模板路径自动经常驻 daemon 构建——暂存树整树替换到 `~/.local/share/skills/build/<app>/ws`，容器 `ff-gradle-daemon-<app>`（默认任务 `build`，行为与镜像内构建一致）与缓存卷 `ff-gradle-home-<app>` 常驻，配置/依赖缓存跨构建复用；对比 `FF_GRADLE_DAEMON=0` 的多阶段镜像内构建，每次冷启动 JVM 多付 40-60s 纯配置开销。任务可用 `FF_GRADLE_TASKS`（如 `bootJar -x test`）覆盖；`FF_GRADLE_UID` 指定容器 uid（默认 1000，需与构建树属主一致）。构建报 `Timeout waiting to lock fileHashes.lock` 时脚本自动清理 `.gradle` 残留锁并重试一次。多模块或自定义产物布局请提供 `Dockerfile.delivery`，daemon 不接管；手动使用 `${SKILL_ROOT}/scripts/gradle-daemon.sh`（在 WSL/Linux 内执行，子命令 `ensure|build|status`）。
 - WSL Mirrored 网络模式下 Windows 与 WSL 共享端口：起栈前停掉 Windows 侧占用同端口的进程（IDEA 网关、vite dev server 等）；间歇性 `address already in use` 先查这一层。
 - git archive 后上游删除过的源文件会在 WSL 构建树残留旧副本：编译报"找不到类"但本地 IDE 能编时，先清构建树残留；并发会话可能 mkdir 出同名暂存目录，删除后重写或让暂存目录名唯一化。
 

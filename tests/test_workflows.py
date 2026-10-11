@@ -16,6 +16,7 @@ if not Path(BASH).exists():
 GIT_AUDIT = (ROOT / 'git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'toolchain-manager/scripts/detect.py').as_posix()
 DELIVER = (ROOT / 'wsl-build-deploy/scripts/deliver.sh').as_posix()
+GRADLE_DAEMON = (ROOT / 'wsl-build-deploy/scripts/gradle-daemon.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):
@@ -62,6 +63,18 @@ class WorkflowTests(unittest.TestCase):
             run = subprocess.run([BASH, DELIVER, 'deploy', 'prod', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('--approve-prod', run.stderr)
+
+    def test_gradle_daemon_rejects_missing_args(self):
+        run = subprocess.run([BASH, GRADLE_DAEMON], capture_output=True, text=True)
+        self.assertEqual(run.returncode, 2)
+        self.assertIn('Usage', run.stderr)
+
+    def test_gradle_daemon_requires_gradle_project(self):
+        with tempfile.TemporaryDirectory() as d:
+            # 非 Gradle 目录必须在触碰 docker 前快速失败;docker 检查排在静态校验之后。
+            run = subprocess.run([BASH, GRADLE_DAEMON, 'build', d, 'demo'], capture_output=True, text=True)
+            self.assertEqual(run.returncode, 3)
+            self.assertIn('No Gradle build', run.stderr)
 
     def test_build_uses_docker_without_host_node_or_maven(self):
         with tempfile.TemporaryDirectory() as d:

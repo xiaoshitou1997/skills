@@ -12,6 +12,9 @@
 | `FF_HEALTH_URL` | 可选目标机本地 HTTP 健康检查 URL，例如 `http://127.0.0.1:8080/actuator/health` |
 | `FF_WSL_DISTRO` | Windows 指定 WSL 发行版；默认取第一个可用发行版 |
 | `FF_WSL_BRIDGE` | 设为 `0` 绕过 WSL 桥接；仅供测试/CI，Windows 生产使用违反团队规范 |
+| `FF_GRADLE_DAEMON` | 设为 `0` 退回多阶段镜像内 Gradle 构建；默认走常驻 daemon 快速路径 |
+| `FF_GRADLE_TASKS` | daemon 构建任务，默认 `build`（含测试）；如 `bootJar -x test` |
+| `FF_GRADLE_IMAGE` / `FF_GRADLE_UID` | daemon 容器镜像（默认 `gradle:8-jdk17`）与 uid（默认 1000，需与构建树属主一致） |
 
 Windows 上容器一律经 WSL 运行（`scripts/wsl-bridge.sh` 桥接）：构建走「git archive 暂存 → WSL 内 docker build」管线，运行状态与 dev 收据保存在 WSL 侧 `~/.local/share/skills/`。没有 WSL 时构建/部署直接失败，不回退本机直接启动。构建镜像与基础镜像常驻，任何流程不得 `rmi`/`prune`。
 
@@ -39,4 +42,4 @@ SPRING_PROFILES_ACTIVE=dev
 
 ## 限制
 
-模板针对常规 Spring Boot uber-jar 和 Node 静态前端。多模块 Maven/Gradle、Next.js SSR、原生扩展、ARM/AMD64 混用或多服务 Compose，请编写项目专用 `Dockerfile.delivery` 和 `compose.delivery.yml`，并先单独验证。默认镜像在本地目标架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行。
+模板针对常规 Spring Boot uber-jar 和 Node 静态前端。多模块 Maven/Gradle、Next.js SSR、原生扩展、ARM/AMD64 混用或多服务 Compose，请编写项目专用 `Dockerfile.delivery` 和 `compose.delivery.yml`，并先单独验证。Gradle daemon 快速路径仅服务默认 `Dockerfile.gradle` 单 boot jar 模板，`Dockerfile.delivery` 项目不走 daemon。默认镜像在本地目标架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行。
