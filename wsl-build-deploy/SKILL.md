@@ -1,6 +1,6 @@
 ---
 name: wsl-build-deploy
-description: 本机 Windows 工作机上 Java(Gradle/Maven)/Node 项目的构建出包(jar/dist)、本地启动调测、Docker Compose 部署 dev/prod、容器健康验证、同镜像晋级与回滚统一使用本 skill。触发场景:需要出包、"本地跑一下"/debug/断点/热更新/本机联调、部署或更新容器、排查构建/部署/启动失败。核心原则:编译构建一律在 WSL 容器内完成,应用进程一律容器化,没有 WSL 即明确失败,禁止宿主直接启动;镜像常驻不清理。宿主工具链准备使用 toolchain-manager。
+description: 本机 Windows 工作机上 Java（Gradle/Maven）/Node 项目的构建出包（jar/dist）、本地启动调测、Docker Compose 部署 dev/prod、容器健康验证、同镜像晋级与回滚统一使用本 skill。触发场景：需要出包、"本地跑一下"/debug/断点/热更新/本机联调、部署或更新容器、排查构建/部署/启动失败。核心原则：编译构建一律在 WSL 容器内完成，应用进程一律容器化，没有 WSL 即明确失败，禁止宿主直接启动；镜像常驻不清理。宿主工具链准备使用 toolchain-manager。
 ---
 
 # WSL 构建部署统一管线
