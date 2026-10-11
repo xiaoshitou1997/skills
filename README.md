@@ -15,6 +15,7 @@ This collection contains team engineering practices, not an official product or 
 | `git-publisher` | Prepare logical commits, push when requested, and inspect or create GitHub PRs |
 | `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
 | `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
+| `skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
 
 
 “Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before committing, keeping linear history and avoiding merge commits.
@@ -56,7 +57,7 @@ Commit language and format follow the user and repository conventions. The defau
 
 ## WSL build & deploy
 
-`wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](wsl-build-deploy/references/deployment-contract.md) and [security model](wsl-build-deploy/references/security-model.md).
+`wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Gradle projects build through a resident daemon container by default for incremental speed; `FF_GRADLE_DAEMON=0` opts back into in-image multistage builds. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](wsl-build-deploy/references/deployment-contract.md) and [security model](wsl-build-deploy/references/security-model.md).
 
 ```bash
 SKILL_ROOT="/absolute/path/to/wsl-build-deploy"

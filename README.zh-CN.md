@@ -4,7 +4,7 @@
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 五个 skills
+## 六个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -13,6 +13,7 @@
 | `git-publisher` | 按逻辑变更提交、按需推送、创建与检查 GitHub PR |
 | `spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
 | `engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
+| `skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
 
 
 这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为先 pull、解决冲突，再 commit，并保持线性历史、禁止 merge commit。
@@ -54,7 +55,7 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## WSL 构建部署
 
-`wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条 WSL 容器管线。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](wsl-build-deploy/references/security-model.md)。
+`wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条 WSL 容器管线。自带模板面向 Java 可执行 JAR 和 Node 静态前端；Gradle 项目默认经常驻 daemon 容器增量构建提速，`FF_GRADLE_DAEMON=0` 退回镜像内构建；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](wsl-build-deploy/references/security-model.md)。
 
 ```bash
 SKILL_ROOT="/实际绝对路径/wsl-build-deploy"
