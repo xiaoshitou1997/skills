@@ -29,6 +29,7 @@
 1. `python3 tests/validate_bundle.py`（skill 集合、frontmatter、引用、复制脚本一致性、bash/py 语法）。
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 与 `README.zh-CN.md` 表格、改名迁移记录。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`、`tests/test_wsl_bridge.py`，必要时补离线用例（假 docker/假 wsl.exe stub 风格）。
+4. 增删改并提交后 → `bash skill-curator/scripts/sync-installed.sh` 刷新全局安装并清理改名前旧版本（脚本内 STALE 清单与 README 迁移记录同步维护）。
 
 ## 命名先例
 
