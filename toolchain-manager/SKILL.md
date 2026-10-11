@@ -1,6 +1,6 @@
 ---
 name: toolchain-manager
-description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node.js 工具链，以及按项目约定选择 npm/pnpm/yarn 时使用。适用于缺少工具、Java class version 不匹配、EBADENGINE 和明确的运行时版本请求；Docker 镜像构建使用 wsl-build-deploy。
+description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node.js 工具链，以及按项目约定选择 npm/pnpm/yarn 时使用。适用于缺少工具、Java class version 不匹配、EBADENGINE 和明确的运行时版本请求；Docker 镜像构建使用 build-run-deploy。
 ---
 
 # Toolchain Manager
@@ -23,7 +23,7 @@ description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node
 - 不进行系统范围 sudo 安装，不修改注册表、`.bashrc`、`.zshrc` 或 PowerShell profile，除非用户明确授权。
 - 优先项目/用户态工具链，严格使用项目要求的 major/minor，不随意升级。
 - 自带便携安装器位于 `scripts/installer/`（`runtime_cli.py`），仅在第 3-4 步均无可用方案、且用户同意后使用。
-- 对应 `wsl-build-deploy` 时不安装宿主语言工具链：容器负责 Maven/Gradle/Node 构建。
+- 对应 `build-run-deploy` 时不安装宿主语言工具链：容器负责 Maven/Gradle/Node 构建。
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 
 ## 缓存依赖与手工 classpath
@@ -58,7 +58,7 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 
 ## 输出
 
-给出项目要求、当前版本、选择或准备的运行时、验证结果，并提示调用 `wsl-build-deploy` 继续启动/调试。
+给出项目要求、当前版本、选择或准备的运行时、验证结果，并提示调用 `build-run-deploy` 继续启动/调试。
 
 ## 与项目自检配合
 

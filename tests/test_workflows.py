@@ -15,8 +15,8 @@ if not Path(BASH).exists():
     BASH = 'bash'
 GIT_AUDIT = (ROOT / 'git-commit-push/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'toolchain-manager/scripts/detect.py').as_posix()
-DELIVER = (ROOT / 'wsl-build-deploy/scripts/deliver.sh').as_posix()
-GRADLE_DAEMON = (ROOT / 'wsl-build-deploy/scripts/gradle-daemon.sh').as_posix()
+DELIVER = (ROOT / 'build-run-deploy/scripts/deliver.sh').as_posix()
+GRADLE_DAEMON = (ROOT / 'build-run-deploy/scripts/gradle-daemon.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):
