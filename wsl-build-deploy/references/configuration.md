@@ -10,6 +10,10 @@
 | `FF_IMAGE_REPO` | 镜像名称，默认应用名 |
 | `FF_BUILD_IMAGE` / `FF_RUNTIME_IMAGE` | 自定义构建与运行基础镜像的完整引用；应固定版本/digest |
 | `FF_HEALTH_URL` | 可选目标机本地 HTTP 健康检查 URL，例如 `http://127.0.0.1:8080/actuator/health` |
+| `FF_WSL_DISTRO` | Windows 指定 WSL 发行版；默认取第一个可用发行版 |
+| `FF_WSL_BRIDGE` | 设为 `0` 绕过 WSL 桥接；仅供测试/CI，Windows 生产使用违反团队规范 |
+
+Windows 上容器一律经 WSL 运行（`scripts/wsl-bridge.sh` 桥接）：构建走「git archive 暂存 → WSL 内 docker build」管线，运行状态与 dev 收据保存在 WSL 侧 `~/.local/share/skills/`。没有 WSL 时构建/部署直接失败，不回退本机直接启动。构建镜像与基础镜像常驻，任何流程不得 `rmi`/`prune`。
 
 项目的 `.env.dev` / `.env.prod` 应包含 `APP_ENV`、`HOST_PORT`、`CONTAINER_PORT` 和应用必须的环境变量；真实密码不能入 Git。示例：
 

@@ -8,9 +8,14 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-GIT_AUDIT = ROOT / 'git-publisher/scripts/stage_audit.py'
-DETECT = ROOT / 'toolchain-manager/scripts/detect.py'
-DELIVER = ROOT / 'docker-delivery/scripts/deliver.sh'
+# PATH 里排在前的可能是 System32 的 WSL bash,必须显式使用 Git Bash;
+# 且 bash 不接受 Windows 反斜杠路径(msys 会吞掉反斜杠),统一转为正斜杠。
+BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
+if not Path(BASH).exists():
+    BASH = 'bash'
+GIT_AUDIT = (ROOT / 'git-publisher/scripts/stage_audit.py').as_posix()
+DETECT = (ROOT / 'toolchain-manager/scripts/detect.py').as_posix()
+DELIVER = (ROOT / 'wsl-build-deploy/scripts/deliver.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):
@@ -19,7 +24,7 @@ class WorkflowTests(unittest.TestCase):
             Path(d, '.nvmrc').write_text('22\n')
             Path(d, 'package.json').write_text(json.dumps({'engines': {'node': '>=22'}, 'packageManager': 'npm@10.0.0'}))
             Path(d, 'package-lock.json').write_text('{}')
-            run = subprocess.run([sys.executable, str(DETECT), d], capture_output=True, text=True)
+            run = subprocess.run([sys.executable, DETECT, d], capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stderr)
             result = json.loads(run.stdout)
             self.assertEqual(result['.nvmrc'], '22')
@@ -37,7 +42,7 @@ class WorkflowTests(unittest.TestCase):
             Path(d, 'feat.txt').write_text('hello')
             Path(d, 'unrelated.txt').write_text('not staged')
             subprocess.run(['git', '-C', d, 'add', '--', 'feat.txt'], check=True)
-            run = subprocess.run([sys.executable, str(GIT_AUDIT)], cwd=d, capture_output=True, text=True)
+            run = subprocess.run([sys.executable, GIT_AUDIT], cwd=d, capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertIn('staged files: 1', run.stdout)
             names = subprocess.check_output(['git', '-C', d, 'diff', '--cached', '--name-only'], text=True)
@@ -48,13 +53,13 @@ class WorkflowTests(unittest.TestCase):
             self._repo(d)
             Path(d, 'id_ed25519').write_text('fake private key for test')
             subprocess.run(['git', '-C', d, 'add', '--', 'id_ed25519'], check=True)
-            run = subprocess.run([sys.executable, str(GIT_AUDIT)], cwd=d, capture_output=True, text=True)
+            run = subprocess.run([sys.executable, GIT_AUDIT], cwd=d, capture_output=True, text=True)
             self.assertEqual(run.returncode, 1)
             self.assertIn('sensitive path', run.stdout)
 
     def test_prod_rejects_without_approval_or_host(self):
         with tempfile.TemporaryDirectory() as d:
-            run = subprocess.run(['bash', str(DELIVER), 'deploy', 'prod', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
+            run = subprocess.run([BASH, DELIVER, 'deploy', 'prod', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('--approve-prod', run.stderr)
 
@@ -71,7 +76,9 @@ class WorkflowTests(unittest.TestCase):
             env = os.environ.copy()
             env['PATH'] = str(bin_dir) + os.pathsep + env['PATH']
             env['DOCKER_LOG'] = str(docker_log)
-            run = subprocess.run(['bash', str(DELIVER), 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True)
+            # FF_WSL_BRIDGE=0 仅供测试:走 PATH 里的 fake docker,不触真实 WSL。
+            env['FF_WSL_BRIDGE'] = '0'
+            run = subprocess.run([BASH, DELIVER, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True)
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertIn('IMAGE=demo:', run.stdout)
             self.assertIn('Dockerfile.maven', docker_log.read_text())

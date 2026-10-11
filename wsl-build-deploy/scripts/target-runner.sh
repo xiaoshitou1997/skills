@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Runs at the delivery target; does not print env contents. Records only verified releases.
+# 镜像常驻:本脚本只启动/替换容器并追加记录文件,任何分支都不得 rmi/prune/删除镜像。
 set -euo pipefail
 umask 077
 ACTION=${1:-}
@@ -80,6 +81,7 @@ case "$ACTION" in
     docker image inspect "$IMAGE" >/dev/null 2>&1 || { echo 'Image absent on target' >&2; exit 3; }
     OLD=$(cat current-image 2>/dev/null || true)
     # Must attempt restore on startup failure as well as readiness failure.
+    # --no-build --pull never:目标机只用已有镜像,不重新构建、不重新拉取;镜像全部常驻。
     if ! FF_IMAGE="$IMAGE" "${DOCKER[@]}" up -d --no-build --pull never || ! check_service "$IMAGE"; then
       echo 'Deployment verification failed' >&2
       if [[ -n "$OLD" && "$OLD" != "$IMAGE" ]] && docker image inspect "$OLD" >/dev/null 2>&1; then

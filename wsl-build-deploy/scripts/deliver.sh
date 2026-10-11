@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Docker-only build/deploy driver. Requires bash, Docker/Compose, SSH for remote targets.
+# Windows 团队规范:容器一律经 WSL 运行,没有 WSL 就失败,禁止本机直接启动(见 scripts/wsl-bridge.sh)。
+# 镜像常驻:构建与部署只新增镜像/替换容器,任何流程不得 rmi/prune/清理镜像,复用层缓存加速后续构建。
 set -euo pipefail
 umask 077
 
@@ -10,6 +12,8 @@ ENV=${2:-}
 APP=${3:-}
 IMAGE=${4:-}
 APPROVAL=${5:-}
+WSL_DISTRO=''
+WSL_HOME=''
 
 usage() {
   echo 'Usage: deliver.sh build dev|prod APP' >&2
@@ -81,10 +85,36 @@ env_checks() {
   if ! grep -Eq "^APP_ENV=$ENV\r?$" "$path"; then echo "$path must set APP_ENV=$ENV" >&2; exit 3; fi
 }
 
+init_runtime() {
+  # Windows 无 WSL 时 bridge distro 直接失败,给出安装指引;FF_WSL_BRIDGE=0 仅供测试/CI。
+  WSL_DISTRO=$("$HERE/wsl-bridge.sh" distro)
+  WSL_HOME=''
+  if [[ -n "$WSL_DISTRO" ]]; then
+    bash "$HERE/wsl-bridge.sh" require >/dev/null
+    WSL_HOME=$(bash "$HERE/wsl-bridge.sh" home)
+  else
+    command -v docker >/dev/null 2>&1 || { echo 'Docker not installed' >&2; exit 3; }
+  fi
+}
+
+# 统一 docker 入口:桥接模式下在 WSL 内执行,并关闭 MSYS 路径转换,防止 /mnt、镜像、路径参数被改写。
+docker_cli() {
+  if [[ -n "$WSL_DISTRO" ]]; then
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" -- docker "$@"
+  else
+    docker "$@"
+  fi
+}
+
+# 在 WSL 内执行任意命令(桥接模式专用);调用方保证 WSL_DISTRO 非空。
+wsl_bash() {
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" -- "$@"
+}
+
 case "$ACTION" in
   build)
     project_checks
-    command -v docker >/dev/null 2>&1 || { echo 'Docker not installed' >&2; exit 3; }
+    init_runtime
     if [[ -f Dockerfile.delivery ]]; then
       DOCKERFILE=Dockerfile.delivery
     elif [[ -f pom.xml ]]; then
@@ -110,23 +140,47 @@ case "$ACTION" in
     ARGS=()
     [[ -z "${FF_BUILD_IMAGE:-}" ]] || ARGS+=(--build-arg "BUILD_IMAGE=$FF_BUILD_IMAGE")
     [[ -z "${FF_RUNTIME_IMAGE:-}" ]] || ARGS+=(--build-arg "RUNTIME_IMAGE=$FF_RUNTIME_IMAGE")
-    DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" .
+    # 基础镜像由 --pull 在 WSL 内拉取并常驻缓存;构建产物镜像只增不删。
+    if [[ -n "$WSL_DISTRO" ]]; then
+      # 暂存管线:git archive HEAD 基线 + 工作区叠加,经管道直灌 WSL ext4,规避宿主盘密文读取。
+      BUILD_CTX=$(bash "$HERE/wsl-bridge.sh" stage "$PWD" overlay)
+      if [[ "$DOCKERFILE" == */* ]]; then
+        DOCKERFILE=$(bash "$HERE/wsl-bridge.sh" topath "$DOCKERFILE")
+      else
+        DOCKERFILE="$BUILD_CTX/$DOCKERFILE"
+      fi
+      wsl_bash env DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" "$BUILD_CTX"
+    else
+      DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" .
+    fi
     if [[ "${FF_REQUIRE_SECURITY_SCAN:-0}" == 1 ]]; then
-      bash "$SKILL_ROOT/scripts/security-scan.sh" image "$IMAGE"
+      if [[ -n "$WSL_DISTRO" ]]; then
+        bash "$HERE/wsl-bridge.sh" plain "$SKILL_ROOT/scripts/security-scan.sh"
+        cat "$SKILL_ROOT/scripts/security-scan.sh" | wsl_bash bash -s image "$IMAGE"
+      else
+        bash "$SKILL_ROOT/scripts/security-scan.sh" image "$IMAGE"
+      fi
     fi
     echo "IMAGE=$IMAGE"
-    docker image inspect --format 'IMAGE_ID={{.Id}}' "$IMAGE"
+    docker_cli image inspect --format 'IMAGE_ID={{.Id}}' "$IMAGE"
     ;;
   deploy)
     project_checks
     env_checks
-    command -v docker >/dev/null 2>&1 || { echo 'Docker not installed' >&2; exit 3; }
+    init_runtime
     bash "$SKILL_ROOT/scripts/deploy-preflight.sh" "$ENV" "$APP"
-    docker image inspect "$IMAGE" >/dev/null 2>&1 || { echo "Image missing locally: $IMAGE (build first)" >&2; exit 3; }
-    LOCAL_ID=$(docker image inspect --format '{{.Id}}' "$IMAGE")
-    RECEIPT_DIR="$HOME/.local/share/skills/receipts/$APP"
+    docker_cli image inspect "$IMAGE" >/dev/null 2>&1 || { echo "Image missing locally: $IMAGE (build first)" >&2; exit 3; }
+    LOCAL_ID=$(docker_cli image inspect --format '{{.Id}}' "$IMAGE")
+    # 收据/发布历史与运行状态同侧保存:桥接模式在 WSL 的用户目录,否则在本机用户目录。
+    RECEIPT_ROOT=${WSL_HOME:-$HOME}
+    RECEIPT_DIR="$RECEIPT_ROOT/.local/share/skills/receipts/$APP"
+    RECEIPT_FILE="$RECEIPT_DIR/$LOCAL_ID"
     if [[ "$ENV" == prod && "${FF_REQUIRE_DEV_PROOF:-1}" == 1 ]]; then
-      [[ -f "$RECEIPT_DIR/$LOCAL_ID" ]] || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
+      if [[ -n "$WSL_DISTRO" ]]; then
+        wsl_bash bash -c 'test -f "$1"' _ "$RECEIPT_FILE" || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
+      else
+        [[ -f "$RECEIPT_FILE" ]] || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
+      fi
     fi
     COMPOSE=${FF_COMPOSE_FILE:-}
     if [[ -z "$COMPOSE" ]]; then
@@ -136,8 +190,8 @@ case "$ACTION" in
     if [[ -n "$SSH_DEST" ]]; then
       ssh "${SSH_OPTS[@]}" "$SSH_DEST" "mkdir -p '.local/share/skills/$APP' && chmod 700 '.local/share/skills/$APP'"
       # Stream immutable image data; no registry and no remote source compilation.
-      docker save "$IMAGE" | ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker load >/dev/null
-      LOCAL_ID=$(docker image inspect --format '{{.Id}}' "$IMAGE")
+      docker_cli save "$IMAGE" | ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker load >/dev/null
+      LOCAL_ID=$(docker_cli image inspect --format '{{.Id}}' "$IMAGE")
       REMOTE_ID=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker image inspect --format '{{.Id}}' "$IMAGE")
       [[ "$LOCAL_ID" == "$REMOTE_ID" ]] || { echo 'Transferred image ID mismatch' >&2; exit 3; }
       scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.local/share/skills/$APP/compose.yml" >/dev/null
@@ -145,19 +199,31 @@ case "$ACTION" in
       OUTPUT=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh")
       printf '%s\n' "$OUTPUT"
     else
-      DIR="$HOME/.local/share/skills/$APP"
-      mkdir -p "$DIR"
-      chmod 700 "$DIR"
-      cp -- "$COMPOSE" "$DIR/compose.yml"
-      cp -- ".env.$ENV" "$DIR/.env.$ENV"
-      OUTPUT=$(bash "$HERE/target-runner.sh" deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}")
+      if [[ -n "$WSL_DISTRO" ]]; then
+        APPDIR="$WSL_HOME/.local/share/skills/$APP"
+        bash "$HERE/wsl-bridge.sh" push "$COMPOSE" "$APPDIR/compose.yml"
+        bash "$HERE/wsl-bridge.sh" push ".env.$ENV" "$APPDIR/.env.$ENV"
+        bash "$HERE/wsl-bridge.sh" plain "$HERE/target-runner.sh"
+        OUTPUT=$(wsl_bash bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh")
+      else
+        DIR="$HOME/.local/share/skills/$APP"
+        mkdir -p "$DIR"
+        chmod 700 "$DIR"
+        cp -- "$COMPOSE" "$DIR/compose.yml"
+        cp -- ".env.$ENV" "$DIR/.env.$ENV"
+        OUTPUT=$(bash "$HERE/target-runner.sh" deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}")
+      fi
       printf '%s\n' "$OUTPUT"
     fi
     if [[ "$ENV" == dev && "$OUTPUT" == *"VERIFIED_HEALTH=strong"* ]]; then
-      mkdir -p "$RECEIPT_DIR"
-      chmod 700 "$RECEIPT_DIR"
-      printf '%s\n' "$IMAGE" > "$RECEIPT_DIR/$LOCAL_ID"
-      chmod 600 "$RECEIPT_DIR/$LOCAL_ID"
+      if [[ -n "$WSL_DISTRO" ]]; then
+        printf '%s\n' "$IMAGE" | wsl_bash bash -c 'mkdir -p "$1" && chmod 700 "$1" && cat > "$2" && chmod 600 "$2"' _ "$RECEIPT_DIR" "$RECEIPT_FILE"
+      else
+        mkdir -p "$RECEIPT_DIR"
+        chmod 700 "$RECEIPT_DIR"
+        printf '%s\n' "$IMAGE" > "$RECEIPT_FILE"
+        chmod 600 "$RECEIPT_FILE"
+      fi
       echo "DEV_RECEIPT=$LOCAL_ID"
     elif [[ "$ENV" == dev ]]; then
       echo 'No promotable dev receipt: configure Docker HEALTHCHECK or FF_HEALTH_URL and redeploy' >&2
@@ -167,7 +233,13 @@ case "$ACTION" in
     if [[ -n "$SSH_DEST" ]]; then
       ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh"
     else
-      bash "$HERE/target-runner.sh" "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}"
+      init_runtime
+      if [[ -n "$WSL_DISTRO" ]]; then
+        bash "$HERE/wsl-bridge.sh" plain "$HERE/target-runner.sh"
+        wsl_bash bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh"
+      else
+        bash "$HERE/target-runner.sh" "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}"
+      fi
     fi
     ;;
 esac

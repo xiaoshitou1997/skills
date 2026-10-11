@@ -1,21 +1,21 @@
 # 团队工程 Skills
 
-面向团队本地开发、Git 发布、Docker 交付和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 七个 skills
+## 五个 skills
 
 | Skill | 范围 |
 | --- | --- |
 | `toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
-| `local-development` | 本地启动、复现、调试、停止和针对性验证 |
+| `wsl-build-deploy` | 构建、本地调测、dev/prod 部署、同镜像晋级与回滚的统一 WSL 容器管线 |
 | `git-publisher` | 按逻辑变更提交、按需推送、创建与检查 GitHub PR |
-| `docker-delivery` | 容器内构建、Compose 部署、同镜像晋级、健康验证及应用回滚 |
 | `spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
 | `engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 
 
+这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为先 pull、解决冲突，再 commit，并保持线性历史、禁止 merge commit。
 
 ## 维护原则
 
@@ -35,7 +35,7 @@ npx skills@latest add xiaoshitou1997/skills --skill git-publisher -g -a claude-c
 npx skills@latest add . --list
 ```
 
-CLI 支持多个 agent，使用 `-a` 选择目标；技能加载方式取决于目标 agent。CLI 需要 Node.js；Python 脚本需要 Python 3，按环境使用 `python3`、`python` 或 `py -3`。Shell 脚本需要 Bash 及对应工具。Windows 环境诊断 skill 本身是纯文档，不要求额外安装运行时。
+CLI 支持多个 agent，使用 `-a` 选择目标；技能加载方式取决于目标 agent。CLI 需要 Node.js；Python 脚本需要 Python 3，按环境使用 `python3`、`python` 或 `py -3`。Shell 脚本需要 Bash 及对应工具。
 
 ## 使用脚本
 
@@ -52,12 +52,13 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 提交语言与格式优先遵循用户和仓库约定；没有约定时可默认中文 Conventional Commits。已有暂存内容先识别、审查，不擅自清空。
 
-## Docker 交付
+## WSL 构建部署
 
-自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](docker-delivery/references/deployment-contract.md) 与 [安全模型](docker-delivery/references/security-model.md)。
+`wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条 WSL 容器管线。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](wsl-build-deploy/references/security-model.md)。
 
 ```bash
-SKILL_ROOT="/实际绝对路径/docker-delivery"
+SKILL_ROOT="/实际绝对路径/wsl-build-deploy"
+bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'
 bash "$SKILL_ROOT/scripts/deliver.sh" status dev myapp

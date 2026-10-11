@@ -25,8 +25,8 @@
 
 ## 交付流程
 
-1. `build dev APP` 检查 Docker 构建上下文，在 Docker 内从源码构建不可变的版本镜像，不要求宿主安装 Maven、Gradle、Java、Node 或 npm。
-2. `deploy dev APP IMAGE` 预检配置；远端部署使用 `docker save/load` 传输镜像并检查 Image ID，然后启动 Compose、验证健康。仅通过 Docker 健康检查或 HTTP 探活的发布，才在本地 `~/.local/share/skills/receipts/APP/IMAGE_ID` 创建 dev 收据。
+1. `build dev APP` 检查 Docker 构建上下文，在 Docker 内从源码构建不可变的版本镜像，不要求宿主安装 Maven、Gradle、Java、Node 或 npm。Windows 上先经 `wsl-bridge.sh stage` 把「git archive HEAD 基线 + 工作区叠加」同步进 WSL 暂存目录，再在 WSL 内 `docker build --pull`；基础镜像拉取后与构建产物一起常驻，任何流程不得 `rmi`/`prune`。
+2. `deploy dev APP IMAGE` 预检配置；远端部署使用 `docker save/load` 传输镜像并检查 Image ID，然后启动 Compose、验证健康。仅通过 Docker 健康检查或 HTTP 探活的发布，才在本地 `~/.local/share/skills/receipts/APP/IMAGE_ID` 创建 dev 收据（Windows 桥接模式下收据在 WSL 侧用户目录）。
 3. `deploy prod APP IMAGE --approve-prod` 要求用户明确授权、SSH 目标、目标镜像 ID 一致和真实健康探测，默认还要求本地 dev 验证收据。`FF_REQUIRE_DEV_PROOF=0` 仅用于评估风险后的显式应急处理，不属于常规流程。
 4. 目标部署成功后，在 `~/.local/share/skills/APP/releases.tsv` 追加 TSV 发布记录，并保存当前与上一个镜像。部署失败时尝试恢复上一个已验证镜像。
 5. `rollback prod APP --approve-prod` 加载可用的上一个镜像，验证并记录结果。**不回滚外部状态和数据库。**

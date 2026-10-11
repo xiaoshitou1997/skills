@@ -9,8 +9,7 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SKILLS = {
     'toolchain-manager',
-    'local-development',
-    'docker-delivery',
+    'wsl-build-deploy',
     'git-publisher',
     'spring-boot-standards',
     'engineering-doc-writer',
@@ -19,14 +18,13 @@ SKILLS = {
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
-    ['docker-delivery/scripts/doctor.py',
-     'local-development/scripts/doctor.py',
-     'toolchain-manager/scripts/doctor.py'],
+    ['toolchain-manager/scripts/doctor.py',
+     'wsl-build-deploy/scripts/doctor.py'],
     ['git-publisher/scripts/quality-check.sh',
-     'local-development/scripts/quality-check.sh',
+     'wsl-build-deploy/scripts/quality-check.sh',
      'spring-boot-standards/scripts/quality-check.sh'],
-    ['docker-delivery/scripts/security-scan.sh',
-     'git-publisher/scripts/security-scan.sh'],
+    ['git-publisher/scripts/security-scan.sh',
+     'wsl-build-deploy/scripts/security-scan.sh'],
 ]
 
 
@@ -81,7 +79,7 @@ def validate():
 
     for e in errors: print('FAIL:', e)
     if not errors:
-        print('PASS: 7 skills; frontmatter; references; Python + shell syntax')
+        print('PASS: 5 skills; frontmatter; references; duplicates; Python + shell syntax')
     return int(bool(errors))
 
 

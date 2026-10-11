@@ -2,7 +2,7 @@
 
 [中文说明](README.zh-CN.md)
 
-Team-reusable Agent Skills for development, Git publishing, Docker delivery and engineering documentation. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
+Team-reusable Agent Skills for Git publishing, WSL container build/debug/deploy, toolchains and engineering documentation. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
 
 This collection contains team engineering practices, not an official product or certification from an agent, framework or endpoint-security vendor.
 
@@ -11,13 +11,13 @@ This collection contains team engineering practices, not an official product or 
 | Skill | Scope |
 | --- | --- |
 | `toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
-| `local-development` | Start, reproduce, debug and stop local applications; run focused verification |
+| `wsl-build-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
 | `git-publisher` | Prepare logical commits, push when requested, and inspect or create GitHub PRs |
-| `docker-delivery` | Container builds, Compose deployment, same-image promotion, health checks and application rollback |
 | `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
 | `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
 
 
+“Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before committing, keeping linear history and avoiding merge commits.
 
 ## Maintenance principles
 
@@ -37,7 +37,7 @@ npx skills@latest add xiaoshitou1997/skills --skill git-publisher -g -a claude-c
 npx skills@latest add . --list
 ```
 
-The CLI supports multiple agents; select the target with `-a`. Skills are loaded according to the selected agent's behavior. Node.js is needed for the CLI. Python utilities need Python 3 (`python3`, `python` or `py -3`, depending on the environment); shell utilities need Bash and their documented tools. The prose-only Windows environment skill requires no runtime installation by itself.
+The CLI supports multiple agents; select the target with `-a`. Skills are loaded according to the selected agent's behavior. Node.js is needed for the CLI. Python utilities need Python 3 (`python3`, `python` or `py -3`, depending on the environment); shell utilities need Bash and their documented tools.
 
 ## Run bundled tools
 
@@ -54,12 +54,13 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 Commit language and format follow the user and repository conventions. The default in the absence of conventions is Chinese Conventional Commits. Existing staged changes are preserved and inspected before committing.
 
-## Docker delivery
+## WSL build & deploy
 
-Built-in templates cover Java executable JARs and static Node frontends. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](docker-delivery/references/deployment-contract.md) and [security model](docker-delivery/references/security-model.md).
+`wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](wsl-build-deploy/references/deployment-contract.md) and [security model](wsl-build-deploy/references/security-model.md).
 
 ```bash
-SKILL_ROOT="/absolute/path/to/docker-delivery"
+SKILL_ROOT="/absolute/path/to/wsl-build-deploy"
+bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'
 bash "$SKILL_ROOT/scripts/deliver.sh" status dev myapp
