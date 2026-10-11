@@ -29,10 +29,29 @@
 1. `python3 tests/validate_bundle.py`（skill 集合、frontmatter、引用、复制脚本一致性、bash/py 语法）。
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 与 `README.en.md` 表格、改名迁移记录。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`、`tests/test_wsl_bridge.py`，必要时补离线用例（假 docker/假 wsl.exe stub 风格）。
-4. 增删改并提交后 → `bash skill-curator/scripts/sync-installed.sh` 刷新全局安装并清理改名前旧版本（脚本内 STALE 清单与 README 迁移记录同步维护）。
+4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 过该 skill 正反例；无 claude CLI 时按 `tests/trigger_cases.py` 人工核对。
+5. 增删改并提交后 → `bash skill-curator/scripts/sync-installed.sh` 刷新全局安装并清理改名前旧版本（脚本内 STALE 清单与 README 迁移记录同步维护）。
 
 ## 命名先例
 
 - 名字对应团队场景的功能与流程（toolchain-manager、engineering-doc-writer、git-commit-push）；当机制/硬约束本身是团队标准的一部分时写进名字（wsl-build-deploy 的 WSL 门禁），看到名字即知边界，防误触发与误用。
 - 规范型 skill 用 `-standards` 后缀；避免与内置 skill（如 code-review、security-review）撞名。
 - 改名成本高（已安装副本会双触发），优先只改 description 与内容，不动名字。
+- 官方推荐动名词命名（如 processing-pdfs）；本仓库不采用，属已确认的团队决策，记录见「外部依据」。
+
+## 外部依据
+
+形式规则的基准是 Anthropic 官方 Agent Skills 规范；修改形式规则前先对外核对，不自我循环：
+
+- Specification：name 匹配 `^[a-z0-9]+(-[a-z0-9]+)*$` 且 ≤64 字符；description 必填且 ≤1024 字符。
+- Best practices / Authoring：description 写触发场景（what + when + 触发词）；正文 <500 行，细节下沉 references；渐进披露三层（元数据 → 正文 → 按需加载）；反模式：空泛描述、时间敏感信息、假设不存在的上下文。
+- 已知偏离：官方建议动名词命名，本仓库采用场景功能命名；这是命名先例确认过的团队决策，不视为违规。
+
+## 触发契约评测
+
+description 的真实职责是路由（该触发时触发、不该触发时安静）；静态校验只查得到非空和长度，行为只能实测：
+
+- 用例集中在 `tests/trigger_cases.py`：每个 skill 正例（应触发）+ 反例（不得触发，标注 instead 正确去向或 none）。
+- 触发场景：description 改动、新增 skill、拆分/合并改动边界之后，运行 `python3 tests/run_trigger_evals.py [skill]`；`--list` 离线查看矩阵。运行需 claude CLI 并按用例消耗 token，无 CLI 时人工核对该 skill 正反例。
+- 判定口径：正例以目标 skill 触发为准；反例以目标 skill 未触发为准，instead 未触发记 WARN 不计失败。
+- 反例失败 = description 边界失效：改 description 或拆边界，不修改用例迁就实现。

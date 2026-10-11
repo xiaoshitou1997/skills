@@ -30,7 +30,7 @@ description: 把用户随手发来的工作习惯、流程片段、团队约定�
 - 只有用户明确确认的规则才写成硬约束；推断出的倾向写成默认行为并注明可覆盖方式。
 - 不写入业务专属路径、凭据、客户名；不虚构用户没说过的规则。
 - 条款要带触发场景或反例，能被 agent 直接执行；"注意质量"这类空泛建议不入库。
-- description 是触发契约：改动时检查与其他 skill 的触发边界是否仍然互斥、长度是否 ≤1024 字符。
+- description 是触发契约：改动时检查与其他 skill 的触发边界是否仍然互斥、长度是否 ≤1024 字符；改动前后用 `python3 tests/run_trigger_evals.py <skill>` 过该 skill 正反例（无 claude CLI 时按 `tests/trigger_cases.py` 人工核对）。
 - 多个 skill 字节级复制的脚本（清单见 tests/validate_bundle.py 的 DUPLICATE_GROUPS）修改必须同步所有副本，否则校验失败。
 
 ## 边界
