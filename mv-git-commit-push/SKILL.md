@@ -35,7 +35,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 6. 按涉及代码运行项目已有且可用的轻量检查（lint / typecheck / targeted tests）。没有配置的检查不虚构成功；失败时停止本组提交并报告。
 7. 提交信息采用用户或仓库约定的语言与格式。没有既有约定时默认中文 Conventional Commits，例如 `feat(auth): 增加短信登录验证码校验`。标题基于本组 staged diff，避免含糊通用信息。
 8. `git commit -m '...'` 后再次查看状态及 SHA。
-9. **commit&push 是一个整体动作：全部组提交完成后即执行一次安全普通 push**，不把 push 拆成需要用户再次显式请求的独立步骤。仅用户明确「只要 commit、不要 push」时停在本地。上游缺失时先确认远端与分支再设置；推送失败如实报告，不重试 `--force`。
+9. **commit&push 是一个整体动作：全部组提交完成后即执行一次安全普通 push**，不把 push 拆成需要用户再次显式请求的独立步骤。仅用户明确「只要 commit、不要 push」时停在本地。push 前先 `git fetch`：远端有新提交就先 `git pull --rebase` 解决冲突后再 push（冲突升级规则同样适用）；push 被拒（非快进）说明提交窗口内远端又前进，本地提交无损，同样 `git pull --rebase` 恢复后重试 push。上游缺失时先确认远端与分支再设置；推送失败如实报告，任何情况下不重试 `--force`。
 10. 汇报每组提交的 hash、type、变更目的、检查情况、push 结果，以及明确保留的未提交内容。
 
 ## 同文件不同 Feature
