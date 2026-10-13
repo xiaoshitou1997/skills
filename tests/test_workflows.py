@@ -13,10 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
     BASH = 'bash'
-GIT_AUDIT = (ROOT / 'git-commit-push/scripts/stage_audit.py').as_posix()
-DETECT = (ROOT / 'toolchain-manager/scripts/detect.py').as_posix()
-DELIVER = (ROOT / 'wsl-build-deploy/scripts/deliver.sh').as_posix()
-GRADLE_DAEMON = (ROOT / 'wsl-build-deploy/scripts/gradle-daemon.sh').as_posix()
+GIT_AUDIT = (ROOT / 'orca-git-commit-push/scripts/stage_audit.py').as_posix()
+DETECT = (ROOT / 'orca-toolchain-manager/scripts/detect.py').as_posix()
+DELIVER = (ROOT / 'orca-wsl-build-deploy/scripts/deliver.sh').as_posix()
+GRADLE_DAEMON = (ROOT / 'orca-wsl-build-deploy/scripts/gradle-daemon.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):

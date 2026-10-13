@@ -10,12 +10,12 @@
 
 | Skill | 范围 |
 | --- | --- |
-| `toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
-| `wsl-build-deploy` | 构建、本地调测、dev/prod 部署、同镜像晋级与回滚的统一 WSL 容器管线 |
-| `git-commit-push` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
-| `spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
-| `engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
-| `skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
+| `orca-toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
+| `orca-wsl-build-deploy` | 构建、本地调测、dev/prod 部署、同镜像晋级与回滚的统一 WSL 容器管线 |
+| `orca-git-commit-push` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
+| `orca-spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
+| `orca-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
+| `orca-skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
 
 
 这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为先 pull、解决冲突，再 commit，并保持线性历史、禁止 merge commit。
@@ -33,7 +33,7 @@
 ```bash
 npx skills@latest add xiaoshitou1997/skills --list
 npx skills@latest add xiaoshitou1997/skills
-npx skills@latest add xiaoshitou1997/skills --skill git-commit-push -g -a claude-code
+npx skills@latest add xiaoshitou1997/skills --skill orca-git-commit-push -g -a claude-code
 # 本地仓库：只列出 skills，不安装
 npx skills@latest add . --list
 ```
@@ -45,10 +45,10 @@ CLI 支持多个 agent，使用 `-a` 选择目标；技能加载方式取决于�
 通过本次加载的 `SKILL.md` 定位实际安装目录。下文 `SKILL_ROOT` 需要明确赋值，不保证 agent 自动设置。项目命令应从用户应用仓库执行：
 
 ```bash
-SKILL_ROOT="/实际绝对路径/toolchain-manager"
+SKILL_ROOT="/实际绝对路径/orca-toolchain-manager"
 python3 "$SKILL_ROOT/scripts/doctor.py" --project .
 
-SKILL_ROOT="/实际绝对路径/git-commit-push"
+SKILL_ROOT="/实际绝对路径/orca-git-commit-push"
 python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```
@@ -57,10 +57,10 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## WSL 构建部署
 
-`wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条 WSL 容器管线。自带模板面向 Java 可执行 JAR 和 Node 静态前端；Gradle 项目默认经常驻 daemon 容器增量构建提速，`FF_GRADLE_DAEMON=0` 退回镜像内构建；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](wsl-build-deploy/references/security-model.md)。
+`orca-wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条 WSL 容器管线。自带模板面向 Java 可执行 JAR 和 Node 静态前端；Gradle 项目默认经常驻 daemon 容器增量构建提速，`FF_GRADLE_DAEMON=0` 退回镜像内构建；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](orca-wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](orca-wsl-build-deploy/references/security-model.md)。
 
 ```bash
-SKILL_ROOT="/实际绝对路径/wsl-build-deploy"
+SKILL_ROOT="/实际绝对路径/orca-wsl-build-deploy"
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'

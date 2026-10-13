@@ -4,7 +4,7 @@
 
 ## Frontmatter
 
-- `name`：kebab-case 小写，≤64 字符，必须与目录名一致（校验覆盖）。
+- `name`：kebab-case 小写，≤64 字符，必须与目录名一致，且以 `orca-` 前缀开头（校验覆盖；前缀见「命名先例」）。
 - `description`：≤1024 字符，写触发场景而非功能罗列；包含用户可能的表述关键词；写明负向边界（何时不适用、归哪个 skill 管）。中英文均可，与仓库现有中文风格一致。
 - 可选 `allowed-tools`：仅为只读、无副作用的命令预授权；写操作不预授权。
 
@@ -30,13 +30,14 @@
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 与 `README.en.md` 表格、改名迁移记录。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`、`tests/test_wsl_bridge.py`，必要时补离线用例（假 docker/假 wsl.exe stub 风格）。
 4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 过该 skill 正反例；无 claude CLI 时按 `tests/trigger_cases.py` 人工核对。
-5. 增删改并提交后 → `bash skill-curator/scripts/sync-installed.sh` 刷新全局安装并清理改名前旧版本（脚本内 STALE 清单与 README 迁移记录同步维护）。
+5. 增删改并提交后 → `bash orca-skill-curator/scripts/sync-installed.sh` 刷新全局安装并清理改名前旧版本（脚本内 STALE 清单与 README 迁移记录同步维护）。
 
 ## 命名先例
 
-- 名字对应团队场景的功能与流程（toolchain-manager、engineering-doc-writer、git-commit-push）；当机制/硬约束本身是团队标准的一部分时写进名字（wsl-build-deploy 的 WSL 门禁），看到名字即知边界，防误触发与误用。
-- 规范型 skill 用 `-standards` 后缀；避免与内置 skill（如 code-review、security-review）撞名。
-- 改名成本高（已安装副本会双触发），优先只改 description 与内容，不动名字。
+- 统一 `orca-` 前缀标识来源（2026-10 团队决策，取代裸场景名先例）：skills 多来源混装时看名字即知出自本仓库；前缀不承载场景语义，边界信息仍由名字其余部分与 description 提供。
+- 名字其余部分对应团队场景的功能与流程（orca-toolchain-manager、orca-engineering-doc-writer、orca-git-commit-push）；当机制/硬约束本身是团队标准的一部分时写进名字（orca-wsl-build-deploy 的 WSL 门禁），看到名字即知边界，防误触发与误用。
+- 规范型 skill 用 `-standards` 后缀；前缀已大幅降低第三方撞名概率，仍避免与内置 skill（如 code-review、security-review）撞名。
+- 改名成本高（已安装副本会双触发），优先只改 description 与内容，不动名字；`orca-` 前缀为一次性完成的批量迁移，此后新增 skill 直接带前缀，不再整体改名。
 - 官方推荐动名词命名（如 processing-pdfs）；本仓库不采用，属已确认的团队决策，记录见「外部依据」。
 
 ## 外部依据

@@ -1,5 +1,5 @@
 ---
-name: spring-boot-standards
+name: orca-spring-boot-standards
 description: 编写、修改、重构或审查 Spring Boot 后端代码时使用，覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；MyBatis-Plus 条款仅适用于使用该库的项目。优先遵循项目已采纳的规范和用户明确架构决策，不向其他 Java 框架强加 Spring 约定。
 ---
 

@@ -13,11 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
     BASH = 'bash'
-DOCTOR = (ROOT / 'toolchain-manager/scripts/doctor.py').as_posix()
-PREFLIGHT = (ROOT / 'wsl-build-deploy/scripts/deploy-preflight.sh').as_posix()
-DELIVER = (ROOT / 'wsl-build-deploy/scripts/deliver.sh').as_posix()
-RUNNER = (ROOT / 'wsl-build-deploy/scripts/target-runner.sh').as_posix()
-QUALITY = (ROOT / 'wsl-build-deploy/scripts/quality-check.sh').as_posix()
+DOCTOR = (ROOT / 'orca-toolchain-manager/scripts/doctor.py').as_posix()
+PREFLIGHT = (ROOT / 'orca-wsl-build-deploy/scripts/deploy-preflight.sh').as_posix()
+DELIVER = (ROOT / 'orca-wsl-build-deploy/scripts/deliver.sh').as_posix()
+RUNNER = (ROOT / 'orca-wsl-build-deploy/scripts/target-runner.sh').as_posix()
+QUALITY = (ROOT / 'orca-wsl-build-deploy/scripts/quality-check.sh').as_posix()
 
 
 def exec_run(*cmd, cwd=None, env=None, input=None):

@@ -10,12 +10,12 @@ This collection contains team engineering practices, not an official product or 
 
 | Skill | Scope |
 | --- | --- |
-| `toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
-| `wsl-build-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
-| `git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
-| `spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
-| `engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
-| `skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
+| `orca-toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
+| `orca-wsl-build-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
+| `orca-git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
+| `orca-spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
+| `orca-engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
+| `orca-skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
 
 
 “Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before committing, keeping linear history and avoiding merge commits.
@@ -33,7 +33,7 @@ Install from this repository:
 ```bash
 npx skills@latest add xiaoshitou1997/skills --list
 npx skills@latest add xiaoshitou1997/skills
-npx skills@latest add xiaoshitou1997/skills --skill git-commit-push -g -a claude-code
+npx skills@latest add xiaoshitou1997/skills --skill orca-git-commit-push -g -a claude-code
 # Local checkout: list skills without installing
 npx skills@latest add . --list
 ```
@@ -45,10 +45,10 @@ The CLI supports multiple agents; select the target with `-a`. Skills are loaded
 Locate the installed skill through its loaded `SKILL.md`. `SKILL_ROOT` below is an explicitly assigned absolute path, not an agent-provided variable. Run project-oriented commands from your application repository:
 
 ```bash
-SKILL_ROOT="/absolute/path/to/toolchain-manager"
+SKILL_ROOT="/absolute/path/to/orca-toolchain-manager"
 python3 "$SKILL_ROOT/scripts/doctor.py" --project .
 
-SKILL_ROOT="/absolute/path/to/git-commit-push"
+SKILL_ROOT="/absolute/path/to/orca-git-commit-push"
 python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```
@@ -57,10 +57,10 @@ Commit language and format follow the user and repository conventions. The defau
 
 ## WSL build & deploy
 
-`wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Gradle projects build through a resident daemon container by default for incremental speed; `FF_GRADLE_DAEMON=0` opts back into in-image multistage builds. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](wsl-build-deploy/references/deployment-contract.md) and [security model](wsl-build-deploy/references/security-model.md).
+`orca-wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Gradle projects build through a resident daemon container by default for incremental speed; `FF_GRADLE_DAEMON=0` opts back into in-image multistage builds. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](orca-wsl-build-deploy/references/deployment-contract.md) and [security model](orca-wsl-build-deploy/references/security-model.md).
 
 ```bash
-SKILL_ROOT="/absolute/path/to/wsl-build-deploy"
+SKILL_ROOT="/absolute/path/to/orca-wsl-build-deploy"
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'

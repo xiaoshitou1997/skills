@@ -22,7 +22,7 @@ PY
   else
     echo 'Missing supported Node lockfile' >&2; exit 3
   fi
-  command -v "$PM" >/dev/null || { echo "Missing $PM; use toolchain-manager for local checks" >&2; exit 3; }
+  command -v "$PM" >/dev/null || { echo "Missing $PM; use orca-toolchain-manager for local checks" >&2; exit 3; }
   [[ ${#CHECKS[@]} -gt 0 ]] || { echo 'No configured Node quality scripts; not a pass' >&2; exit 3; }
   for check in "${CHECKS[@]}"; do
     echo "Running $PM run $check"
@@ -30,11 +30,11 @@ PY
   done
 elif [[ -f pom.xml ]]; then
   if [[ -x ./mvnw ]]; then MVN=./mvnw; else MVN=mvn; fi
-  command -v "$MVN" >/dev/null || { echo "Missing $MVN; use toolchain-manager" >&2; exit 3; }
+  command -v "$MVN" >/dev/null || { echo "Missing $MVN; use orca-toolchain-manager" >&2; exit 3; }
   if [[ "$MODE" == quick ]]; then "$MVN" -B -q -DskipTests compile; else "$MVN" -B verify; fi
 elif [[ -f build.gradle || -f build.gradle.kts ]]; then
   if [[ -x ./gradlew ]]; then GRADLE=./gradlew; else GRADLE=gradle; fi
-  command -v "$GRADLE" >/dev/null || { echo "Missing $GRADLE; use toolchain-manager" >&2; exit 3; }
+  command -v "$GRADLE" >/dev/null || { echo "Missing $GRADLE; use orca-toolchain-manager" >&2; exit 3; }
   if [[ "$MODE" == quick ]]; then "$GRADLE" classes; else "$GRADLE" check; fi
 else
   echo 'Unsupported project; configure project quality commands explicitly' >&2
