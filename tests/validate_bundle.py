@@ -8,24 +8,24 @@ from pathlib import Path
 
 ROOT = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SKILLS = {
-    'orca-toolchain-manager',
-    'orca-wsl-build-deploy',
-    'orca-git-commit-push',
-    'orca-spring-boot-standards',
-    'orca-engineering-doc-writer',
-    'orca-skill-curator',
+    'mv-toolchain-manager',
+    'mv-wsl-build-deploy',
+    'mv-git-commit-push',
+    'mv-spring-boot-standards',
+    'mv-engineering-doc-writer',
+    'mv-skill-curator',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
-    ['orca-toolchain-manager/scripts/doctor.py',
-     'orca-wsl-build-deploy/scripts/doctor.py'],
-    ['orca-git-commit-push/scripts/quality-check.sh',
-     'orca-wsl-build-deploy/scripts/quality-check.sh',
-     'orca-spring-boot-standards/scripts/quality-check.sh'],
-    ['orca-git-commit-push/scripts/security-scan.sh',
-     'orca-wsl-build-deploy/scripts/security-scan.sh'],
+    ['mv-toolchain-manager/scripts/doctor.py',
+     'mv-wsl-build-deploy/scripts/doctor.py'],
+    ['mv-git-commit-push/scripts/quality-check.sh',
+     'mv-wsl-build-deploy/scripts/quality-check.sh',
+     'mv-spring-boot-standards/scripts/quality-check.sh'],
+    ['mv-git-commit-push/scripts/security-scan.sh',
+     'mv-wsl-build-deploy/scripts/security-scan.sh'],
 ]
 
 

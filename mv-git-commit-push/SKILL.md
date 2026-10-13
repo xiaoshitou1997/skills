@@ -1,5 +1,5 @@
 ---
-name: orca-git-commit-push
+name: mv-git-commit-push
 description: 用户要求提交并推送代码（commit&push 一体）、拆分原子 commit、创建 PR 或查看 PR 检查结果时使用。按独立逻辑变更精细暂存，审查最终 staged diff，并遵循仓库提交规范；仅解释 Git 概念时无需加载完整发布流程。
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git remote:*)
 ---

@@ -1,6 +1,6 @@
 ---
-name: orca-wsl-build-deploy
-description: 本机 Windows 工作机上 Java（Gradle/Maven）/Node 项目的构建出包（jar/dist）、本地启动调测、Docker Compose 部署 dev/prod、容器健康验证、同镜像晋级与回滚统一使用本 skill。触发场景：需要出包、"本地跑一下"/debug/断点/热更新/本机联调、部署或更新容器、排查构建/部署/启动失败。核心原则：编译构建一律在 WSL 容器内完成，应用进程一律容器化，没有 WSL 即明确失败，禁止宿主直接启动；镜像常驻不清理。宿主工具链准备使用 orca-toolchain-manager。
+name: mv-wsl-build-deploy
+description: 本机 Windows 工作机上 Java（Gradle/Maven）/Node 项目的构建出包（jar/dist）、本地启动调测、Docker Compose 部署 dev/prod、容器健康验证、同镜像晋级与回滚统一使用本 skill。触发场景：需要出包、"本地跑一下"/debug/断点/热更新/本机联调、部署或更新容器、排查构建/部署/启动失败。核心原则：编译构建一律在 WSL 容器内完成，应用进程一律容器化，没有 WSL 即明确失败，禁止宿主直接启动；镜像常驻不清理。宿主工具链准备使用 mv-toolchain-manager。
 ---
 
 # WSL 构建部署统一管线
@@ -9,7 +9,7 @@ description: 本机 Windows 工作机上 Java（Gradle/Maven）/Node 项目的�
 
 `detect → wsl-bridge 暂存源码 → 容器内构建 → compose 起栈 → 验证 → 记录/恢复`
 
-- 宿主工具链准备见 `orca-toolchain-manager`；容器内构建不依赖宿主 JDK/Node。
+- 宿主工具链准备见 `mv-toolchain-manager`；容器内构建不依赖宿主 JDK/Node。
 - 与 Spec Kit `implement` 兼容，不重写需求规划、测试编排或版本管理；与 Git 独立，不暗中 commit。
 
 ## 硬性规范（无例外）
@@ -85,6 +85,6 @@ bash "${SKILL_ROOT}/scripts/deliver.sh" rollback prod app-name --approve-prod
 ## 安全要点
 
 - 禁止以开发命令或本地容器冒充 dev/prod 部署成功；禁止生产 Debug Agent、明文输出 secret、无确认修改数据库 schema。应用回滚不回滚数据库迁移或外部副作用。
-- 不需要安装工具时不触发 `orca-toolchain-manager`，避免无谓的工具链准备。Dockerfile 与 Compose 过于复杂时，可选用严格遵循同一环境契约的项目内 CI/CD，但不得偷偷换成宿主编译。
+- 不需要安装工具时不触发 `mv-toolchain-manager`，避免无谓的工具链准备。Dockerfile 与 Compose 过于复杂时，可选用严格遵循同一环境契约的项目内 CI/CD，但不得偷偷换成宿主编译。
 
 环境契约（env 文件、SSH、Compose 项目描述）读取 [references/configuration.md](references/configuration.md)；详细契约见 [交付契约](references/deployment-contract.md) 与 [安全模型](references/security-model.md)。
