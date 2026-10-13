@@ -6,7 +6,7 @@ Sources (official only):
   - Maven: dlcdn.apache.org  (older -> archive.apache.org)
   - Gradle: services.gradle.org/distributions  (+ /versions/current JSON)
 
-When `BTC_MIRROR` (or `--mirror`) is active, mirror URLs are prepended to the
+When `FF_MIRROR` (or `--mirror`) is active, mirror URLs are prepended to the
 candidate list returned by the plural URL builders (node_urls / jdk_urls /
 maven_urls / gradle_urls). download.install_portable tries each in order.
 """

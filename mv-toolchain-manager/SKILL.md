@@ -47,7 +47,7 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 
 1. 默认使用上游发布的便携归档，不运行 `.msi` / `.exe` / `.pkg` / `.dmg` 安装程序；归档模式避免要求管理员权限。显式选择镜像时记录镜像来源。
 2. probe-then-GET：先 HEAD 校验候选 URL，仅对 200 响应发起下载。
-3. 默认仅官方源；镜像只在 `BTC_MIRROR=cn` 或 `--mirror cn` 显式启用，禁止自动选第三方源。
+3. 默认仅官方源；镜像只在 `FF_MIRROR=cn` 或 `--mirror cn` 显式启用，禁止自动选第三方源。
 4. 环境变量仅当前会话生效：禁止 `setx`、写 shell profile、改注册表；cmd 激活必须 `call activate.cmd`。
 
 安装器目前不强制验证发行摘要或签名；可达性预检不等于产物完整性校验。需要来源认证时按发行方指南验证产物后再使用。检测细节见 [detection](references/detection.md)，网络和来源见 [mirrors](references/mirrors.md)，工具细节按需读取 [Node.js](references/nodejs.md)、[JDK](references/jdk.md)、[Maven](references/maven.md)、[Gradle](references/gradle.md)。

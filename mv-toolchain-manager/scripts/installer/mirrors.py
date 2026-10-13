@@ -1,7 +1,7 @@
 """Mirror registry. Mirrors are tried before the official source when active.
 
 Activation:
-  - env var `BTC_MIRROR=<key>` (e.g. `BTC_MIRROR=cn`)
+  - env var `FF_MIRROR=<key>` (e.g. `FF_MIRROR=cn`)
   - CLI flag `--mirror <key>` on `runtime_cli.py` (sets the env var in-process)
 
 When a mirror is active, each tool's URL builder returns the mirror URL first
@@ -31,8 +31,8 @@ MIRRORS = {
 
 
 def active_mirror():
-    """Return the active mirror key (from BTC_MIRROR env), or None for official only."""
-    val = (os.environ.get('BTC_MIRROR') or '').strip().lower()
+    """Return the active mirror key (from FF_MIRROR env), or None for official only."""
+    val = (os.environ.get('FF_MIRROR') or '').strip().lower()
     if val and val in MIRRORS:
         return val
     return None

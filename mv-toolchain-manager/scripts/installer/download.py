@@ -267,7 +267,7 @@ def install_portable(urls, target, label):
 
 def sdks_root():
     """Resolve the install root ($HOME/.local/sdks by default)."""
-    override = os.environ.get('BTC_SDKS_DIR')
+    override = os.environ.get('FF_SDKS_DIR')
     if override:
         return Path(override)
     return Path.home() / '.local' / 'sdks'

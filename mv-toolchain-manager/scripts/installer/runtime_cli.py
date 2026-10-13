@@ -347,7 +347,7 @@ def build_parser():
     p.add_argument(
         '--mirror', '-m', default=None, dest='mirror',
         choices=['cn', 'none'],
-        help='mirror region (overrides BTC_MIRROR env). "none" disables mirror. '
+        help='mirror region (overrides FF_MIRROR env). "none" disables mirror. '
              'When set, mirror URLs are prepended to the candidate list for each '
              'tool; download.install_portable pre-validates every URL with HEAD '
              'before fetching, so 404 mirrors fall through without wasting a GET.',
@@ -405,9 +405,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if getattr(args, 'mirror', None):
         if args.mirror == 'none':
-            os.environ.pop('BTC_MIRROR', None)
+            os.environ.pop('FF_MIRROR', None)
         else:
-            os.environ['BTC_MIRROR'] = args.mirror
+            os.environ['FF_MIRROR'] = args.mirror
     sys.stderr.write(f'  mirror: {mirrors.describe()}\n')
     result = args.func(args)
     if isinstance(result, dict) and result.get('error'):

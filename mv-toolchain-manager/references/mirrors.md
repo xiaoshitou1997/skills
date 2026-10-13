@@ -8,13 +8,13 @@
 
 ```bash
 # 1) 环境变量（推荐，跨多次调用稳定）
-export BTC_MIRROR=cn
+export FF_MIRROR=cn
 python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" ensure --jdk 21
 
 # 2) 命令行 flag（仅当前调用生效）
 python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" --mirror cn ensure --jdk 21
 
-# 显式关闭（即使 BTC_MIRROR 已设置）
+# 显式关闭（即使 FF_MIRROR 已设置）
 python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" --mirror none ensure --jdk 21
 ```
 
