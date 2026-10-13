@@ -21,7 +21,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 5. 已有暂存内容时，先识别是谁暂存的、属于哪个逻辑变更集；未经允许不混入别的变更。独立工作区或临时 index 可用于精细分组，但原始 index 状态必须不丢失。
 6. 每次操作前确认所在仓库/分支；尤其注意单仓库父目录、多仓库目录、嵌套 Git、子模块。不得跨仓库混提交。
 7. 暂存状态不表示改动归属，IDE 或其他会话可能自动暂存。必要时同时审查 HEAD→index 和 index→工作区差异；`AM` 等状态意味着暂存版与最终文件不同。
-8. **每次 commit 前先 pull 并解决冲突，再提交。** 同步失败、冲突未解决或 rebase/merge 未结束时停止提交，不先 commit 再补同步。
+8. **每次 commit 前先 pull 并解决冲突，再提交。** 同步失败、冲突未解决或 rebase/merge 未结束时停止提交，不先 commit 再补同步。冲突解决不了时停止并交由用户处理，呈现两侧差异，不强行自动取舍。
 9. **保持线性提交历史，禁止生成 merge commit。** 远端同步使用 rebase，不用 merge commit 解决分支分歧。
 10. **AI 参与生成或修改的提交和 PR 必须添加 AI 署名或归属行。** 署名采用实际工具的默认方式或用户配置，本 skill 不规定具体格式。
 
@@ -47,6 +47,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 ## 远端同步与中间态
 
 - 固定顺序：保护未提交改动 → `git fetch` → `git pull --rebase <remote> <branch>` → 解决冲突并完成 rebase → 恢复改动并解决恢复冲突 → 审查、验证、commit。
+- 自动解决不了的冲突不硬解：停止操作并向用户呈现冲突文件与两侧内容，由用户裁决后继续；解决前不 commit、不 push。
 - remote/branch 使用已确认的上游，不猜测。项目指令与团队规则冲突时先明确冲突，不自行改用 merge commit。
 - 未配置上游时先检查远端并确认同步目标。纯本地仓库或尚无对应远端分支的首次提交，明确记录没有可 pull 的目标，不伪称同步成功。
 - 已有同步目标但网络、权限或 pull 失败时停止提交。
