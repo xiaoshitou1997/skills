@@ -26,11 +26,7 @@ description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node
 - 对应 `mv-wsl-build-deploy` 时不安装宿主语言工具链：容器负责 Maven/Gradle/Node 构建。
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 
-## 缓存依赖与手工 classpath
-
-- 优先使用项目构建工具解析出的依赖树、BOM 和锁定版本；缓存中存在某个 JAR 不代表项目应使用它，不能按版本号最大的文件拼 classpath。
-- 必须手工验证时，核对组件之间的兼容版本与传递依赖，例如 JUnit API/Engine/Platform 和 Mockito/Byte Buddy；仅补上报错类所在的 JAR，可能仍遗漏类型层级或运行时依赖。
-- 区分依赖未解析、版本冲突与工具链版本错误，不通过随意升级 JDK 或库掩盖问题。记录实际使用的版本和来源，手工 classpath 验证不等同于项目完整构建通过。
+- 不按缓存内容拼 classpath：依赖解析与手工验证的完整条款见 [manual-classpath](references/manual-classpath.md)。
 
 ## 便携安装器 fallback
 

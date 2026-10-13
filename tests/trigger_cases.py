@@ -81,6 +81,8 @@ CASES = [
      'query': '按照 MOP 把这次生产升级实际执行一遍'},
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-skill-curator',
      'query': '把这套文档写作约定沉淀成仓库里的 skill'},
+    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-git-commit-push',
+     'query': '帮这次的改动写一条规范的提交信息'},
 
     # --- mv-skill-curator：沉淀进本仓库，不含业务实现与闲聊 ---
     {'skill': 'mv-skill-curator', 'kind': 'positive',
