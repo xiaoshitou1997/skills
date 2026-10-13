@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Windows 宿主与 WSL Docker 之间的桥:可用性硬门禁、发行版探测、暂存同步、单文件推送。
+# Windows 宿主与 WSL Docker 之间的桥:可用性硬门禁、发行版探测、单文件推送。
 # 团队规范:应用一律以 Docker 容器运行;Windows 上容器必须经 WSL,没有 WSL 就失败,
 # 禁止本机(宿主)直接启动。镜像常驻:任何流程不得 rmi/prune/清理镜像。
 # 环境变量:FF_WSL_DISTRO 指定发行版(默认取第一个);FF_WSL_BRIDGE=0 仅供测试/CI 绕过。
@@ -11,7 +11,6 @@ usage() {
   echo '       wsl-bridge.sh plain FILE...' >&2
   echo '       wsl-bridge.sh topath WINDOWS_PATH' >&2
   echo '       wsl-bridge.sh home' >&2
-  echo '       wsl-bridge.sh stage PROJECT_DIR [head|overlay]' >&2
   echo '       wsl-bridge.sh push LOCAL_FILE WSL_DEST_PATH' >&2
   echo '       wsl-bridge.sh exec WSL_DIR -- COMMAND...' >&2
   exit 2
@@ -115,52 +114,6 @@ cmd_home() {
   wsl_out -d "$d" sh -c 'echo $HOME'
 }
 
-verify_staging() {
-  local d=$1 dest=$2
-  wsl_cmd -d "$d" bash -c 'ls -A "$1" | grep -q .' _ "$dest" || {
-    echo "暂存同步失败:目标目录为空 $dest" >&2
-    return 3
-  }
-  local hits
-  hits=$(wsl_cmd -d "$d" bash -c 'grep -rl "%ENC-MARKER-[0-9]" "$1" 2>/dev/null' _ "$dest" | tr -d '\0\r') || hits=''
-  if [[ -n "$hits" ]]; then
-    echo '暂存目录存在 %ENC-MARKER 密文文件,已中止(不得把密文带进构建):' >&2
-    printf '%s\n' "$hits" >&2
-    echo '请在白名单编辑器中将这些文件另存为明文后重试。' >&2
-    return 3
-  fi
-}
-
-cmd_stage() {
-  [[ $# -ge 1 && $# -le 2 ]] || usage
-  local proj=$1
-  local mode=${2:-overlay}
-  [[ "$mode" == head || "$mode" == overlay ]] || usage
-  [[ -d "$proj" ]] || { echo "Not a directory: $proj" >&2; return 3; }
-  local d
-  d=$(cmd_distro) || return 3
-  [[ -n "$d" ]] || { echo 'stage 仅在经 WSL 桥接时可用' >&2; return 3; }
-  (cd "$proj" && git rev-parse --is-inside-work-tree >/dev/null 2>&1) || {
-    echo 'stage 需要 git 仓库:暂存管线经 git archive 从对象库取明文基线' >&2
-    return 3
-  }
-  local stamp dest
-  stamp=$(date -u +%Y%m%d%H%M%S)-$$
-  dest="$(cmd_home)/skills-staging/$(basename "$proj")-$stamp"
-  # HEAD 基线:git 对象库内容可靠,经管道直灌 WSL ext4,不落回 Windows 盘(落回即变密文)。
-  (cd "$proj" && git archive HEAD) | wsl_cmd -d "$d" bash -c 'mkdir -p "$1" && tar -x -C "$1"' _ "$dest"
-  if [[ "$mode" == overlay ]]; then
-    # 叠加工作区未提交/未跟踪文件;.env* 不入暂存,需要时用 push 单独传输。
-    # 已删除文件无法经 tar 表达,需提交后再同步或改用 head 模式。
-    if (cd "$proj" && git ls-files --others --exclude-standard --modified | grep -v -E '(^|/)\.env' | grep -q .); then
-      (cd "$proj" && git ls-files -z --others --exclude-standard --modified | grep -zv -E '(^|/)\.env' | tar --null -cf - -T -) \
-        | wsl_cmd -d "$d" bash -c 'tar -x -C "$1"' _ "$dest"
-    fi
-  fi
-  verify_staging "$d" "$dest"
-  printf '%s\n' "$dest"
-}
-
 cmd_push() {
   [[ $# -eq 2 ]] || usage
   local f=$1 t=$2 d
@@ -199,7 +152,6 @@ main() {
     plain)   cmd_plain "$@" ;;
     topath)  cmd_topath "$@" ;;
     home)    cmd_home "$@" ;;
-    stage)   cmd_stage "$@" ;;
     push)    cmd_push "$@" ;;
     exec)    cmd_exec "$@" ;;
     *) usage ;;

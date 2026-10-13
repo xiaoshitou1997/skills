@@ -124,32 +124,6 @@ class WslBridgeTests(unittest.TestCase):
             self.assertIn('docker', run.stderr)
 
     @NT_ONLY
-    def test_stage_overlay_roundtrip_excludes_env(self):
-        with tempfile.TemporaryDirectory() as d:
-            repo = Path(d) / 'proj'
-            repo.mkdir()
-            def git(*args):
-                subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True)
-            git('init', '-q')
-            git('config', 'user.name', 'Test')
-            git('config', 'user.email', 'test@example.com')
-            (repo / 'tracked.txt').write_text('tracked\n')
-            git('add', 'tracked.txt')
-            git('commit', '-q', '-m', 'init')
-            (repo / 'untracked.txt').write_text('working tree change\n')
-            (repo / '.env.dev').write_text('APP_ENV=dev\n')
-            env = self._stub_env(d)
-            run = self._run('stage', repo.as_posix(), 'overlay', env_extra=env)
-            self.assertEqual(run.returncode, 0, run.stderr)
-            dest = run.stdout.strip()
-            self.assertTrue(dest.startswith('/home/tester/skills-staging/'), dest)
-            # /tmp/<name>/fakesl 即 Windows 侧 <d>/fakesl;把 WSL 侧剩余路径映射回本地断言。
-            mapped = Path(d) / 'fakesl' / Path(dest).relative_to('/home/tester')
-            self.assertTrue((mapped / 'tracked.txt').is_file())
-            self.assertTrue((mapped / 'untracked.txt').is_file())
-            self.assertFalse((mapped / '.env.dev').exists())
-
-    @NT_ONLY
     def test_push_transfers_file_content(self):
         with tempfile.TemporaryDirectory() as d:
             env = self._stub_env(d)

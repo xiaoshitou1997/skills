@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Docker-only build/deploy driver. Requires bash, Docker/Compose, SSH for remote targets.
-# Windows 团队规范:容器一律经 WSL 运行,没有 WSL 就失败,禁止本机直接启动(见 scripts/wsl-bridge.sh)。
-# 镜像常驻:构建与部署只新增镜像/替换容器,任何流程不得 rmi/prune/清理镜像,复用层缓存加速后续构建。
+# Package prebuilt artifacts into thin runtime images and deploy. Requires bash, Docker/Compose, SSH for remote targets.
+# Windows 团队规范:镜像构建与容器一律经 WSL,没有 WSL 就失败,禁止本机直接启动应用(见 scripts/wsl-bridge.sh)。
+# 编译出包在宿主完成(工具链见 mv-toolchain-manager);本脚本只检测产物、打瘦镜像、部署。
+# 镜像常驻:构建与部署只新增镜像/替换容器,任何流程不得 rmi/prune/清理镜像。
 set -euo pipefail
 umask 077
 
@@ -97,47 +98,26 @@ init_runtime() {
   fi
 }
 
-# daemon 快速路径仅服务默认 Gradle 模板;Dockerfile.delivery 的构建由项目全权定义,不接管。
-gradle_daemon_enabled() {
-  [[ "$DOCKERFILE" == "$SKILL_ROOT/templates/Dockerfile.gradle" ]] || return 1
-  [[ "${FF_GRADLE_DAEMON:-1}" != 0 ]]
-}
-
-# daemon 构建:暂存树整树替换到稳定构建目录,常驻 daemon 容器内出 boot jar,再以运行时镜像打包。
-# 产物选择规则与 templates/Dockerfile.gradle 的 builder 阶段一致(唯一 boot jar,拒绝歧义)。
-build_gradle_daemon() { # $1=bridge|native;依赖 BUILD_CTX/IMAGE/ARGS/APP/WSL_HOME
-  local mode=$1 daemon_root ws_dir
-  if grep -Eq '^[[:space:]]*(\*\*/)?out([[:space:]]|$)' .dockerignore; then
-    echo '.dockerignore 排除了 out/,daemon 产物无法进入镜像;请放行 out/ 或改用 Dockerfile.delivery' >&2
-    exit 3
+# 产物检测:编译出包由项目在宿主完成,这里只按栈约定定位产物,不做任何编译。
+# Gradle 取 build/libs 唯一 boot jar(排除 -plain/-sources);Maven 取 target 唯一 jar
+# (排除 -sources/-javadoc/original-*);Node 取 dist/ 或 build/。FF_ARTIFACT 显式指定
+# 时优先(文件→app.jar,目录→app/),供多模块或自定义布局使用。
+find_artifact() {
+  if [[ -n "${FF_ARTIFACT:-}" ]]; then
+    [[ -e "$FF_ARTIFACT" ]] || { echo "FF_ARTIFACT 不存在: $FF_ARTIFACT" >&2; exit 3; }
+    if [[ -d "$FF_ARTIFACT" ]]; then ARTIFACT_DIR=$FF_ARTIFACT; else ARTIFACT=$FF_ARTIFACT; fi
+    return 0
   fi
-  if [[ "$mode" == bridge ]]; then
-    [[ -n "$WSL_HOME" ]] || { echo 'WSL home 不可用,无法放置 daemon 构建目录' >&2; exit 3; }
-    daemon_root="$WSL_HOME/.local/share/skills/build/$APP"
-    ws_dir="$daemon_root/ws"
-    # 整树替换:daemon 容器挂载固定路径;Gradle 缓存在命名卷,不受替换影响。
-    wsl_bash bash -c 'rm -rf "$1" && mkdir -p "$1/ws" && tar -C "$2" -cf - . | tar -C "$1/ws" -xf -' _ "$daemon_root" "$BUILD_CTX"
-    bash "$HERE/wsl-bridge.sh" push "$SKILL_ROOT/templates/Dockerfile.gradle.prebuilt" "$daemon_root/Dockerfile.gradle.prebuilt"
-    # wsl.exe 不继承 Windows 环境变量,FF_GRADLE_* 需显式传入。
-    local daemon_env=(env)
-    [[ -z "${FF_GRADLE_IMAGE:-}" ]] || daemon_env+=("FF_GRADLE_IMAGE=$FF_GRADLE_IMAGE")
-    [[ -z "${FF_GRADLE_UID:-}" ]] || daemon_env+=("FF_GRADLE_UID=$FF_GRADLE_UID")
-    [[ -z "${FF_GRADLE_TASKS:-}" ]] || daemon_env+=("FF_GRADLE_TASKS=$FF_GRADLE_TASKS")
-    bash "$HERE/wsl-bridge.sh" plain "$SKILL_ROOT/scripts/gradle-daemon.sh"
-    cat "$SKILL_ROOT/scripts/gradle-daemon.sh" | wsl_bash "${daemon_env[@]}" bash -s build "$ws_dir" "$APP"
-    wsl_bash env DOCKER_BUILDKIT=1 docker build --pull \
-      -f "$daemon_root/Dockerfile.gradle.prebuilt" -t "$IMAGE" "${ARGS[@]}" "$ws_dir"
-  else
-    daemon_root="$HOME/.local/share/skills/build/$APP"
-    ws_dir="$daemon_root/ws"
-    rm -rf "$ws_dir"
-    mkdir -p "$ws_dir"
-    tar -C "$PWD" -cf - . | tar -C "$ws_dir" -xf -
-    bash "$SKILL_ROOT/scripts/gradle-daemon.sh" build "$ws_dir" "$APP"
-    DOCKER_BUILDKIT=1 docker build --pull \
-      -f "$SKILL_ROOT/templates/Dockerfile.gradle.prebuilt" -t "$IMAGE" "${ARGS[@]}" "$ws_dir"
+  if [[ -f pom.xml ]]; then
+    ARTIFACT=$(ls -1t target/*.jar 2>/dev/null | grep -vE -- '-(sources|javadoc)\.jar$' | grep -v '/original-' | head -n 1 || true)
+    [[ -n "$ARTIFACT" ]] || { echo '未在 target/ 找到可交付 jar;先在宿主出包(如 mvn -B package,工具链准备见 mv-toolchain-manager),或用 FF_ARTIFACT 指定产物' >&2; exit 3; }
+  elif [[ -f build.gradle || -f build.gradle.kts ]]; then
+    ARTIFACT=$(ls -1t build/libs/*.jar 2>/dev/null | grep -vE -- '-(plain|sources)\.jar$' | head -n 1 || true)
+    [[ -n "$ARTIFACT" ]] || { echo '未在 build/libs/ 找到可交付 boot jar;先在宿主出包(如 ./gradlew bootJar),或用 FF_ARTIFACT 指定产物' >&2; exit 3; }
+  elif [[ -f package.json ]]; then
+    if [[ -d dist ]]; then ARTIFACT_DIR=dist; elif [[ -d build ]]; then ARTIFACT_DIR=build; fi
+    [[ -n "$ARTIFACT_DIR" ]] || { echo '未找到 dist/ 或 build/ 静态产物;先在宿主出包(如 npm run build),或用 FF_ARTIFACT 指定产物目录' >&2; exit 3; }
   fi
-  echo "GRADLE_DAEMON=on tasks=${FF_GRADLE_TASKS:-build} container=ff-gradle-daemon-$APP"
 }
 
 # 统一 docker 入口:桥接模式下在 WSL 内执行,并关闭 MSYS 路径转换,防止 /mnt、镜像、路径参数被改写。
@@ -157,18 +137,18 @@ wsl_bash() {
 case "$ACTION" in
   build)
     project_checks
-    init_runtime
+    # 栈检测决定瘦模板;产物必须在宿主已构建完成。
     if [[ -f Dockerfile.delivery ]]; then
-      DOCKERFILE=Dockerfile.delivery
-    elif [[ -f pom.xml ]]; then
-      DOCKERFILE="$SKILL_ROOT/templates/Dockerfile.maven"
-    elif [[ -f build.gradle || -f build.gradle.kts ]]; then
-      DOCKERFILE="$SKILL_ROOT/templates/Dockerfile.gradle"
+      TEMPLATE=Dockerfile.delivery
+    elif [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]]; then
+      TEMPLATE="$SKILL_ROOT/templates/Dockerfile.jar"
     elif [[ -f package.json ]]; then
-      DOCKERFILE="$SKILL_ROOT/templates/Dockerfile.node-static"
+      TEMPLATE="$SKILL_ROOT/templates/Dockerfile.web"
     else
-      echo 'Unsupported project: provide a multistage Dockerfile.delivery' >&2; exit 3
+      echo 'Unsupported project: build the artifact on the host and provide a thin Dockerfile.delivery' >&2; exit 3
     fi
+    find_artifact
+    init_runtime
     REPO=${FF_IMAGE_REPO:-$APP}
     [[ "$REPO" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,140}$ ]] || { echo 'Unsafe image repo' >&2; exit 2; }
     SHA=$(git rev-parse --short=12 HEAD 2>/dev/null || echo unversioned)
@@ -180,27 +160,59 @@ case "$ACTION" in
     fi
     TAG="${SHA}${DIRTY}-$(date -u +%Y%m%d%H%M%S)"
     IMAGE="$REPO:$TAG"
+    # 瘦上下文:只含产物与 Dockerfile。桥接模式经 push 管道直灌 WSL ext4(产物不落
+    # Windows 盘中间态,push 自带密文校验,读到密文即报错);native 模式用本地临时目录。
     ARGS=()
-    [[ -z "${FF_BUILD_IMAGE:-}" ]] || ARGS+=(--build-arg "BUILD_IMAGE=$FF_BUILD_IMAGE")
     [[ -z "${FF_RUNTIME_IMAGE:-}" ]] || ARGS+=(--build-arg "RUNTIME_IMAGE=$FF_RUNTIME_IMAGE")
-    # 基础镜像由 --pull 在 WSL 内拉取并常驻缓存;构建产物镜像只增不删。
     if [[ -n "$WSL_DISTRO" ]]; then
-      # 暂存管线:git archive HEAD 基线 + 工作区叠加,经管道直灌 WSL ext4,规避宿主盘密文读取。
-      BUILD_CTX=$(bash "$HERE/wsl-bridge.sh" stage "$PWD" overlay)
-      if gradle_daemon_enabled; then
-        build_gradle_daemon bridge
-      elif [[ "$DOCKERFILE" == */* ]]; then
-        DOCKERFILE=$(bash "$HERE/wsl-bridge.sh" topath "$DOCKERFILE")
+      BUILD_DIR="$WSL_HOME/.local/share/skills/build/$APP"
+      wsl_bash bash -c 'rm -rf "$1" && mkdir -p "$1"' _ "$BUILD_DIR"
+      # 传输只经透读者(git/bash)通道:透明加密机器上 MSYS coreutils 读到密文,
+      # 不能作为传输通道,也不用 grep 预检(会把健康产物误判为密文)。
+      if [[ -n "$ARTIFACT" ]]; then
+        if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+          BLOB=$(git hash-object -w -- "$ARTIFACT")
+          git cat-file blob "$BLOB" | wsl_bash bash -c 'cat > "$1"' _ "$BUILD_DIR/app.jar"
+        else
+          wsl_bash bash -c 'cat > "$1"' _ "$BUILD_DIR/app.jar" < "$ARTIFACT"
+        fi
+        echo "ARTIFACT=$ARTIFACT"
       else
-        DOCKERFILE="$BUILD_CTX/$DOCKERFILE"
+        if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+          TMPIDX=$(mktemp "${TMPDIR:-/tmp}/deliver-idx.XXXXXX")
+          GIT_INDEX_FILE="$TMPIDX" git read-tree --empty
+          GIT_INDEX_FILE="$TMPIDX" git add -- "$ARTIFACT_DIR" || { rm -f "$TMPIDX"; echo "无法把 $ARTIFACT_DIR 加入临时索引" >&2; exit 3; }
+          TREE=$(GIT_INDEX_FILE="$TMPIDX" git write-tree)
+          GIT_INDEX_FILE="$TMPIDX" git archive "$TREE" | wsl_bash bash -c 'mkdir -p "$1" && tar -xf - -C "$1"' _ "$BUILD_DIR"
+          rm -f "$TMPIDX"
+          wsl_bash mv "$BUILD_DIR/$ARTIFACT_DIR" "$BUILD_DIR/app"
+        else
+          echo '静态产物目录进 WSL 需要 git 仓库(经 git archive 管道);请初始化 git 或改用 FF_ARTIFACT 指定文件' >&2
+          exit 3
+        fi
+        echo "ARTIFACT_DIR=$ARTIFACT_DIR"
       fi
-      wsl_bash env DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" "$BUILD_CTX"
+      wsl_bash bash -c 'cat > "$1"' _ "$BUILD_DIR/Dockerfile" < "$TEMPLATE"
+      # 基础镜像由 --pull 在 WSL 内拉取并常驻缓存;构建产物镜像只增不删。
+      wsl_bash env DOCKER_BUILDKIT=1 docker build --pull -f "$BUILD_DIR/Dockerfile" -t "$IMAGE" "${ARGS[@]}" "$BUILD_DIR"
     else
-      if gradle_daemon_enabled; then
-        build_gradle_daemon native
+      if [[ -n "$ARTIFACT" ]]; then
+        bash "$HERE/wsl-bridge.sh" plain "$ARTIFACT"
+        echo "ARTIFACT=$ARTIFACT"
       else
-        DOCKER_BUILDKIT=1 docker build --pull -f "$DOCKERFILE" -t "$IMAGE" "${ARGS[@]}" .
+        echo "ARTIFACT_DIR=$ARTIFACT_DIR"
       fi
+      CTX=$(mktemp -d "${TMPDIR:-/tmp}/deliver-ctx.XXXXXX")
+      # 清理尽力而为:删除失败只告警不失败,不能让临时目录问题毒化交付结果。
+      trap 'rm -rf "$CTX" 2>/dev/null || echo "WARNING: 临时上下文清理失败,可手动删除: $CTX" >&2' EXIT
+      if [[ -n "$ARTIFACT" ]]; then
+        cp -- "$ARTIFACT" "$CTX/app.jar"
+      else
+        mkdir -p "$CTX/app"
+        cp -R -- "$ARTIFACT_DIR/." "$CTX/app/"
+      fi
+      cp -- "$TEMPLATE" "$CTX/Dockerfile"
+      DOCKER_BUILDKIT=1 docker build --pull -f "$CTX/Dockerfile" -t "$IMAGE" "${ARGS[@]}" "$CTX"
     fi
     if [[ "${FF_REQUIRE_SECURITY_SCAN:-0}" == 1 ]]; then
       if [[ -n "$WSL_DISTRO" ]]; then

@@ -16,7 +16,6 @@ if not Path(BASH).exists():
 GIT_AUDIT = (ROOT / 'mv-git-commit-push/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
 DELIVER = (ROOT / 'mv-wsl-build-deploy/scripts/deliver.sh').as_posix()
-GRADLE_DAEMON = (ROOT / 'mv-wsl-build-deploy/scripts/gradle-daemon.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):
@@ -64,37 +63,55 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('--approve-prod', run.stderr)
 
-    def test_gradle_daemon_rejects_missing_args(self):
-        run = subprocess.run([BASH, GRADLE_DAEMON], capture_output=True, text=True)
-        self.assertEqual(run.returncode, 2)
-        self.assertIn('Usage', run.stderr)
-
-    def test_gradle_daemon_requires_gradle_project(self):
-        with tempfile.TemporaryDirectory() as d:
-            # 非 Gradle 目录必须在触碰 docker 前快速失败;docker 检查排在静态校验之后。
-            run = subprocess.run([BASH, GRADLE_DAEMON, 'build', d, 'demo'], capture_output=True, text=True)
-            self.assertEqual(run.returncode, 3)
-            self.assertIn('No Gradle build', run.stderr)
-
-    def test_build_uses_docker_without_host_node_or_maven(self):
+    def test_build_packages_prebuilt_artifact(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             (d / '.dockerignore').write_text('.env*\n.git\n')
             (d / 'pom.xml').write_text('<project/>')
+            target = d / 'target'
+            target.mkdir()
+            (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
+            (target / 'demo-app-1.0.0-sources.jar').write_bytes(b'not-deliverable')
             bin_dir = d / 'bin'; bin_dir.mkdir()
             fake_docker = bin_dir / 'docker'
             docker_log = d / 'docker.log'
-            fake_docker.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$DOCKER_LOG"\nif [ "$1" = "image" ]; then echo "IMAGE_ID=sha256:mocked"; fi\n')
+            # build 时把上下文内容记入日志:最后一参数是 context,断言瘦上下文只含产物与 Dockerfile。
+            fake_docker.write_text(
+                '#!/bin/sh\n'
+                'printf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
+                'if [ "$1" = "build" ]; then\n'
+                '  for a in "$@"; do ctx="$a"; done\n'
+                '  ls -A "$ctx" >> "$DOCKER_LOG"\n'
+                '  cat "$ctx/Dockerfile" >> "$DOCKER_LOG" 2>/dev/null\n'
+                'fi\n'
+                'if [ "$1" = "image" ]; then echo "IMAGE_ID=sha256:mocked"; fi\n'
+            )
             fake_docker.chmod(0o755)
             env = os.environ.copy()
             env['PATH'] = str(bin_dir) + os.pathsep + env['PATH']
             env['DOCKER_LOG'] = str(docker_log)
             # FF_WSL_BRIDGE=0 仅供测试:走 PATH 里的 fake docker,不触真实 WSL。
             env['FF_WSL_BRIDGE'] = '0'
-            run = subprocess.run([BASH, DELIVER, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True)
+            run = subprocess.run([BASH, DELIVER, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertIn('IMAGE=demo:', run.stdout)
-            self.assertIn('Dockerfile.maven', docker_log.read_text())
+            self.assertIn('ARTIFACT=', run.stdout)
+            log = docker_log.read_text(encoding='utf-8', errors='replace')
+            self.assertIn('build --pull', log)
+            self.assertIn('Dockerfile', log)
+            self.assertIn('app.jar', log)          # 产物改名进瘦上下文
+            self.assertNotIn('demo-app-1.0.0.jar', log)  # 原名不进上下文
+            self.assertNotIn('-sources.jar', log)  # sources jar 被排除
+
+    def test_build_without_artifact_fails_with_guidance(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / '.dockerignore').write_text('.env*\n.git\n')
+            (d / 'pom.xml').write_text('<project/>')
+            run = subprocess.run([BASH, DELIVER, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn('mvn -B package', run.stderr)
+            self.assertIn('mv-toolchain-manager', run.stderr)
 
 
 if __name__ == '__main__':

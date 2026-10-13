@@ -11,7 +11,7 @@
 | Skill | 范围 |
 | --- | --- |
 | `mv-toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
-| `mv-wsl-build-deploy` | 构建、本地调测、dev/prod 部署、同镜像晋级与回滚的统一 WSL 容器管线 |
+| `mv-wsl-build-deploy` | 宿主出包、WSL 出镜像；本地调测与 dev/prod 部署、同镜像晋级与回滚的统一管线 |
 | `mv-git-commit-push` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
 | `mv-spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
@@ -57,7 +57,7 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## WSL 构建部署
 
-`mv-wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条 WSL 容器管线。自带模板面向 Java 可执行 JAR 和 Node 静态前端；Gradle 项目默认经常驻 daemon 容器增量构建提速，`FF_GRADLE_DAEMON=0` 退回镜像内构建；其他架构需项目自备 Dockerfile/Compose。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](mv-wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](mv-wsl-build-deploy/references/security-model.md)。
+`mv-wsl-build-deploy` 将本地调测与 dev/prod 交付统一为同一条管线：编译出包在宿主完成（工具链由 mv-toolchain-manager 准备），产物在 WSL 内打包为只含运行时的瘦镜像，部署到本机 WSL（dev，即本地服务器）或远程服务器（prod）。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](mv-wsl-build-deploy/references/deployment-contract.md) 与 [安全模型](mv-wsl-build-deploy/references/security-model.md)。
 
 ```bash
 SKILL_ROOT="/实际绝对路径/mv-wsl-build-deploy"

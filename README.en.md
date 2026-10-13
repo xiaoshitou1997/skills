@@ -11,7 +11,7 @@ This collection contains team engineering practices, not an official product or 
 | Skill | Scope |
 | --- | --- |
 | `mv-toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
-| `mv-wsl-build-deploy` | Build, run/debug locally, deploy dev/prod, promote and roll back through one WSL container pipeline |
+| `mv-wsl-build-deploy` | Build on the host, image in WSL; one pipeline for local run/debug, dev/prod deploy, promote and roll back |
 | `mv-git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
 | `mv-spring-boot-standards` | Project-aware Spring Boot conventions; MyBatis-Plus guidance where applicable |
 | `mv-engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
@@ -57,7 +57,7 @@ Commit language and format follow the user and repository conventions. The defau
 
 ## WSL build & deploy
 
-`mv-wsl-build-deploy` unifies local run/debug and dev/prod delivery in one WSL container pipeline. Built-in templates cover Java executable JARs and static Node frontends. Gradle projects build through a resident daemon container by default for incremental speed; `FF_GRADLE_DAEMON=0` opts back into in-image multistage builds. Other architectures need project-owned Dockerfile/Compose configuration. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](mv-wsl-build-deploy/references/deployment-contract.md) and [security model](mv-wsl-build-deploy/references/security-model.md).
+`mv-wsl-build-deploy` unifies local run/debug and dev/prod delivery in one pipeline: artifacts are built on the host (toolchains prepared by mv-toolchain-manager), packaged in WSL into thin runtime-only images, and deployed to the local WSL (dev, the local server) or a remote server (prod). Built-in templates cover Java executable JARs and static Node frontends; other artifact layouts use `FF_ARTIFACT` or a project-owned `Dockerfile.delivery`. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](mv-wsl-build-deploy/references/deployment-contract.md) and [security model](mv-wsl-build-deploy/references/security-model.md).
 
 ```bash
 SKILL_ROOT="/absolute/path/to/mv-wsl-build-deploy"
