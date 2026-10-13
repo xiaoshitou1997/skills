@@ -18,7 +18,7 @@ This collection contains team engineering practices, not an official product or 
 | `mv-skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
 
 
-“Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before committing, keeping linear history and avoiding merge commits.
+“Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before both committing and pushing, keeping linear history and avoiding merge commits.
 
 ## Maintenance principles
 
