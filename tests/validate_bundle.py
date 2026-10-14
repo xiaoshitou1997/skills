@@ -51,6 +51,10 @@ def validate():
         for ref in re.findall(r'\$\{SKILL_ROOT\}/(scripts/[\w./-]+)', data):
             if not (path.parent/ref).is_file():
                 error(f'Broken script: {n}/{ref}')
+        for ref in set(re.findall(r'`(?:\$\{SKILL_ROOT\}/)?(templates/[\w./-]+)`', data)) \
+                | set(re.findall(r'\]\((templates/[^)]+)\)', data)):
+            if not (path.parent/ref).is_file():
+                error(f'Broken template: {n}/{ref}')
         if '${SKILL_ROOT}' in data and 'SKILL_ROOT`' not in data:
             error(f'SKILL_ROOT must be documented: {n}')
 
