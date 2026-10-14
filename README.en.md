@@ -18,7 +18,7 @@ This collection contains team engineering practices, not an official product or 
 | `mv-engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
 | `mv-skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
 
-Naming: use `mv-` plus domain and responsibility or capability. Choose the suffix to match the skill's actual content, consistent with its description and body. See the [repository structure rules](mv-skill-curator/references/structure-rules.md).
+Naming: use `mv-` plus object and responsibility word. The responsibility word follows the skill's primary responsibility, consistent with its description and body. See the [repository structure rules](mv-skill-curator/references/structure-rules.md).
 
 After adding, changing or removing a skill, run `bash mv-skill-curator/scripts/sync-installed.sh` to synchronize installed copies and remove obsolete versions, avoiding duplicate triggers.
 

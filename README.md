@@ -18,7 +18,7 @@
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `mv-skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
 
-命名规范：统一采用 `mv-` + 领域 + 职责或能力，按技能实际内容选择后缀，与 description 和正文一致。具体规则见 [仓库结构规则](mv-skill-curator/references/structure-rules.md)。
+命名规范：统一采用 `mv-` + 对象 + 职责词，职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](mv-skill-curator/references/structure-rules.md)。
 
 增删改 skill 后执行 `bash mv-skill-curator/scripts/sync-installed.sh` 同步已安装副本并清理旧版本，避免重复触发。
 
