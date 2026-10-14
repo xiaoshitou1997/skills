@@ -37,7 +37,7 @@ CASES = [
      'query': '本机缺 Java 17，帮我装一个'},
     {'skill': 'mv-wsl-build-deploy', 'kind': 'negative', 'instead': 'mv-git-commit-push',
      'query': '把这些改动提交并推送'},
-    {'skill': 'mv-wsl-build-deploy', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer',
+    {'skill': 'mv-wsl-build-deploy', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer-reviewer',
      'query': '把这次生产升级的步骤整理成一份可执行的 MOP 文档'},
 
     # --- mv-git-commit-push：发布动作，不含概念解释与经验沉淀 ---
@@ -68,20 +68,20 @@ CASES = [
     {'skill': 'mv-spring-boot-standards', 'kind': 'negative',
      'query': '用 Quarkus 写一个 REST 接口示例'},
 
-    # --- mv-engineering-doc-writer：工程文档产出/评审，不含按文档执行操作 ---
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'positive',
+    # --- mv-engineering-doc-writer-reviewer：工程文档产出/评审，不含按文档执行操作 ---
+    {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'positive',
      'query': '把这段需求讨论整理成一份可评审的 PRD'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'positive',
+    {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'positive',
      'query': '评审这份 HLD 架构设计文档，指出缺失的决策和前后矛盾'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'positive',
+    {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'positive',
      'query': '为本次生产数据库升级编写一份带检查点和回滚步骤的 MOP'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'positive',
+    {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'positive',
      'query': '给新接口写一份 API 文档，包含字段说明、错误码和示例'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-wsl-build-deploy',
+    {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'negative', 'instead': 'mv-wsl-build-deploy',
      'query': '按照 MOP 把这次生产升级实际执行一遍'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-skill-curator',
+    {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'negative', 'instead': 'mv-skill-curator',
      'query': '把这套文档写作约定沉淀成仓库里的 skill'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-git-commit-push',
+    {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'negative', 'instead': 'mv-git-commit-push',
      'query': '帮这次的改动写一条规范的提交信息'},
 
     # --- mv-skill-curator：沉淀进本仓库，不含业务实现与闲聊 ---

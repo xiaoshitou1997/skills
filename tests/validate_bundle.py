@@ -12,7 +12,7 @@ SKILLS = {
     'mv-wsl-build-deploy',
     'mv-git-commit-push',
     'mv-spring-boot-standards',
-    'mv-engineering-doc-writer',
+    'mv-engineering-doc-writer-reviewer',
     'mv-skill-curator',
 }
 

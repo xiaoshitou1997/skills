@@ -14,7 +14,7 @@
 | `mv-wsl-build-deploy` | 宿主出包、WSL 出镜像；本地调测与 dev/prod 部署、同镜像晋级与回滚的统一管线 |
 | `mv-git-commit-push` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
 | `mv-spring-boot-standards` | 遵循项目约定的 Spring Boot 规范；适用时采用 MyBatis-Plus 条款 |
-| `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
+| `mv-engineering-doc-writer-reviewer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `mv-skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
 
 
