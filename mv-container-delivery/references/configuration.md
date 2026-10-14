@@ -11,6 +11,7 @@
 | `FF_RUNTIME_IMAGE` | 自定义运行基础镜像的完整引用；应固定版本/digest |
 | `FF_ARTIFACT` | 显式指定宿主产物路径（文件→`app.jar`，目录→`app/`）；多模块或自定义布局使用 |
 | `FF_HEALTH_URL` | 可选目标机本地 HTTP 健康检查 URL，例如 `http://127.0.0.1:8080/actuator/health` |
+| `FF_REQUIRE_DEV_PROOF` | 默认 `1`：生产晋级要求同一 Image ID 的 dev 健康验证收据；置 `0` 仅限风险评估后的显式应急，详见 [部署契约](deployment-contract.md) |
 | `FF_WSL_DISTRO` | Windows 指定 WSL 发行版；默认取第一个可用发行版 |
 | `FF_WSL_BRIDGE` | 设为 `0` 绕过 WSL 桥接；仅供测试/CI，Windows 生产使用违反团队规范 |
 
