@@ -82,7 +82,7 @@ module-task/          消息消费/任务（存在时）
 - DDL / migration 用项目已有 Flyway/Liquibase/SQL 流程，默认不得随应用镜像回滚反向执行。
 - 事务置于 Service 真实业务边界：不在长事务中执行远程 HTTP 或慢操作；分布式事务优先讨论 Outbox 等替代方案并与团队确认。事务代理、传播与自调用语义按所用框架理解（Spring 见 spring-guide.md）。
 - 避免日志打印账户机密、令牌或用户私密资料；敏感字段标记/脱敏。
-- 业务表统一审计字段（创建时间、更新时间、逻辑删除标记）并实现自动填充；时间用 `LocalDateTime` 对应 datetime 列，不混用 `Date`。
+- 业务表统一审计字段 `created_at`、`updated_at`、`created_by`、`updated_by`（及逻辑删除标记，按项目既有约定）并实现自动填充；时间字段用 `LocalDateTime` 对应 datetime 列，不混用 `Date`；数据库列名一律 snake_case 命名，Java camelCase 字段通过 `@Column` 或等价注解显式映射，禁止依赖隐式命名策略。
 - 主键策略（如雪花 ID）由项目/采用方统一后不混用其他方案；新项目未确立时先与团队确认，不擅自定方案。
 - 列表查询必须分页，不执行无边界全量查询；SQL 参数一律预编译占位符，不拼接。
 
