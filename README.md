@@ -2,11 +2,11 @@
 
 [English](README.en.md)
 
-面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理、编码规范、技术栈约定和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 六个 skills
+## 七个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -14,6 +14,7 @@
 | `mv-wsl-build-deploy` | 宿主出包、WSL 出镜像；本地调测与 dev/prod 部署、同镜像晋级与回滚的统一管线 |
 | `mv-git-commit-push` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot、MyBatis-Plus、JPA 条款按项目实际框架应用 |
+| `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策；存量项目沿用现状优先 |
 | `mv-engineering-doc-writer-reviewer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `mv-skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
 

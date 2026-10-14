@@ -67,6 +67,22 @@ CASES = [
      'query': '把这个 Spring Boot 项目部署到 dev 容器'},
     {'skill': 'mv-java-backend-standards', 'kind': 'positive',
      'query': '用 Quarkus 写一个 REST 接口，按通用后端规范分层实现'},
+    {'skill': 'mv-java-backend-standards', 'kind': 'negative', 'instead': 'mv-tech-stack-standards',
+     'query': '新项目该选 MyBatis-Plus 还是 Spring Data JPA？'},
+
+    # --- mv-tech-stack-standards：选型/基线/依赖决策，不含写代码、装工具与部署 ---
+    {'skill': 'mv-tech-stack-standards', 'kind': 'positive',
+     'query': '新建一个后端服务，帮我定技术栈和版本基线'},
+    {'skill': 'mv-tech-stack-standards', 'kind': 'positive',
+     'query': '项目里要引入一个新的 Redis 客户端库，按约定该怎么评估'},
+    {'skill': 'mv-tech-stack-standards', 'kind': 'positive',
+     'query': '盘点一下这个项目现在用了哪些框架，版本都锁定在哪里'},
+    {'skill': 'mv-tech-stack-standards', 'kind': 'negative', 'instead': 'mv-java-backend-standards',
+     'query': '写一个分页查询接口，按规范处理事务和异常'},
+    {'skill': 'mv-tech-stack-standards', 'kind': 'negative', 'instead': 'mv-toolchain-manager',
+     'query': '本机装个 Node 20 并把默认版本切过去'},
+    {'skill': 'mv-tech-stack-standards', 'kind': 'negative', 'instead': 'mv-wsl-build-deploy',
+     'query': '把这个服务打包部署到 dev 环境'},
 
     # --- mv-engineering-doc-writer-reviewer：工程文档产出/评审，不含按文档执行操作 ---
     {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'positive',

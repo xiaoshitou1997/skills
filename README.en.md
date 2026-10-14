@@ -2,7 +2,7 @@
 
 [中文说明](README.md)
 
-Team-reusable Agent Skills for Git publishing, WSL container build/debug/deploy, toolchains and engineering documentation. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
+Team-reusable Agent Skills for Git publishing, WSL container build/debug/deploy, toolchains, coding standards, tech-stack conventions and engineering documentation. Each skill includes its own scripts and references and can be installed independently with the [skills CLI](https://github.com/vercel-labs/skills).
 
 This collection contains team engineering practices, not an official product or certification from an agent, framework or endpoint-security vendor.
 
@@ -14,6 +14,7 @@ This collection contains team engineering practices, not an official product or 
 | `mv-wsl-build-deploy` | Build on the host, image in WSL; one pipeline for local run/debug, dev/prod deploy, promote and roll back |
 | `mv-git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
 | `mv-java-backend-standards` | Project-aware Java backend conventions; Spring Boot, MyBatis-Plus and JPA guidance applied per project stack |
+| `mv-tech-stack-standards` | Tech-stack selection, version baselines, dependency adoption and upgrade decisions; existing projects keep their current stack |
 | `mv-engineering-doc-writer-reviewer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
 | `mv-skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
 

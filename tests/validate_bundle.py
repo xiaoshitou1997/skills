@@ -12,6 +12,7 @@ SKILLS = {
     'mv-wsl-build-deploy',
     'mv-git-commit-push',
     'mv-java-backend-standards',
+    'mv-tech-stack-standards',
     'mv-engineering-doc-writer-reviewer',
     'mv-skill-curator',
 }
