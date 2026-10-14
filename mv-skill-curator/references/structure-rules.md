@@ -35,7 +35,7 @@
 ## 命名先例
 
 - 统一 `mv-` 前缀标识来源（2026-10 团队决策，取代裸场景名先例）：skills 多来源混装时看名字即知出自本仓库；前缀不承载场景语义，边界信息仍由名字其余部分与 description 提供。
-- 名字其余部分对应团队场景的功能与流程（mv-toolchain-manager、mv-engineering-doc-writer-reviewer、mv-git-commit-push）；当机制/硬约束本身是团队标准的一部分时写进名字（mv-wsl-build-deploy 的 WSL 门禁，管镜像构建与容器运行），看到名字即知边界，防误触发与误用。
+- 名字其余部分对应团队场景的功能与流程（mv-toolchain-manager、mv-engineering-doc-writer-reviewer、mv-git-publish）；当机制/硬约束本身是团队标准的一部分时写进名字（mv-container-build-deploy 的容器门禁：镜像构建与应用运行一律在 WSL 容器内），看到名字即知边界，防误触发与误用。
 - 规范型 skill 用 `-standards` 后缀；前缀已大幅降低第三方撞名概率，仍避免与内置 skill（如 code-review、security-review）撞名。
 - 名字以名实相符为先：发现核心功能不在名字概括范围内时改名，不因迁移成本回避；改名会使已安装旧副本双触发，必须走「校验与同步点」完整清单（STALE 清单、README 中英文迁移记录）。2026-10 前曾按「成本高、不改名」执行，后经名实核对修正为准确优先。`mv-` 前缀为一次性完成的批量迁移，新增 skill 直接带前缀。
 - 官方推荐动名词命名（如 processing-pdfs）；本仓库不采用，属已确认的团队决策，记录见「外部依据」。

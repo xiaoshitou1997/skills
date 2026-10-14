@@ -9,8 +9,8 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SKILLS = {
     'mv-toolchain-manager',
-    'mv-wsl-build-deploy',
-    'mv-git-commit-push',
+    'mv-container-build-deploy',
+    'mv-git-publish',
     'mv-java-backend-standards',
     'mv-tech-stack-standards',
     'mv-engineering-doc-writer-reviewer',
@@ -21,12 +21,12 @@ SKILLS = {
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
     ['mv-toolchain-manager/scripts/doctor.py',
-     'mv-wsl-build-deploy/scripts/doctor.py'],
-    ['mv-git-commit-push/scripts/quality-check.sh',
-     'mv-wsl-build-deploy/scripts/quality-check.sh',
+     'mv-container-build-deploy/scripts/doctor.py'],
+    ['mv-git-publish/scripts/quality-check.sh',
+     'mv-container-build-deploy/scripts/quality-check.sh',
      'mv-java-backend-standards/scripts/quality-check.sh'],
-    ['mv-git-commit-push/scripts/security-scan.sh',
-     'mv-wsl-build-deploy/scripts/security-scan.sh'],
+    ['mv-git-publish/scripts/security-scan.sh',
+     'mv-container-build-deploy/scripts/security-scan.sh'],
 ]
 
 

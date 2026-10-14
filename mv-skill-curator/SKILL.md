@@ -22,7 +22,7 @@ description: 把用户随手发来的工作习惯、流程片段、团队约定�
 4. 每次改动后：
    - 在仓库根运行 `python3 tests/validate_bundle.py`；新增或改名 skill 必须同步该脚本的 SKILLS 集合、README 中英文表格，改名还要补 README 迁移记录。
    - 增删改 skill 并提交后运行 `bash "${SKILL_ROOT}/scripts/sync-installed.sh"` 同步已安装副本：默认从本地检出把全部 skills 装到配置的 agent 目标（universal、claude-code，可用 `-a` 覆盖），并清理改名/合并前的旧版本；`--remote` 改从 GitHub 源安装（需先 push）。`SKILL_ROOT` 为本 skill 目录的显式绝对路径，agent 不保证自动提供。
-   - 按独立逻辑变更分组提交，遵循 mv-git-commit-push 的团队约定：中文 Conventional Commits、AI 署名、先 pull 再 commit。
+   - 按独立逻辑变更分组提交，遵循 mv-git-publish 的团队约定：中文 Conventional Commits、AI 署名、先 pull 再 commit。
 5. 汇报：归类结果（并入哪/新建什么/暂存什么）、改动文件、执行的校验、遗留 Open Question。
 
 ## 质量门槛

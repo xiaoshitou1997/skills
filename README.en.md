@@ -11,8 +11,8 @@ This collection contains team engineering practices, not an official product or 
 | Skill | Scope |
 | --- | --- |
 | `mv-toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
-| `mv-wsl-build-deploy` | Build on the host, image in WSL; one pipeline for local run/debug, dev/prod deploy, promote and roll back |
-| `mv-git-commit-push` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
+| `mv-container-build-deploy` | Build on the host, image in WSL; one pipeline for local run/debug, dev/prod deploy, promote and roll back |
+| `mv-git-publish` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
 | `mv-java-backend-standards` | Project-aware Java backend conventions; Spring Boot, MyBatis-Plus and JPA guidance applied per project stack |
 | `mv-tech-stack-standards` | Tech-stack selection, version baselines, dependency adoption and upgrade decisions; existing projects keep their current stack |
 | `mv-engineering-doc-writer-reviewer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
@@ -34,7 +34,7 @@ Install from this repository:
 ```bash
 npx skills@latest add xiaoshitou1997/skills --list
 npx skills@latest add xiaoshitou1997/skills
-npx skills@latest add xiaoshitou1997/skills --skill mv-git-commit-push -g -a claude-code
+npx skills@latest add xiaoshitou1997/skills --skill mv-git-publish -g -a claude-code
 # Local checkout: list skills without installing
 npx skills@latest add . --list
 ```
@@ -49,7 +49,7 @@ Locate the installed skill through its loaded `SKILL.md`. `SKILL_ROOT` below is 
 SKILL_ROOT="/absolute/path/to/mv-toolchain-manager"
 python3 "$SKILL_ROOT/scripts/doctor.py" --project .
 
-SKILL_ROOT="/absolute/path/to/mv-git-commit-push"
+SKILL_ROOT="/absolute/path/to/mv-git-publish"
 python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```
@@ -58,10 +58,10 @@ Commit language and format follow the user and repository conventions. The defau
 
 ## WSL build & deploy
 
-`mv-wsl-build-deploy` unifies local run/debug and dev/prod delivery in one pipeline: artifacts are built on the host (toolchains prepared by mv-toolchain-manager), packaged in WSL into thin runtime-only images, and deployed to the local WSL (dev, the local server) or a remote server (prod). Built-in templates cover Java executable JARs and static Node frontends; other artifact layouts use `FF_ARTIFACT` or a project-owned `Dockerfile.delivery`. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](mv-wsl-build-deploy/references/deployment-contract.md) and [security model](mv-wsl-build-deploy/references/security-model.md).
+`mv-container-build-deploy` unifies local run/debug and dev/prod delivery in one pipeline: artifacts are built on the host (toolchains prepared by mv-toolchain-manager), packaged in WSL into thin runtime-only images, and deployed to the local WSL (dev, the local server) or a remote server (prod). Built-in templates cover Java executable JARs and static Node frontends; other artifact layouts use `FF_ARTIFACT` or a project-owned `Dockerfile.delivery`. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](mv-container-build-deploy/references/deployment-contract.md) and [security model](mv-container-build-deploy/references/security-model.md).
 
 ```bash
-SKILL_ROOT="/absolute/path/to/mv-wsl-build-deploy"
+SKILL_ROOT="/absolute/path/to/mv-container-build-deploy"
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'

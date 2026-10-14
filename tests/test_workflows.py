@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
     BASH = 'bash'
-GIT_AUDIT = (ROOT / 'mv-git-commit-push/scripts/stage_audit.py').as_posix()
+GIT_AUDIT = (ROOT / 'mv-git-publish/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
-DELIVER = (ROOT / 'mv-wsl-build-deploy/scripts/deliver.sh').as_posix()
+DELIVER = (ROOT / 'mv-container-build-deploy/scripts/deliver.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):

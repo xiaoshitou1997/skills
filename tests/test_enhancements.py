@@ -14,10 +14,10 @@ BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/b
 if not Path(BASH).exists():
     BASH = 'bash'
 DOCTOR = (ROOT / 'mv-toolchain-manager/scripts/doctor.py').as_posix()
-PREFLIGHT = (ROOT / 'mv-wsl-build-deploy/scripts/deploy-preflight.sh').as_posix()
-DELIVER = (ROOT / 'mv-wsl-build-deploy/scripts/deliver.sh').as_posix()
-RUNNER = (ROOT / 'mv-wsl-build-deploy/scripts/target-runner.sh').as_posix()
-QUALITY = (ROOT / 'mv-wsl-build-deploy/scripts/quality-check.sh').as_posix()
+PREFLIGHT = (ROOT / 'mv-container-build-deploy/scripts/deploy-preflight.sh').as_posix()
+DELIVER = (ROOT / 'mv-container-build-deploy/scripts/deliver.sh').as_posix()
+RUNNER = (ROOT / 'mv-container-build-deploy/scripts/target-runner.sh').as_posix()
+QUALITY = (ROOT / 'mv-container-build-deploy/scripts/quality-check.sh').as_posix()
 
 
 def exec_run(*cmd, cwd=None, env=None, input=None):

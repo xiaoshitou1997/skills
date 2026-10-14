@@ -11,7 +11,7 @@ BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/b
 if not Path(BASH).exists():
     BASH = 'bash'
 # bash 不接受 Windows 反斜杠路径(msys 会吞掉反斜杠),统一转为正斜杠。
-BRIDGE = (ROOT / 'mv-wsl-build-deploy/scripts/wsl-bridge.sh').as_posix()
+BRIDGE = (ROOT / 'mv-container-build-deploy/scripts/wsl-bridge.sh').as_posix()
 
 # 伪造 wsl.exe:$FAKE_WSL_HOME 映射 WSL 侧 /home/tester;仅实现 bridge 用到的调用形态。
 STUB = '''#!/usr/bin/env bash
