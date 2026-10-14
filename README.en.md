@@ -10,14 +10,17 @@ This collection contains team engineering practices, not an official product or 
 
 | Skill | Scope |
 | --- | --- |
-| `mv-managing-toolchains` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
-| `mv-delivering-containers` | Build on the host, image in WSL; one pipeline for local run/debug, dev/prod deploy, promote and roll back |
-| `mv-publishing-git-changes` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
-| `mv-writing-java-backends` | Project-aware Java backend conventions; Spring Boot, MyBatis-Plus and JPA guidance applied per project stack |
-| `mv-managing-tech-stacks` | Tech-stack selection, version baselines, dependency adoption and upgrade decisions; existing projects keep their current stack |
-| `mv-writing-engineering-docs` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
-| `mv-curating-skills` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
+| `mv-toolchain-manager` | Detect and prepare local JDK, Maven, Gradle and Node.js; respect project version managers and wrappers |
+| `mv-container-delivery` | Build on the host, image in WSL; one pipeline for local run/debug, dev/prod deploy, promote and roll back |
+| `mv-git-publisher` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
+| `mv-java-backend-standards` | Project-aware Java backend conventions; Spring Boot, MyBatis-Plus and JPA guidance applied per project stack |
+| `mv-tech-stack-standards` | Tech-stack selection, version baselines, dependency adoption and upgrade decisions; existing projects keep their current stack |
+| `mv-engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
+| `mv-skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
 
+Naming: use `mv-` plus domain and responsibility or capability. Choose the suffix to match the skill's actual content, consistent with its description and body. See the [repository structure rules](mv-skill-curator/references/structure-rules.md).
+
+After adding, changing or removing a skill, run `bash mv-skill-curator/scripts/sync-installed.sh` to synchronize installed copies and remove obsolete versions, avoiding duplicate triggers.
 
 “Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before both committing and pushing, keeping linear history and avoiding merge commits.
 
@@ -34,7 +37,7 @@ Install from this repository:
 ```bash
 npx skills@latest add xiaoshitou1997/skills --list
 npx skills@latest add xiaoshitou1997/skills
-npx skills@latest add xiaoshitou1997/skills --skill mv-publishing-git-changes -g -a claude-code
+npx skills@latest add xiaoshitou1997/skills --skill mv-git-publisher -g -a claude-code
 # Local checkout: list skills without installing
 npx skills@latest add . --list
 ```
@@ -46,10 +49,10 @@ The CLI supports multiple agents; select the target with `-a`. Skills are loaded
 Locate the installed skill through its loaded `SKILL.md`. `SKILL_ROOT` below is an explicitly assigned absolute path, not an agent-provided variable. Run project-oriented commands from your application repository:
 
 ```bash
-SKILL_ROOT="/absolute/path/to/mv-managing-toolchains"
+SKILL_ROOT="/absolute/path/to/mv-toolchain-manager"
 python3 "$SKILL_ROOT/scripts/doctor.py" --project .
 
-SKILL_ROOT="/absolute/path/to/mv-publishing-git-changes"
+SKILL_ROOT="/absolute/path/to/mv-git-publisher"
 python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```
@@ -58,10 +61,10 @@ Commit language and format follow the user and repository conventions. The defau
 
 ## WSL build & deploy
 
-`mv-delivering-containers` unifies local run/debug and dev/prod delivery in one pipeline: artifacts are built on the host (toolchains prepared by mv-managing-toolchains), packaged in WSL into thin runtime-only images, and deployed to the local WSL (dev, the local server) or a remote server (prod). Built-in templates cover Java executable JARs and static Node frontends; other artifact layouts use `FF_ARTIFACT` or a project-owned `Dockerfile.delivery`. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](mv-delivering-containers/references/deployment-contract.md) and [security model](mv-delivering-containers/references/security-model.md).
+`mv-container-delivery` unifies local run/debug and dev/prod delivery in one pipeline: artifacts are built on the host (toolchains prepared by mv-toolchain-manager), packaged in WSL into thin runtime-only images, and deployed to the local WSL (dev, the local server) or a remote server (prod). Built-in templates cover Java executable JARs and static Node frontends; other artifact layouts use `FF_ARTIFACT` or a project-owned `Dockerfile.delivery`. Prepare `.dockerignore` and untracked `.env.dev`/`.env.prod` files. See the [deployment contract](mv-container-delivery/references/deployment-contract.md) and [security model](mv-container-delivery/references/security-model.md).
 
 ```bash
-SKILL_ROOT="/absolute/path/to/mv-delivering-containers"
+SKILL_ROOT="/absolute/path/to/mv-container-delivery"
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/deliver.sh" build dev myapp
 bash "$SKILL_ROOT/scripts/deliver.sh" deploy dev myapp 'myapp:TAG'

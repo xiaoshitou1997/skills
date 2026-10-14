@@ -1,3 +1,0 @@
-interface:
-  display_name: "Writing Java Backends"
-  short_description: "遵循项目约定的 Java 后端编码规范；Spring Boot、MyBatis-Plus、JPA 条款按项目实际框架应用。"

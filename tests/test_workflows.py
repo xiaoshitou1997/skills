@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
     BASH = 'bash'
-GIT_AUDIT = (ROOT / 'mv-publishing-git-changes/scripts/stage_audit.py').as_posix()
-DETECT = (ROOT / 'mv-managing-toolchains/scripts/detect.py').as_posix()
-DELIVER = (ROOT / 'mv-delivering-containers/scripts/deliver.sh').as_posix()
+GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
+DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
+DELIVER = (ROOT / 'mv-container-delivery/scripts/deliver.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):
@@ -111,7 +111,7 @@ class WorkflowTests(unittest.TestCase):
             run = subprocess.run([BASH, DELIVER, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('mvn -B package', run.stderr)
-            self.assertIn('mv-managing-toolchains', run.stderr)
+            self.assertIn('mv-toolchain-manager', run.stderr)
 
 
 if __name__ == '__main__':
