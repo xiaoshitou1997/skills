@@ -2,6 +2,8 @@
 
 项目使用 MyBatis-Plus 时并读本文件；通用数据访问条款见 [java-guide.md](java-guide.md)。与项目已确立基线冲突时以项目为准。
 
+团队基线已禁用 MyBatis-Plus 与 tk-mapper（见 mv-tech-stack-standards）：本文件仅服务存量项目沿用与维护既有代码，新项目与新模块不引入。
+
 - 含数字或特殊分隔的属性名要核对实际列映射，必要时显式 `@TableField`。
 - 枚举映射用 `@EnumValue`/`IEnum` 或项目既有 TypeHandler，遵循项目已确立的映射方式，同一项目不混用方案。
 - 软删除、枚举和唯一键形状遵循项目基线，不将单个项目约定推广为通用 DDL 规则。
