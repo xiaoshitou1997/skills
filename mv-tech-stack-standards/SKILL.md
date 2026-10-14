@@ -18,7 +18,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | Java 版本 | JDK 21（LTS） | 存量项目按现值 |
 | Java 框架 | Spring Boot 3.5.x | 框架条款见 mv-java-backend-standards |
 | 构建工具 | Maven | 优先 mvnw 锁版本；存量 Gradle 项目沿用 |
-| 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper；存量项目沿用现状维护，新项目与新模块不引入 |
+| 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
 | JSON 序列化 | Jackson | 禁止 fastjson、gson |
 | 数据库 | PostgreSQL | dev/prod 统一，开发联调直连远程 |
 | SQLite | 仅限单测、临时验证 | 不作开发联调库，无双方言兼容要求 |

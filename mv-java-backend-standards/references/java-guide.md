@@ -1,6 +1,6 @@
 # Java 后端编码指南
 
-框架中立主体，对任意 Java 后端框架适用。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款见 [persistence-jpa.md](persistence-jpa.md)。新项目与新模块仅允许 JPA；存量 MyBatis/MyBatis-Plus 项目沿用既有约定，团队不为废弃栈另写规范。
+框架中立主体，对任意 Java 后端框架适用。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款见 [persistence-jpa.md](persistence-jpa.md)。
 
 存量维护按 SKILL.md 的「存量代码维护」限定适用范围：既有模块内新增与修改代码仍需遵守兼容性约束，不因以下分层、类型、国际化、配置或表结构条款扩展为整链路迁移。规范改进在任务范围内且兼容时应用，历史治理单列建议。
 
