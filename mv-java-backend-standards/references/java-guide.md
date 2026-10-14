@@ -1,4 +1,6 @@
-# Java Spring Boot / MyBatis-Plus 编码指南
+# Java 后端编码指南
+
+框架中立主体，对任意 Java 后端框架适用。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款按项目实际栈读取 [persistence-mybatis-plus.md](persistence-mybatis-plus.md) 或 [persistence-jpa.md](persistence-jpa.md)。
 
 ## 包与模块分层
 
@@ -11,7 +13,7 @@ module-service/       Controller、Service、Repository/Mapper
 module-task/          消息消费/任务（存在时）
 ```
 
-单模块常见目录：`controller/`、`service/`、`mapper/`、`model/entity/`、`model/dto/`、`model/vo/`、`model/query/`、`config/`、`handler/`。
+单模块常见目录：`controller/`、`service/`、`mapper/` 或 `repository/`、`model/entity/`、`model/dto/`、`model/vo/`、`model/query/`、`config/`、`handler/`。
 
 ## 代码与命名
 
@@ -41,19 +43,19 @@ module-task/          消息消费/任务（存在时）
 ## API 与错误
 
 - 约定统一的错误编码、HTTP 状态、参数校验和 requestId/traceId。
-- 使用 `@Valid`/`@Validated`，业务规则同时在 Service 层确认；避免直接相信 Controller 层入参。
+- 使用 Bean Validation（如 `@Valid`/`@Validated`）做入口校验，业务规则同时在 Service 层确认；避免直接相信入参。
 - 生产错误仅给必要的错误信息，不返回堆栈；在合适层统一记录错误，不制造日志风暴。
 - API 改动考虑兼容老客户端、分页约定、幂等请求、限流与鉴权权限边界。
 - 区分 HTTP 状态、平台包络码和内层业务码；HTTP 200 不保证业务成功。确认码的字符串/数值类型和真实响应结构，不凭字段名推断契约。
 - 每个独立业务失败场景对应唯一错误码枚举常量，一个 code 唯一映射一个业务语义；不复用既有错误码扩展语义，新增失败场景同步新增枚举。前端按 code 分支，前后端语义严格对齐。
-- 用户可见文案（异常提示、响应信息）不在业务代码中硬编码中英文字符串；统一维护在 `messages*.properties`，经 MessageSource 或 ErrorCode 关联的 messageKey 获取。
-- RESTful 动词语义清晰：查询 GET、新增 POST、更新 PUT、删除 DELETE，不用未指定方法的 `@RequestMapping`；URL 小写名词复数、不含动词，可带版本前缀（`/api/v1/users`）。项目已有路由风格优先。
+- 用户可见文案（异常提示、响应信息）不在业务代码中硬编码中英文字符串；统一维护在 i18n 资源文件，经项目国际化机制或 ErrorCode 关联的 messageKey 获取。
+- RESTful 动词语义清晰：查询 GET、新增 POST、更新 PUT、删除 DELETE，路由声明绑定具体 HTTP 方法；URL 小写名词复数、不含动词，可带版本前缀（`/api/v1/users`）。项目已有路由风格优先。
 - 手机号、证件号等隐私数据在 VO 层脱敏后返回，不暴露原始敏感数据。
 
 ## 枚举与类型安全
 
 - 实体中的状态、类型、角色、协议等枚举型字段用 Java 枚举承载，并全链路使用（存储、方法入参、返回值、查询条件、业务判断），不以 String 中转。
-- JPA 持久化用 `@Enumerated(EnumType.STRING)` 保证存储值可读；MyBatis-Plus 用 `@EnumValue`/`IEnum` 或项目既有 TypeHandler，遵循项目已确立的映射方式，不混用方案。
+- 枚举落库映射按项目持久层框架确立（JPA、MyBatis-Plus 条款见对应持久层指南），同一项目不混用方案。
 - 结构化业务数据用 POJO/DTO/VO 强类型承载，不用 Map、JsonNode 替代真实类型；仅无固定 Schema 的三方协议载荷、JSON 转换字段允许动态结构。
 - 具备独立业务语义的类定义为顶层类，不以嵌套类、静态内部类形式存在；一次性匿名实现不受限。
 - 字符串、对象、集合判空用 StringUtils/ObjectUtils/CollectionUtils 等标准工具类，不手写空值判断，不保留冗余判空；返回集合时返回空集合，不返回 null。
@@ -74,38 +76,25 @@ module-task/          消息消费/任务（存在时）
 
 - 查询指定必要字段；分页大集合，限制最大 page size；避免 N+1 查询，考虑批量查询/缓存权衡。
 - DDL / migration 用项目已有 Flyway/Liquibase/SQL 流程，默认不得随应用镜像回滚反向执行。
-- 合适的 `@Transactional` 仅在 Service 业务边界上，明确事务的传播、隔离与 checked exception 回滚语义。
-- 不在长事务中远程 HTTP 请求或慢操作；避免自调用导致代理失效；讨论分布式事务和 Outbox 等替代方案。
+- 事务置于 Service 真实业务边界：不在长事务中执行远程 HTTP 或慢操作；分布式事务优先讨论 Outbox 等替代方案并与团队确认。事务代理、传播与自调用语义按所用框架理解（Spring 见 spring-guide.md）。
 - 避免日志打印账户机密、令牌或用户私密资料；敏感字段标记/脱敏。
-- 使用 MyBatis-Plus 时，含数字或特殊分隔的属性名要核对实际列映射，必要时显式 `@TableField`；软删除、枚举和唯一键形状遵循项目基线，不将单个项目约定推广为通用 DDL 规则。
-- 业务表统一审计字段（创建时间、更新时间、逻辑删除标记）并实现自动填充；时间用 `LocalDateTime` 对应 datetime 列，不混用 `Date`。JPA 用投影查询替代 `select *` 的同等约束。
+- 业务表统一审计字段（创建时间、更新时间、逻辑删除标记）并实现自动填充；时间用 `LocalDateTime` 对应 datetime 列，不混用 `Date`。
 - 主键策略（如雪花 ID）由项目/采用方统一后不混用其他方案；新项目未确立时先与团队确认，不擅自定方案。
 - 列表查询必须分页，不执行无边界全量查询；SQL 参数一律预编译占位符，不拼接。
-
-## 框架扩展点与运行时集成
-
-- 修改拦截器、结果转换、重试器或自动配置时，检查当前依赖版本的实际执行链。确认结果转换影响的是最终类型绑定，而不只是响应对象的某个访问器。
-- 用最小运行时集成覆盖真实客户端、序列化、Spring 注册与配置绑定；保留正常响应、业务失败包络、连接失败和重试耗尽场景。不要 mock 掉待验证的框架扩展点。
-- 重试必须有明确上限、计数递增和终止路径；只有可安全重放的操作才重试。检查成功响应是否会误入重试，以及框架是否会重新执行请求前置钩子。
-- token 失效重试时，确认刷新后的凭据已写入实际重放请求；仅驱逐缓存不保证旧请求头被替换。多实例共享 token 时，结合服务端失效语义设计刷新锁、缓存与并发测试。
-- 配置含路径模式或特殊字符 Map 键时，通过真实 Spring 绑定检查最终键值；新增接口包后检查扫描注册、Bean 注入以及拦截器的作用范围。
-- 保持模块依赖无环，必要时通过端口隔离技术实现与核心逻辑；装配根负责接线，不将业务决策藏入技术拦截器。
 
 ## 测试
 
 - 核心业务 Service 单元测试覆盖成功、失败、边界和异常；测试方法采用项目约定，`createUser_DuplicateEmail_ThrowsException` 是示例。
-- Mapper/SQL 结合真实数据库方言做集成测试；不要将 mock 成功当成 SQL 已验证。
+- 持久层 SQL 结合真实数据库方言做集成测试；不要将 mock 成功当成 SQL 已验证。
 - 涉及网络协议、中间件等外部交互的能力用真实客户端做回环集成测试；集成测试端口动态分配（`new ServerSocket(0)` 获取空闲端口），避免冲突。
 - 涉及认证上下文的集成测试设置真实主体对象，不使用静态 mock。
 - 覆盖率门槛（如核心包行覆盖 ≥70%、分支 ≥50%，其他受控包 ≥65%/≥40%）以项目 CI 实际配置为准，作为合并前阻断执行；项目未配置时不擅自引入新门槛，先与团队确立。
 - 变更回归范围依风险而定，未实际运行测试不能声称通过。
 - 对异步任务验证最终状态、失败记录和重试行为；覆盖处理器抛异常、基类捕获异常及部分完成的情况，不能只断言接口接受请求或执行过程没有向调用方抛异常。
 
-## 配置、CI 与运行期约束
+## 配置与运行期约束
 
-- 业务自定义配置用 `@ConfigurationProperties` 类型化绑定并按领域拆分，不合并为单一巨量配置类；key 用 kebab-case（如 `app.jwt.expire-minutes`）。
-- 含连字符的 key 显式声明环境变量占位与默认值（如 `${APP_JWT_EXPIRE_MINUTES:30}`）：relaxed-binding 会把 expire-minutes 映射为 EXPIREMINUTES，显式占位规避环境变量命名歧义。
-- 敏感配置（密钥、令牌、连接串）统一走环境变量或配置中心，不提交仓库、不硬编码；多环境用 `application-{profile}.yml` 加环境变量覆盖。
+- 敏感配置（密钥、令牌、连接串）统一走环境变量或配置中心，不提交仓库、不硬编码；多环境差异用框架 profile 机制管理（Spring 见 spring-guide.md）。
 - CI 合并前检查点（编译、lint、单测、覆盖率、依赖安全扫描如 OWASP dependency-check）全绿后合并；静态分析用 SpotBugs/SonarQube，以项目既有流水线为准，不为规范而重建流水线。
 - 发布版本遵循语义化版本 `vMAJOR.MINOR.PATCH`，产物含 commit 溯源信息；分支模型与主分支保护按项目约定。
 - 运行期行为必须明确并文档化：schema 策略（如 create-drop 仅限临时环境，生产禁止自动重建）、惰性依赖（应用可独立于缓存/MQ 启动，依赖宕机时的失败范围）、调度任务周期与数据保留策略、重启后恢复运行态资源。
@@ -121,5 +110,6 @@ module-task/          消息消费/任务（存在时）
 - [ ] 枚举字段全链路枚举类型；错误码一场景一码；用户可见文案走国际化资源
 - [ ] 配置类型化绑定、kebab-case，敏感配置外置
 - [ ] 审计字段、时间类型、分页、SQL 参数化符合项目基线；REST 动词/URL/DTO 校验/统一响应/VO 脱敏合规
+- [ ] 按项目框架并读对应指南（Spring Boot、持久层）条款后自查
 - [ ] 测试覆盖正常/边界/异常路径，覆盖率达标，CI 全绿
 - [ ] 运行期约束（schema 策略、惰性依赖、调度、启动恢复）已文档化

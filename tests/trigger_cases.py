@@ -54,19 +54,19 @@ CASES = [
     {'skill': 'mv-git-commit-push', 'kind': 'negative', 'instead': 'mv-skill-curator',
      'query': '把刚才聊的这套提交约定沉淀进 skills 仓库'},
 
-    # --- mv-spring-boot-standards：Spring Boot 编码/审查，不含部署与非 Spring 框架 ---
-    {'skill': 'mv-spring-boot-standards', 'kind': 'positive',
+    # --- mv-java-backend-standards：Java 后端编码/审查，条款分框架应用，不含技术栈选型与部署 ---
+    {'skill': 'mv-java-backend-standards', 'kind': 'positive',
      'query': '在 Spring Boot 项目里新增一个创建订单的 REST 接口，按规范分层实现'},
-    {'skill': 'mv-spring-boot-standards', 'kind': 'positive',
+    {'skill': 'mv-java-backend-standards', 'kind': 'positive',
      'query': '审查这段 Spring Boot Service 代码，事务边界和异常处理是否合规'},
-    {'skill': 'mv-spring-boot-standards', 'kind': 'positive',
+    {'skill': 'mv-java-backend-standards', 'kind': 'positive',
      'query': '这个列表查询接口有 N+1 问题吗？按规范应该怎么改'},
-    {'skill': 'mv-spring-boot-standards', 'kind': 'positive',
+    {'skill': 'mv-java-backend-standards', 'kind': 'positive',
      'query': '为这个接口设计错误码枚举和用户可见文案的国际化方案'},
-    {'skill': 'mv-spring-boot-standards', 'kind': 'negative', 'instead': 'mv-wsl-build-deploy',
+    {'skill': 'mv-java-backend-standards', 'kind': 'negative', 'instead': 'mv-wsl-build-deploy',
      'query': '把这个 Spring Boot 项目部署到 dev 容器'},
-    {'skill': 'mv-spring-boot-standards', 'kind': 'negative',
-     'query': '用 Quarkus 写一个 REST 接口示例'},
+    {'skill': 'mv-java-backend-standards', 'kind': 'positive',
+     'query': '用 Quarkus 写一个 REST 接口，按通用后端规范分层实现'},
 
     # --- mv-engineering-doc-writer-reviewer：工程文档产出/评审，不含按文档执行操作 ---
     {'skill': 'mv-engineering-doc-writer-reviewer', 'kind': 'positive',
@@ -91,7 +91,7 @@ CASES = [
      'query': '这几条聊天里的流程片段，判断该并进哪个现有 skill 还是新建'},
     {'skill': 'mv-skill-curator', 'kind': 'positive',
      'query': '消化一下 INBOX.md 里积压的碎片条目'},
-    {'skill': 'mv-skill-curator', 'kind': 'negative', 'instead': 'mv-spring-boot-standards',
+    {'skill': 'mv-skill-curator', 'kind': 'negative', 'instead': 'mv-java-backend-standards',
      'query': '帮我写一个 Spring Boot Controller 的单元测试'},
     {'skill': 'mv-skill-curator', 'kind': 'negative',
      'query': '今天天气不错，随便聊聊'},

@@ -11,7 +11,7 @@ SKILLS = {
     'mv-toolchain-manager',
     'mv-wsl-build-deploy',
     'mv-git-commit-push',
-    'mv-spring-boot-standards',
+    'mv-java-backend-standards',
     'mv-engineering-doc-writer-reviewer',
     'mv-skill-curator',
 }
@@ -23,7 +23,7 @@ DUPLICATE_GROUPS = [
      'mv-wsl-build-deploy/scripts/doctor.py'],
     ['mv-git-commit-push/scripts/quality-check.sh',
      'mv-wsl-build-deploy/scripts/quality-check.sh',
-     'mv-spring-boot-standards/scripts/quality-check.sh'],
+     'mv-java-backend-standards/scripts/quality-check.sh'],
     ['mv-git-commit-push/scripts/security-scan.sh',
      'mv-wsl-build-deploy/scripts/security-scan.sh'],
 ]

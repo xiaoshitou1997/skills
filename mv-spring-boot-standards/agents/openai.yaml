@@ -1,3 +1,0 @@
-interface:
-  display_name: "Spring Boot Standards"
-  short_description: "遵循项目约定的 Spring Boot 编码规范，适用时采用 MyBatis-Plus 条款。"
