@@ -1,7 +1,5 @@
 # 团队工程 Skills
 
-[English](README.en.md)
-
 面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理、编码规范、技术栈约定和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
