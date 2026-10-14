@@ -40,7 +40,7 @@ description: 编写、修改、重构或审查 Java 后端代码时使用（Spri
 
 ## 详细参考
 
-框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)；持久层条款见 [references/persistence-jpa.md](references/persistence-jpa.md)（新项目基线）或 [references/persistence-mybatis.md](references/persistence-mybatis.md)（存量项目）。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
+框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)；持久层条款按项目实际栈读取 [references/persistence-jpa.md](references/persistence-jpa.md) 或 [references/persistence-mybatis.md](references/persistence-mybatis.md)。新项目与新模块仅允许 JPA，存量 MyBatis/MyBatis-Plus 项目沿用既有约定。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
 
 ## 输出
 
