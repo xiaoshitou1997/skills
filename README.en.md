@@ -14,7 +14,7 @@ This collection contains team engineering practices, not an official product or 
 | `mv-container-delivery` | Build on the host, image in WSL; one pipeline for local run/debug, dev/prod deploy, promote and roll back |
 | `mv-git-publisher` | Prepare logical commits and push as one integral action; inspect or create GitHub PRs |
 | `mv-java-backend-standards` | Project-aware Java backend conventions; Spring Boot and JPA guidance applied per project stack |
-| `mv-tech-stack-standards` | Tech-stack selection, version baselines, dependency adoption and upgrade decisions; existing projects keep their current stack |
+| `mv-tech-stack-standards` | Tech-stack selection, version baselines, dependency adoption and upgrade decisions |
 | `mv-engineering-doc-writer` | Write, rewrite and review PRD, HLD, LLD, RFC, API docs and production MOPs |
 | `mv-skill-curator` | Distill casually shared work habits and workflows into this repo: triage, merge, split, refactor and validate |
 

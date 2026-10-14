@@ -1,6 +1,6 @@
 ---
 name: mv-tech-stack-standards
-description: 新建项目技术选型、确定或调整项目技术栈基线、评估依赖引入与版本升级、盘点项目现有技术栈时使用；存量项目沿用现状优先，基线仅约束新项目与新增依赖。编写业务代码的规范归 mv-java-backend-standards，本机 JDK/Node 等工具链安装切换归 mv-toolchain-manager，构建出包与部署归 mv-container-delivery。
+description: 新建项目技术选型、确定或调整项目技术栈基线、评估依赖引入与版本升级、盘点项目现有技术栈时使用。编写业务代码的规范归 mv-java-backend-standards，本机 JDK/Node 等工具链安装切换归 mv-toolchain-manager，构建出包与部署归 mv-container-delivery。
 ---
 
 # Tech Stack Standards
@@ -9,15 +9,15 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 
 这是**规范型 Skill**，约束技术栈选型、基线维护与依赖演进决策。优先级：用户明确需求和项目已采纳的规范 / ADR → 本规范 → 生态默认推荐。
 
-基线只约束新项目与新增依赖：存量项目沿用现状栈与版本，不因基线强制升级；升级是独立决策，先评估影响面再列迁移计划，不搭车业务变更。
+升级是独立决策，先评估影响面再列迁移计划，不搭车业务变更。
 
 ## 团队基线
 
 | 类别 | 基线 | 说明 |
 | --- | --- | --- |
-| Java 版本 | JDK 21（LTS） | 存量项目按现值 |
+| Java 版本 | JDK 21（LTS） |  |
 | Java 框架 | Spring Boot 3.5.x | 框架条款见 mv-java-backend-standards |
-| 构建工具 | Maven | 优先 mvnw 锁版本；存量 Gradle 项目沿用 |
+| 构建工具 | Maven | 优先 mvnw 锁版本 |
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
 | JSON 序列化 | Jackson | 禁止 fastjson、gson |
 | 数据库 | PostgreSQL | dev/prod 统一，开发联调直连远程 |
