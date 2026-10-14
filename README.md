@@ -20,7 +20,7 @@
 
 命名规范：统一采用 `mv-` + 对象 + 职责词，职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](mv-skill-curator/references/structure-rules.md)。
 
-增删改 skill 后执行 `bash mv-skill-curator/scripts/sync-installed.sh` 同步已安装副本并清理旧版本，避免重复触发。
+把 skills 安装到本机为可选项：需要时执行 `bash mv-skill-curator/scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 
 这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为 commit、push 前都先 pull 并解决冲突，保持线性历史、禁止 merge commit。
 

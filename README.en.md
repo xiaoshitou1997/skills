@@ -20,7 +20,7 @@ This collection contains team engineering practices, not an official product or 
 
 Naming: use `mv-` plus object and responsibility word. The responsibility word follows the skill's primary responsibility, consistent with its description and body. See the [repository structure rules](mv-skill-curator/references/structure-rules.md).
 
-After adding, changing or removing a skill, run `bash mv-skill-curator/scripts/sync-installed.sh` to synchronize installed copies and remove obsolete versions, avoiding duplicate triggers.
+Installing locally is optional: when needed, run `bash mv-skill-curator/scripts/sync-installed.sh` (add `--remote` to install from the GitHub source); the script installs all skills and removes obsolete versions, avoiding duplicate triggers. Whether to install is up to the user.
 
 “Reusable” means across this team's projects, not a universal standard for every company or team. Skills use confirmed team conventions as their baseline and leave business-specific details in each project. Team Git rules require pulling and resolving conflicts before both committing and pushing, keeping linear history and avoiding merge commits.
 
