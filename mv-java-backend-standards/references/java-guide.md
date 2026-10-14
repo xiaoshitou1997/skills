@@ -59,7 +59,7 @@ module-task/          消息消费/任务（存在时）
 ## 枚举与类型安全
 
 - 实体中的状态、类型、角色、协议等枚举型字段用 Java 枚举承载，并全链路使用（存储、方法入参、返回值、查询条件、业务判断），不以 String 中转。
-- 枚举落库映射按项目持久层框架确立（JPA 条款见 [persistence-jpa.md](persistence-jpa.md)），同一项目不混用方案。
+- 数据库存储的枚举值必须用可读语义字面量（如 `STARTING`/`STOPPED`/`PAUSED`），禁止用数字（1/2/3 等）作为状态值；落库映射按项目持久层框架确立（JPA 条款见 [persistence-jpa.md](persistence-jpa.md)），同一项目不混用方案。
 - 结构化业务数据用 POJO/DTO/VO 强类型承载，不用 Map、JsonNode 替代真实类型；仅无固定 Schema 的三方协议载荷、JSON 转换字段允许动态结构。
 - 具备独立业务语义的类定义为顶层类，不以嵌套类、静态内部类形式存在；一次性匿名实现不受限。
 - 字符串、对象、集合判空用 StringUtils/ObjectUtils/CollectionUtils 等标准工具类，不手写空值判断，不保留冗余判空；返回集合时返回空集合，不返回 null。
