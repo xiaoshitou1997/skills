@@ -2,7 +2,7 @@
 
 项目使用 JPA/Hibernate 时并读本文件；通用数据访问条款见 [java-guide.md](java-guide.md)。与项目已确立基线冲突时以项目为准。
 
-JPA 为团队持久层基线的优先选择，新项目默认采用；原生 MyBatis 为次选（遵循 java-guide 通用数据访问条款与项目既有 Mapper 风格）。
+JPA 为团队持久层基线，新项目与新模块默认采用；存量 MyBatis/MyBatis-Plus 项目沿用现状维护，参考 [persistence-mybatis.md](persistence-mybatis.md)。
 
 - 枚举持久化用 `@Enumerated(EnumType.STRING)` 保证存储值可读；同一项目不混用映射方案。存量维护沿用既有映射，不因修改实体切换 ORDINAL、STRING 或自定义转换器；映射变更涉及历史数据与兼容性，作为独立迁移评估。
 - 查询按需取字段：列表与报表场景用投影（DTO projection）替代实体全字段查询，即 `select *` 的同等约束。
