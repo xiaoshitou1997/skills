@@ -1,3 +1,0 @@
-interface:
-  display_name: "Git Commit Push"
-  short_description: "按逻辑变更原子提交并整体推送，创建与检查 GitHub PR。"

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Managing Toolchains"
+  short_description: "检测与准备本地 JDK、Maven、Gradle、Node.js 工具链。"

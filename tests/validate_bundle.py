@@ -8,25 +8,25 @@ from pathlib import Path
 
 ROOT = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SKILLS = {
-    'mv-toolchain-manager',
-    'mv-container-build-deploy',
-    'mv-git-publish',
-    'mv-java-backend-standards',
-    'mv-tech-stack-standards',
-    'mv-engineering-doc-writer-reviewer',
-    'mv-skill-curator',
+    'mv-managing-toolchains',
+    'mv-delivering-containers',
+    'mv-publishing-git-changes',
+    'mv-writing-java-backends',
+    'mv-managing-tech-stacks',
+    'mv-writing-engineering-docs',
+    'mv-curating-skills',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
-    ['mv-toolchain-manager/scripts/doctor.py',
-     'mv-container-build-deploy/scripts/doctor.py'],
-    ['mv-git-publish/scripts/quality-check.sh',
-     'mv-container-build-deploy/scripts/quality-check.sh',
-     'mv-java-backend-standards/scripts/quality-check.sh'],
-    ['mv-git-publish/scripts/security-scan.sh',
-     'mv-container-build-deploy/scripts/security-scan.sh'],
+    ['mv-managing-toolchains/scripts/doctor.py',
+     'mv-delivering-containers/scripts/doctor.py'],
+    ['mv-publishing-git-changes/scripts/quality-check.sh',
+     'mv-delivering-containers/scripts/quality-check.sh',
+     'mv-writing-java-backends/scripts/quality-check.sh'],
+    ['mv-publishing-git-changes/scripts/security-scan.sh',
+     'mv-delivering-containers/scripts/security-scan.sh'],
 ]
 
 

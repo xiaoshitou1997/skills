@@ -13,11 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
     BASH = 'bash'
-DOCTOR = (ROOT / 'mv-toolchain-manager/scripts/doctor.py').as_posix()
-PREFLIGHT = (ROOT / 'mv-container-build-deploy/scripts/deploy-preflight.sh').as_posix()
-DELIVER = (ROOT / 'mv-container-build-deploy/scripts/deliver.sh').as_posix()
-RUNNER = (ROOT / 'mv-container-build-deploy/scripts/target-runner.sh').as_posix()
-QUALITY = (ROOT / 'mv-container-build-deploy/scripts/quality-check.sh').as_posix()
+DOCTOR = (ROOT / 'mv-managing-toolchains/scripts/doctor.py').as_posix()
+PREFLIGHT = (ROOT / 'mv-delivering-containers/scripts/deploy-preflight.sh').as_posix()
+DELIVER = (ROOT / 'mv-delivering-containers/scripts/deliver.sh').as_posix()
+RUNNER = (ROOT / 'mv-delivering-containers/scripts/target-runner.sh').as_posix()
+QUALITY = (ROOT / 'mv-delivering-containers/scripts/quality-check.sh').as_posix()
 
 
 def exec_run(*cmd, cwd=None, env=None, input=None):
