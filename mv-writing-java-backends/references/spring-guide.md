@@ -1,6 +1,6 @@
 # Spring Boot 框架条款
 
-项目实际使用 Spring Boot 时并读本文件；通用条款见 [java-guide.md](java-guide.md)。与项目已确立基线冲突时以项目为准。
+项目实际使用 Spring Boot 时并读本文件；通用条款见 [java-guide.md](java-guide.md)。与项目已确立基线冲突时以项目为准。存量维护按 SKILL.md 的适用范围执行，不为局部修复改写其他路由、迁移全部配置绑定或引入完整国际化体系。
 
 ## 事务
 

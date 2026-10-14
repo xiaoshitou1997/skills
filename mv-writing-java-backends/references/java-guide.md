@@ -2,6 +2,8 @@
 
 框架中立主体，对任意 Java 后端框架适用。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款按项目实际栈读取 [persistence-mybatis-plus.md](persistence-mybatis-plus.md) 或 [persistence-jpa.md](persistence-jpa.md)。
 
+存量维护按 SKILL.md 的「存量代码维护」限定适用范围：既有模块内新增与修改代码仍需遵守兼容性约束，不因以下分层、类型、国际化、配置或表结构条款扩展为整链路迁移。规范改进在任务范围内且兼容时应用，历史治理单列建议。
+
 ## 包与模块分层
 
 在已有项目约定不冲突时，可选择以下布局：
@@ -102,7 +104,7 @@ module-task/          消息消费/任务（存在时）
 
 ## 交付自查清单
 
-变更交付前逐项确认；与项目实际基线冲突时以项目为准：
+变更交付前按任务及其直接影响范围逐项确认；与项目实际基线冲突时以项目为准。清单不要求未修改的代码追溯达标，兼容性导致未应用的条款说明原因；历史问题与本次新增问题分别报告：
 
 - [ ] 无魔法值，命名规范，equals/hashCode 成对覆盖，Javadoc 完整
 - [ ] 集合与并发合规：toArray、Iterator 删除、entrySet、ThreadPoolExecutor 显式建池、ThreadLocal 用后 remove
