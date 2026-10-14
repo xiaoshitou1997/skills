@@ -1,6 +1,6 @@
 # Java 后端编码指南
 
-框架中立主体，对任意 Java 后端框架适用。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款按项目实际栈读取 [persistence-mybatis-plus.md](persistence-mybatis-plus.md) 或 [persistence-jpa.md](persistence-jpa.md)。
+框架中立主体，对任意 Java 后端框架适用。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款见 [persistence-jpa.md](persistence-jpa.md)。
 
 存量维护按 SKILL.md 的「存量代码维护」限定适用范围：既有模块内新增与修改代码仍需遵守兼容性约束，不因以下分层、类型、国际化、配置或表结构条款扩展为整链路迁移。规范改进在任务范围内且兼容时应用，历史治理单列建议。
 
@@ -58,7 +58,7 @@ module-task/          消息消费/任务（存在时）
 ## 枚举与类型安全
 
 - 实体中的状态、类型、角色、协议等枚举型字段用 Java 枚举承载，并全链路使用（存储、方法入参、返回值、查询条件、业务判断），不以 String 中转。
-- 枚举落库映射按项目持久层框架确立（JPA、MyBatis-Plus 条款见对应持久层指南），同一项目不混用方案。
+- 枚举落库映射按项目持久层框架确立（JPA 条款见 [persistence-jpa.md](persistence-jpa.md)），同一项目不混用方案。
 - 结构化业务数据用 POJO/DTO/VO 强类型承载，不用 Map、JsonNode 替代真实类型；仅无固定 Schema 的三方协议载荷、JSON 转换字段允许动态结构。
 - 具备独立业务语义的类定义为顶层类，不以嵌套类、静态内部类形式存在；一次性匿名实现不受限。
 - 字符串、对象、集合判空用 StringUtils/ObjectUtils/CollectionUtils 等标准工具类，不手写空值判断，不保留冗余判空；返回集合时返回空集合，不返回 null。

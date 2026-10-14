@@ -13,7 +13,7 @@
 | `mv-toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
 | `mv-container-delivery` | 宿主出包、WSL 出镜像；本地调测与 dev/prod 部署、同镜像晋级与回滚的统一管线 |
 | `mv-git-publisher` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
-| `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot、MyBatis-Plus、JPA 条款按项目实际框架应用 |
+| `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策；存量项目沿用现状优先 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `mv-skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |

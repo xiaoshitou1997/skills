@@ -1,13 +1,13 @@
 ---
 name: mv-java-backend-standards
-description: 编写、修改、重构或审查 Java 后端代码时使用（Spring Boot 及其他 Java 后端框架），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot、MyBatis-Plus、JPA 条款按项目实际框架应用。技术栈选型与版本基线归 mv-tech-stack-standards，本机工具链安装归 mv-toolchain-manager，构建部署归 mv-container-delivery。
+description: 编写、修改、重构或审查 Java 后端代码时使用（Spring Boot 及其他 Java 后端框架），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按项目实际框架应用。技术栈选型与版本基线归 mv-tech-stack-standards，本机工具链安装归 mv-toolchain-manager，构建部署归 mv-container-delivery。
 ---
 
 # Java Backend Standards
 
 ## 作用与优先级
 
-这是**规范型 Skill**，在 Agent 编码、审查、测试期间引用；不负责编排 Spec/Plan/Tasks，不直接启动、Commit 或部署。适用于 Java 后端项目：通用条款对任意 Java 后端框架适用，Spring Boot、MyBatis-Plus、JPA 专属条款仅在使用对应框架时应用，不向其他框架强加不兼容约束。
+这是**规范型 Skill**，在 Agent 编码、审查、测试期间引用；不负责编排 Spec/Plan/Tasks，不直接启动、Commit 或部署。适用于 Java 后端项目：通用条款对任意 Java 后端框架适用，Spring Boot 与 JPA 专属条款仅在使用对应框架时应用，不向其他框架强加不兼容约束。
 
 优先级：用户明确需求和项目已正式采纳的规范 / ADR → 本规范 → 框架默认约定。
 
@@ -40,7 +40,7 @@ description: 编写、修改、重构或审查 Java 后端代码时使用（Spri
 
 ## 详细参考
 
-框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)；持久层条款按项目实际栈读取 [references/persistence-mybatis-plus.md](references/persistence-mybatis-plus.md) 或 [references/persistence-jpa.md](references/persistence-jpa.md)。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
+框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)；持久层条款见 [references/persistence-jpa.md](references/persistence-jpa.md)。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
 
 ## 输出
 
