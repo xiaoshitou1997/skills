@@ -51,7 +51,7 @@ CASES = [
      'query': 'PR 上有一个 check 失败了，帮我看看原因'},
     {'skill': 'mv-git-publisher', 'kind': 'negative',
      'query': '解释一下 git rebase 和 merge 的区别，什么时候用哪个'},
-    {'skill': 'mv-git-publisher', 'kind': 'negative', 'instead': 'mv-skill-curator',
+    {'skill': 'mv-git-publisher', 'kind': 'negative',
      'query': '把刚才聊的这套提交约定沉淀进 skills 仓库'},
 
     # --- mv-java-backend-standards：Java 后端编码/审查，条款分框架应用，不含技术栈选型与部署 ---
@@ -95,20 +95,7 @@ CASES = [
      'query': '给新接口写一份 API 文档，包含字段说明、错误码和示例'},
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-container-delivery',
      'query': '按照 MOP 把这次生产升级实际执行一遍'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-skill-curator',
+    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative',
      'query': '把这套文档写作约定沉淀成仓库里的 skill'},
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-git-publisher',
-     'query': '帮这次的改动写一条规范的提交信息'},
-
-    # --- mv-skill-curator：沉淀进本仓库，不含业务实现与闲聊 ---
-    {'skill': 'mv-skill-curator', 'kind': 'positive',
-     'query': '把我们团队刚确认的这条分支命名约定加进 skills 仓库'},
-    {'skill': 'mv-skill-curator', 'kind': 'positive',
-     'query': '这几条聊天里的流程片段，判断该并进哪个现有 skill 还是新建'},
-    {'skill': 'mv-skill-curator', 'kind': 'positive',
-     'query': '消化一下 INBOX.md 里积压的碎片条目'},
-    {'skill': 'mv-skill-curator', 'kind': 'negative', 'instead': 'mv-java-backend-standards',
-     'query': '帮我写一个 Spring Boot Controller 的单元测试'},
-    {'skill': 'mv-skill-curator', 'kind': 'negative',
-     'query': '今天天气不错，随便聊聊'},
-]
+     'query': '帮这次的改动写一条规范的提交信息'},]

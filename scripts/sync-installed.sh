@@ -10,7 +10,7 @@ usage() {
   exit 2
 }
 
-REPO_ROOT=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+REPO_ROOT=$(CDPATH='' cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 SOURCE=local
 AGENTS=()
 while [[ $# -gt 0 ]]; do

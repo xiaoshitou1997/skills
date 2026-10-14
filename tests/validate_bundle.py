@@ -14,7 +14,6 @@ SKILLS = {
     'mv-java-backend-standards',
     'mv-tech-stack-standards',
     'mv-engineering-doc-writer',
-    'mv-skill-curator',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;

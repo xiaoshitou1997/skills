@@ -31,7 +31,7 @@
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`、`tests/test_wsl_bridge.py`，必要时补离线用例（假 docker/假 wsl.exe stub 风格）。
 4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 过该 skill 正反例；无 claude CLI 时按 `tests/trigger_cases.py` 人工核对。
 
-安装到本机为可选项：需要时执行 `bash mv-skill-curator/scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部 skills 并清理改名/合并前旧版本；是否安装、装到哪台机器由使用者决定，不属于校验流程。旧版本清理名称仅维护在脚本内 STALE 清单，不写入文档。
+安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部 skills 并清理改名/合并前旧版本；是否安装、装到哪台机器由使用者决定，不属于校验流程。旧版本清理名称仅维护在脚本内 STALE 清单，不写入文档。
 
 ## 命名先例
 

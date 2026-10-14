@@ -4,7 +4,7 @@
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 七个 skills
+## 六个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -14,11 +14,10 @@
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
-| `mv-skill-curator` | 把随手发来的工作习惯与流程沉淀进本仓库：归类、合并、拆分、重构与校验 |
 
-命名规范：统一采用 `mv-` + 对象 + 职责词，职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](mv-skill-curator/references/structure-rules.md)。
+命名规范：统一采用 `mv-` + 对象 + 职责词，职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](docs/structure-rules.md)。
 
-把 skills 安装到本机为可选项：需要时执行 `bash mv-skill-curator/scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
+把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 
 这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为 commit、push 前都先 pull 并解决冲突，保持线性历史、禁止 merge commit。
 
