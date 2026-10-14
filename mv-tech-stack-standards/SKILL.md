@@ -32,9 +32,9 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | 对象存储 | MinIO（S3 兼容 API） | 已确认 | 统一用 S3 兼容客户端接入 |
 | 文件传输 | SFTPGo（SFTP） | 已确认 | 不使用明文 FTP |
 | Java 框架 | Spring Boot 稳定版 | 待确认 | 框架条款见 mv-java-backend-standards |
-| 构建工具 | Gradle 或 Maven，按项目 | 待确认 | 优先 wrapper 锁版本 |
-| 中间件（MQ 等） | 按项目 | 待确认 | 引入前过「依赖引入」条款 |
-| 前端 | 按项目（Node LTS + 团队选定框架） | 待确认 | 工具链安装见 mv-toolchain-manager |
+| 构建工具 | Maven | 已确认 | 新项目默认 Maven，优先 wrapper（mvnw）锁版本；存量 Gradle 项目沿用 |
+| 消息队列（MQ） | RabbitMQ | 已确认 | 其他中间件按需引入，先过「依赖引入」条款 |
+| 前端 | Next.js（Node LTS） | 已确认 | 工具链安装见 mv-toolchain-manager |
 
 ## 输出
 
