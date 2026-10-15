@@ -61,7 +61,7 @@ NT_ONLY = unittest.skipUnless(os.name == 'nt', 'bridge pipeline paths are Window
 
 
 def sealed(path):
-    """端点透明加密已把该文件密封为 %XXXX-Header 形状的密文头(非白名单进程不可读)。"""
+    """端点透明加密已把该文件密封为 %XXXX-Header 形状的密文头。"""
     try:
         with open(path, 'rb') as fh:
             head = fh.read(16)
@@ -133,7 +133,7 @@ class WslBridgeTests(unittest.TestCase):
             run = self._run('push', src.as_posix(), '/home/tester/app/.env.dev', env_extra=env)
             self.assertEqual(run.returncode, 0, run.stderr)
             dest = Path(d) / 'fakesl' / 'app' / '.env.dev'
-            # stub 以非白名单进程写盘,安全软件环境下文件会被密封,内容断言只能在干净机器执行;
+            # stub 写盘的文件在部署了安全软件的机器上可能被透明加密密封,内容断言只能在干净机器执行;
             # 传输行为本身已由 returncode 与管道输出覆盖。
             if sealed(dest):
                 self.skipTest('Security agent sealed the pushed file; content assertion needs a clean machine')

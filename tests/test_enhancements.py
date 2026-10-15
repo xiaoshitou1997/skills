@@ -26,7 +26,7 @@ def exec_run(*cmd, cwd=None, env=None, input=None):
 
 
 def sealed(path):
-    """端点透明加密已把该文件密封为 %XXXX-Header 形状的密文头(非白名单进程不可读)。"""
+    """端点透明加密已把该文件密封为 %XXXX-Header 形状的密文头。"""
     try:
         with open(path, 'rb') as fh:
             head = fh.read(16)
@@ -106,7 +106,7 @@ esac
             second=exec_run(BASH,RUNNER,'deploy','dev','api','api:two','',cwd=d,env=env)
             self.assertEqual(first.returncode,0,first.stderr)
             self.assertEqual(second.returncode,0,second.stderr)
-            # 收据文件由 target-runner.sh(非白名单进程)写盘,安全软件环境下会被密封;
+            # 收据文件由 target-runner.sh 写盘,部署了安全软件的机器上可能被透明加密密封;
             # 行为验证已由 stdout 断言覆盖,文件状态断言只在干净机器执行。
             if sealed(target/'current-image'):
                 self.skipTest('Security agent sealed the receipt files; state assertion needs a clean machine')
