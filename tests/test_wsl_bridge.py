@@ -61,10 +61,11 @@ NT_ONLY = unittest.skipUnless(os.name == 'nt', 'bridge pipeline paths are Window
 
 
 def sealed(path):
-    """端点安全软件已把该文件密封为 %ENC-MARKER 密文(非白名单进程不可读)。"""
+    """端点透明加密已把该文件密封为 %XXXX-Header 形状的密文头(非白名单进程不可读)。"""
     try:
         with open(path, 'rb') as fh:
-            return b'%ENC-MARKER' in fh.read(14)
+            head = fh.read(16)
+            return head.startswith(b'%') and b'-Header' in head
     except OSError:
         return False
 
@@ -100,12 +101,12 @@ class WslBridgeTests(unittest.TestCase):
             good = Path(d) / 'good.sh'
             good.write_text('#!/usr/bin/env bash\necho ok\n')
             bad = Path(d) / 'bad.sh'
-            bad.write_text('%ENC-MARKER-001\x00binary garbage')
+            bad.write_text('%ENC-Header-001\x00binary garbage')
             run = self._run('plain', good.as_posix())
             self.assertEqual(run.returncode, 0, run.stderr)
             run = self._run('plain', bad.as_posix())
             self.assertEqual(run.returncode, 3)
-            self.assertIn('ENC-MARKER', run.stderr)
+            self.assertIn('-Header', run.stderr)
 
     @NT_ONLY
     def test_require_passes_with_fake_wsl_docker(self):

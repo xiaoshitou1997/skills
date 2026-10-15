@@ -85,14 +85,14 @@ cmd_distro() {
   printf '%s\n' "$d"
 }
 
-# 端点透明加密会把文件变成 %ENC-MARKER 密文;经管道分发的脚本/配置必须先校验明文。
+# 端点透明加密会给文件加 %XXXX-Header 形状的密文头;经管道分发的脚本/配置必须先校验明文。
 cmd_plain() {
   [[ $# -ge 1 ]] || usage
   local f
   for f in "$@"; do
     [[ -f "$f" ]] || { echo "Missing file: $f" >&2; return 3; }
-    if grep -q '%ENC-MARKER-[0-9]' "$f" 2>/dev/null; then
-      echo "文件已被端点透明加密为 %ENC-MARKER 密文,无法使用: $f" >&2
+    if grep -q '%[A-Z][A-Z0-9]*-Header-[0-9]' "$f" 2>/dev/null; then
+      echo "文件已被端点透明加密(%XXXX-Header 密文头),无法使用: $f" >&2
       echo '请用白名单编辑器重新保存明文,或从仓库重新安装本 skill' >&2
       return 3
     fi
@@ -138,7 +138,7 @@ cmd_exec() {
 
 main() {
   # 端点可能把本脚本加密为密文;先自检,给出可执行的处理指引。
-  if grep -q '%ENC-MARKER-[0-9]' "$0" 2>/dev/null; then
+  if grep -q '%[A-Z][A-Z0-9]*-Header-[0-9]' "$0" 2>/dev/null; then
     echo 'wsl-bridge.sh 已被端点透明加密为密文,无法执行' >&2
     echo '请用白名单编辑器重新保存明文,或从仓库重新安装本 skill' >&2
     exit 3

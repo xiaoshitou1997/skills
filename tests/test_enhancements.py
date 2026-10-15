@@ -26,10 +26,11 @@ def exec_run(*cmd, cwd=None, env=None, input=None):
 
 
 def sealed(path):
-    """端点安全软件已把该文件密封为 %ENC-MARKER 密文(非白名单进程不可读)。"""
+    """端点透明加密已把该文件密封为 %XXXX-Header 形状的密文头(非白名单进程不可读)。"""
     try:
         with open(path, 'rb') as fh:
-            return b'%ENC-MARKER' in fh.read(14)
+            head = fh.read(16)
+            return head.startswith(b'%') and b'-Header' in head
     except OSError:
         return False
 
