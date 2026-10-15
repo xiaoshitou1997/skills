@@ -58,7 +58,7 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## WSL 构建部署
 
-`mv-container-delivery` 将本地调测与 dev/prod 交付统一为同一条管线：编译出包在宿主完成（工具链由 mv-toolchain-manager 准备），产物在 WSL 内打包为只含运行时的瘦镜像，部署到本机 WSL（dev，即本地服务器）或远程服务器（prod）。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。详见 [交付契约](mv-container-delivery/references/deployment-contract.md) 与 [安全模型](mv-container-delivery/references/security-model.md)。
+`mv-container-delivery` 将本地调测与 dev/prod 交付统一为同一条管线：编译出包在宿主完成（工具链由 mv-toolchain-manager 准备），产物在 WSL 内打包为只含运行时的瘦镜像，部署到本机 WSL（dev，即本地服务器）或远程服务器（prod）。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。经管道向 WSL 分发文件前，wsl-bridge.sh 校验明文：命中企业终端透明加密的 `%XXXX-Header` 密文头即报错终止，不产出损坏镜像；无此类环境的机器该检查为空操作。详见 [交付契约](mv-container-delivery/references/deployment-contract.md) 与 [安全模型](mv-container-delivery/references/security-model.md)。
 
 ```bash
 SKILL_ROOT="/实际绝对路径/mv-container-delivery"
