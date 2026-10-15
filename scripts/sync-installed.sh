@@ -50,7 +50,9 @@ echo "Installing all skills from $SRC to: ${AGENTS[*]} (global)"
 npx -y skills@latest add "$SRC" -s '*' -g -y "${agent_args[@]}"
 
 # 旧版本清理名单:避免重复触发,仅用于安装维护;不得包含仓库当前 skill 名称。
-for name in "${STALE[@]}"; do
+# 空 STALE 在 bash 3.2(macOS 自带) + set -u 下按 "${STALE[@]}" 展开会报 unbound variable,用 ${STALE[@]+...} 写法兼容。
+STALE=()
+for name in ${STALE[@]+"${STALE[@]}"}; do
   # 清旧不带 -a:remove 省略 agent 参数才清理全部 agent 链接(带 -a 只清指定 agent,universal 链接会残留)。
   # 未安装时 remove 幂等返回成功;npx 在 Windows 上退出前可能崩溃,退出码不可靠,以清单复核为准。
   npx -y skills@latest remove "$name" -g -y >/dev/null 2>&1 || true
@@ -61,7 +63,7 @@ installed_list=$(npx -y skills@latest ls -g 2>/dev/null | sed -r 's/\x1b\[[0-9;]
 echo "--- installed skills (global) ---"
 echo "$installed_list"
 stale_left=0
-for name in "${STALE[@]}"; do
+for name in ${STALE[@]+"${STALE[@]}"}; do
   if grep -q "^${name}[[:space:]]" <<< "$installed_list"; then
     echo "WARNING: 旧版 $name 仍在全局安装,请重跑本脚本或手动执行 npx skills@latest remove $name -g" >&2
     stale_left=1
