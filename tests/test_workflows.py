@@ -15,7 +15,8 @@ if not Path(BASH).exists():
     BASH = 'bash'
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
-DELIVER = (ROOT / 'mv-container-delivery/scripts/deliver.sh').as_posix()
+IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
+DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 
 
 class WorkflowTests(unittest.TestCase):
@@ -59,7 +60,7 @@ class WorkflowTests(unittest.TestCase):
 
     def test_prod_rejects_without_approval_or_host(self):
         with tempfile.TemporaryDirectory() as d:
-            run = subprocess.run([BASH, DELIVER, 'deploy', 'prod', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
+            run = subprocess.run([BASH, DEPLOY, 'deploy', 'prod', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('--approve-prod', run.stderr)
 
@@ -92,7 +93,7 @@ class WorkflowTests(unittest.TestCase):
             env['DOCKER_LOG'] = str(docker_log)
             # FF_WSL_BRIDGE=0 仅供测试:走 PATH 里的 fake docker,不触真实 WSL。
             env['FF_WSL_BRIDGE'] = '0'
-            run = subprocess.run([BASH, DELIVER, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            run = subprocess.run([BASH, IMAGE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertIn('IMAGE=demo:', run.stdout)
             self.assertIn('ARTIFACT=', run.stdout)
@@ -108,7 +109,7 @@ class WorkflowTests(unittest.TestCase):
             d = Path(d)
             (d / '.dockerignore').write_text('.env*\n.git\n')
             (d / 'pom.xml').write_text('<project/>')
-            run = subprocess.run([BASH, DELIVER, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            run = subprocess.run([BASH, IMAGE_BUILD, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('mvn -B package', run.stderr)
             self.assertIn('mv-toolchain-manager', run.stderr)

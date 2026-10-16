@@ -1,3 +1,0 @@
-interface:
-  display_name: "Container Delivery"
-  short_description: "统一 WSL 容器管线：构建出包、本地调测、dev/prod 部署与同镜像晋级回滚。"

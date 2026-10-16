@@ -14,10 +14,10 @@ BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/b
 if not Path(BASH).exists():
     BASH = 'bash'
 DOCTOR = (ROOT / 'mv-toolchain-manager/scripts/doctor.py').as_posix()
-PREFLIGHT = (ROOT / 'mv-container-delivery/scripts/deploy-preflight.sh').as_posix()
-DELIVER = (ROOT / 'mv-container-delivery/scripts/deliver.sh').as_posix()
-RUNNER = (ROOT / 'mv-container-delivery/scripts/target-runner.sh').as_posix()
-QUALITY = (ROOT / 'mv-container-delivery/scripts/quality-check.sh').as_posix()
+PREFLIGHT = (ROOT / 'mv-container-deploy/scripts/deploy-preflight.sh').as_posix()
+DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
+RUNNER = (ROOT / 'mv-container-deploy/scripts/target-runner.sh').as_posix()
+QUALITY = (ROOT / 'mv-image-build/scripts/quality-check.sh').as_posix()
 
 
 def exec_run(*cmd, cwd=None, env=None, input=None):
@@ -63,7 +63,7 @@ class EnhancementsTests(unittest.TestCase):
             docker.chmod(0o755)
             env=os.environ.copy()
             env.update(PATH=str(b)+os.pathsep+env['PATH'], HOME=d, FF_PROD_SSH='deploy@prod.example.com', FF_WSL_BRIDGE='0')
-            p=exec_run(BASH,DELIVER,'deploy','prod','api','api:abc','--approve-prod',cwd=d,env=env)
+            p=exec_run(BASH,DEPLOY,'deploy','prod','api','api:abc','--approve-prod',cwd=d,env=env)
             self.assertNotEqual(p.returncode,0)
             self.assertIn('no verified dev deployment receipt',p.stderr)
 

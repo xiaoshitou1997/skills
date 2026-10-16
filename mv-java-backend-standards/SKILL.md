@@ -1,6 +1,6 @@
 ---
 name: mv-java-backend-standards
-description: 编写、修改、重构或审查 Java 后端代码时使用（Spring Boot 及其他 Java 后端框架），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按项目实际框架应用。技术栈选型与版本基线归 mv-tech-stack-standards，本机工具链安装归 mv-toolchain-manager，构建部署归 mv-container-delivery。
+description: 编写、修改、重构或审查 Java 后端代码时使用（Spring Boot 及其他 Java 后端框架），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按项目实际框架应用。技术栈选型与版本基线归 mv-tech-stack-standards，本机工具链安装归 mv-toolchain-manager，构建出包归 mv-image-build，部署归 mv-container-deploy。
 ---
 
 # Java Backend Standards

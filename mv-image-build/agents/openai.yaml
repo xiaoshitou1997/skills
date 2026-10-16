@@ -1,0 +1,3 @@
+interface:
+  display_name: "Image Build"
+  short_description: "宿主出包、WSL 瘦镜像构建与本地容器调测；输出镜像身份交由部署侧晋级。"

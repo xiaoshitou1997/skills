@@ -1,0 +1,3 @@
+interface:
+  display_name: "Container Deploy"
+  short_description: "镜像包部署 dev/prod、健康验证、同镜像晋级与回滚。"
