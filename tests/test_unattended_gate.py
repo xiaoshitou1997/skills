@@ -1,6 +1,6 @@
 """mv-unattended-watch 离线用例：gate.py 状态机与 install_hooks.py 干跑。
 
-状态目录与 settings 路径分别通过 MV_UNATTENDED_HOME / MV_UNATTENDED_SETTINGS
+状态目录与 settings 路径分别通过 MV_UNATTENDED_WATCH_HOME / MV_UNATTENDED_SETTINGS
 环境变量重定向到临时目录，不触碰真实用户配置。运行：
 python -m unittest discover -s tests -p 'test_*.py'
 """
@@ -29,7 +29,7 @@ class GateTestCase(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.state_dir = Path(tmp.name) / 'unattended'
-        self.env = base_env(MV_UNATTENDED_HOME=str(self.state_dir))
+        self.env = base_env(MV_UNATTENDED_WATCH_HOME=str(self.state_dir))
 
     def run_gate(self, *args):
         return subprocess.run(

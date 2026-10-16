@@ -39,9 +39,9 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod
 
 1. 交付前检查：镜像已在本地（`docker image inspect`，由 `mv-image-build` 产出）、`compose.delivery.yml` 或 `templates/compose.delivery.yml`、`.env.<env>`（未跟踪、`APP_ENV` 匹配）、`.dockerignore`；脚本内 `project_checks`/`env_checks` 与 `deploy-preflight.sh` 会先做只读预检。
 2. `deploy dev`：默认本机 WSL 容器，设置 `FF_DEV_SSH` 后为开发服务器。远端用 `docker save/load` 传输镜像并核对传输前后 Image ID 一致；随后启动 Compose、轮询健康（Docker HEALTHCHECK 或 `FF_HEALTH_URL`）。
-3. dev 健康验证通过（`VERIFIED_HEALTH=strong`）后在 `~/.local/share/skills/receipts/<app>/<IMAGE_ID>` 写 dev 收据；仅 `running` 不产生可晋级收据。
+3. dev 健康验证通过（`VERIFIED_HEALTH=strong`）后在 `~/.mv/container-deploy/receipts/<app>/<IMAGE_ID>` 写 dev 收据；仅 `running` 不产生可晋级收据。
 4. `deploy prod`：要求用户明确授权、`FF_PROD_SSH` 目标、同一 Image ID 的 dev 收据（`FF_REQUIRE_DEV_PROOF=0` 仅限风险评估后的显式应急）。生产必须有真实健康信号，仅 `running` 不算健康。
-5. 部署成功后在目标机 `~/.local/share/skills/<app>/releases.tsv` 追加发布记录，并保存当前与上一个成功镜像；验证失败时脚本自动尝试恢复上一个已验证镜像（应用级回滚）。
+5. 部署成功后在目标机 `~/.mv/container-deploy/<app>/releases.tsv` 追加发布记录，并保存当前与上一个成功镜像；验证失败时脚本自动尝试恢复上一个已验证镜像（应用级回滚）。
 6. `rollback prod` 加载可用的上一个镜像并验证记录结果；**不回滚外部状态和数据库**。
 7. 默认 Docker save/load 复用同一镜像，后续可替换 Registry；`--pull never` 保证目标机只用已有镜像，切换环境绝不重新生成不同编译结果。
 

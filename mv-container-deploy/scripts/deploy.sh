@@ -121,7 +121,7 @@ case "$ACTION" in
     LOCAL_ID=$(docker_cli image inspect --format '{{.Id}}' "$IMAGE")
     # 收据/发布历史与运行状态同侧保存:桥接模式在 WSL 的用户目录,否则在本机用户目录。
     RECEIPT_ROOT=${WSL_HOME:-$HOME}
-    RECEIPT_DIR="$RECEIPT_ROOT/.local/share/skills/receipts/$APP"
+    RECEIPT_DIR="$RECEIPT_ROOT/.mv/container-deploy/receipts/$APP"
     RECEIPT_FILE="$RECEIPT_DIR/$LOCAL_ID"
     if [[ "$ENV" == prod && "${FF_REQUIRE_DEV_PROOF:-1}" == 1 ]]; then
       if [[ -n "$WSL_DISTRO" ]]; then
@@ -136,25 +136,25 @@ case "$ACTION" in
     fi
     [[ -f "$COMPOSE" ]] || { echo "Missing Compose file: $COMPOSE" >&2; exit 3; }
     if [[ -n "$SSH_DEST" ]]; then
-      ssh "${SSH_OPTS[@]}" "$SSH_DEST" "mkdir -p '.local/share/skills/$APP' && chmod 700 '.local/share/skills/$APP'"
+      ssh "${SSH_OPTS[@]}" "$SSH_DEST" "mkdir -p '.mv/container-deploy/$APP' && chmod 700 '.mv/container-deploy/$APP'"
       # Stream immutable image data; no registry and no remote source compilation.
       docker_cli save "$IMAGE" | ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker load >/dev/null
       LOCAL_ID=$(docker_cli image inspect --format '{{.Id}}' "$IMAGE")
       REMOTE_ID=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker image inspect --format '{{.Id}}' "$IMAGE")
       [[ "$LOCAL_ID" == "$REMOTE_ID" ]] || { echo 'Transferred image ID mismatch' >&2; exit 3; }
-      scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.local/share/skills/$APP/compose.yml" >/dev/null
-      scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.local/share/skills/$APP/.env.$ENV" >/dev/null
+      scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.mv/container-deploy/$APP/compose.yml" >/dev/null
+      scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.mv/container-deploy/$APP/.env.$ENV" >/dev/null
       OUTPUT=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh")
       printf '%s\n' "$OUTPUT"
     else
       if [[ -n "$WSL_DISTRO" ]]; then
-        APPDIR="$WSL_HOME/.local/share/skills/$APP"
+        APPDIR="$WSL_HOME/.mv/container-deploy/$APP"
         bash "$HERE/wsl-bridge.sh" push "$COMPOSE" "$APPDIR/compose.yml"
         bash "$HERE/wsl-bridge.sh" push ".env.$ENV" "$APPDIR/.env.$ENV"
         bash "$HERE/wsl-bridge.sh" plain "$HERE/target-runner.sh"
         OUTPUT=$(wsl_bash bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh")
       else
-        DIR="$HOME/.local/share/skills/$APP"
+        DIR="$HOME/.mv/container-deploy/$APP"
         mkdir -p "$DIR"
         chmod 700 "$DIR"
         cp -- "$COMPOSE" "$DIR/compose.yml"

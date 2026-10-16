@@ -265,12 +265,12 @@ def install_portable(urls, target, label):
         shutil.rmtree(work, ignore_errors=True)
 
 
-def tcm_root():
-    """Resolve the install root ($HOME/.tcm by default)."""
-    override = os.environ.get('FF_TCM_HOME')
+def install_root():
+    """Resolve the install root ($HOME/.mv/toolchain-manager by default)."""
+    override = os.environ.get('MV_TOOLCHAIN_MANAGER_HOME')
     if override:
         return Path(override)
-    return Path.home() / '.tcm'
+    return Path.home() / '.mv' / 'toolchain-manager'
 
 
 if __name__ == '__main__':

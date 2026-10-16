@@ -29,7 +29,7 @@ Windows zip 解压后 `node.exe` 在归档根目录（不是 `bin/`），`activa
 ## 安装目录约定
 
 ```
-~/.tcm/node/v<ver>/
+~/.mv/toolchain-manager/node/v<ver>/
 ```
 
 `installed.list_installed` 按 `v<ver>` 目录名解析版本（去前导 `v`）。

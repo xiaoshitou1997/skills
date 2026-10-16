@@ -73,7 +73,7 @@ bash "$SKILL_ROOT/scripts/deploy.sh" deploy dev myapp 'myapp:TAG'
 bash "$SKILL_ROOT/scripts/deploy.sh" status dev myapp
 ```
 
-构建需要 Docker/Compose，远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.local/share/skills/`。应用回滚不回滚数据库迁移或外部副作用。
+构建需要 Docker/Compose，远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/image-build/`，收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
 
 Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装时该 skill 仅在当前上下文内有效）。
 

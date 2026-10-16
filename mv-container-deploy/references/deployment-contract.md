@@ -22,9 +22,9 @@
 
 ## 交付流程
 
-1. `deploy dev APP IMAGE` 预检配置（`deploy-preflight.sh` 与脚本内 `project_checks`/`env_checks`），检查镜像在本地存在；远端部署使用 `docker save/load` 传输镜像并核对传输前后 Image ID，然后启动 Compose、验证健康。仅通过 Docker 健康检查或 HTTP 探活（`VERIFIED_HEALTH=strong`）的发布，才在 `~/.local/share/skills/receipts/APP/IMAGE_ID` 创建 dev 收据（Windows 桥接模式下收据在 WSL 侧用户目录）。
+1. `deploy dev APP IMAGE` 预检配置（`deploy-preflight.sh` 与脚本内 `project_checks`/`env_checks`），检查镜像在本地存在；远端部署使用 `docker save/load` 传输镜像并核对传输前后 Image ID，然后启动 Compose、验证健康。仅通过 Docker 健康检查或 HTTP 探活（`VERIFIED_HEALTH=strong`）的发布，才在 `~/.mv/container-deploy/receipts/APP/IMAGE_ID` 创建 dev 收据（Windows 桥接模式下收据在 WSL 侧用户目录）。
 2. `deploy prod APP IMAGE --approve-prod` 要求用户明确授权、SSH 目标、目标镜像 ID 一致和真实健康探测，默认还要求本地 dev 验证收据。`FF_REQUIRE_DEV_PROOF=0` 仅用于评估风险后的显式应急处理，不属于常规流程。
-3. 目标部署成功后，在 `~/.local/share/skills/APP/releases.tsv` 追加 TSV 发布记录，并保存当前与上一个镜像。部署失败时尝试恢复上一个已验证镜像。
+3. 目标部署成功后，在 `~/.mv/container-deploy/APP/releases.tsv` 追加 TSV 发布记录，并保存当前与上一个镜像。部署失败时尝试恢复上一个已验证镜像。
 4. `rollback prod APP --approve-prod` 加载可用的上一个镜像，验证并记录结果。**不回滚外部状态和数据库。**
 
 ## 已知限制

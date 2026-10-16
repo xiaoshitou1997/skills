@@ -13,7 +13,7 @@
 | `FF_WSL_DISTRO` | Windows 指定 WSL 发行版；默认取第一个可用发行版 |
 | `FF_WSL_BRIDGE` | 设为 `0` 绕过 WSL 桥接；仅供测试/CI，Windows 生产使用违反团队规范 |
 
-Windows 上容器部署一律经 WSL（`scripts/wsl-bridge.sh` 桥接）：镜像由 mv-image-build 在宿主出包后构建，本 skill 经 WSL 执行 docker；运行状态、dev 收据与发布历史保存在 WSL 侧 `~/.local/share/skills/`（native 模式在本机用户目录）。没有 WSL 时部署直接失败，不回退本机直接启动。
+Windows 上容器部署一律经 WSL（`scripts/wsl-bridge.sh` 桥接）：镜像由 mv-image-build 在宿主出包后构建，本 skill 经 WSL 执行 docker；运行状态、dev 收据与发布历史保存在 WSL 侧 `~/.mv/container-deploy/`（native 模式在本机用户目录同路径）。没有 WSL 时部署直接失败，不回退本机直接启动。
 
 项目的 `.env.dev` / `.env.prod` 应包含 `APP_ENV`、`HOST_PORT`、`CONTAINER_PORT` 和应用必须的环境变量；真实密码不能入 Git。示例：
 
@@ -29,7 +29,7 @@ SPRING_PROFILES_ACTIVE=dev
 ## 项目可覆盖的模板
 
 - `compose.delivery.yml` 是项目特定运行定义；默认模板只支持一个名为 `app` 的服务。项目文件必须引用镜像 `${FF_IMAGE}`，不要声明 `build` 导致目标机重新编译。
-- Compose 在目标目录运行，默认数据存放在目标用户的 `~/.local/share/skills/<app>` 下，而非需要 sudo 的 `/opt`。
+- Compose 在目标目录运行，默认数据存放在目标用户的 `~/.mv/container-deploy/<app>` 下，而非需要 sudo 的 `/opt`。
 - 由于 Compose 会同时用于服务变量替换及容器 env 注入，`APP_ENV` 与真实 env 文件保持一致。
 - Node 静态前端在 env 文件中设置 `CONTAINER_PORT=80`。
 

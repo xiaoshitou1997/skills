@@ -18,7 +18,7 @@ description: >
 
 ## 模式与机制
 
-状态文件是模式是否生效的唯一事实源，位于 `~/.claude/unattended/`（测试可用环境变量 `MV_UNATTENDED_HOME` 覆盖）：
+状态文件是模式是否生效的唯一事实源，位于 `~/.mv/unattended-watch/`（测试可用环境变量 `MV_UNATTENDED_WATCH_HOME` 覆盖）：
 
 ```json
 {

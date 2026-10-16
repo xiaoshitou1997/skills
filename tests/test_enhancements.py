@@ -86,7 +86,7 @@ class EnhancementsTests(unittest.TestCase):
     def test_verified_release_tracks_prev_and_history(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            target=root/'.local/share/skills/api'
+            target=root/'.mv/container-deploy/api'
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')
@@ -118,7 +118,7 @@ esac
     def test_running_only_dev_does_not_claim_strong_health(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)
-            target=base/'.local/share/skills/api'
+            target=base/'.mv/container-deploy/api'
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')
@@ -149,7 +149,7 @@ esac
     def test_failing_compose_start_attempts_to_restore_previous(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)
-            target=base/'.local/share/skills/api'
+            target=base/'.mv/container-deploy/api'
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')

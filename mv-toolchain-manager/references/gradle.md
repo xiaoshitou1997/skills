@@ -38,7 +38,7 @@ https://services.gradle.org/distributions/gradle-<ver>-bin.zip
 ## 安装目录约定
 
 ```
-~/.tcm/gradle/gradle-<ver>/
+~/.mv/toolchain-manager/gradle/gradle-<ver>/
 ```
 
 归档顶层目录名恰好是 `gradle-<ver>`，`install_portable` 直接折叠。

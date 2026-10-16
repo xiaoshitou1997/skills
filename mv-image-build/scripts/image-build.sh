@@ -113,7 +113,7 @@ case "$ACTION" in
     ARGS=()
     [[ -z "${FF_RUNTIME_IMAGE:-}" ]] || ARGS+=(--build-arg "RUNTIME_IMAGE=$FF_RUNTIME_IMAGE")
     if [[ -n "$WSL_DISTRO" ]]; then
-      BUILD_DIR="$WSL_HOME/.local/share/skills/build/$APP"
+      BUILD_DIR="$WSL_HOME/.mv/image-build/build/$APP"
       wsl_bash bash -c 'rm -rf "$1" && mkdir -p "$1"' _ "$BUILD_DIR"
       # 传输只经透读者(git/bash)通道:透明加密机器上 MSYS coreutils 读到密文,
       # 不能作为传输通道,也不用 grep 预检(会把健康产物误判为密文)。

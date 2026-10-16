@@ -7,7 +7,7 @@
 - 面向 Hook 调用：prompt / compact / session 注入值守提醒（exit 0，stdout 进入模型
   上下文）；block 硬拦截 AskUserQuestion（exit 2，stderr 作为拒绝理由反馈给模型）。
 
-状态目录默认 ~/.claude/unattended/，环境变量 MV_UNATTENDED_HOME 可覆盖（测试用）。
+状态目录默认 ~/.mv/unattended-watch/，环境变量 MV_UNATTENDED_WATCH_HOME 可覆盖（测试用）。
 失败语义：Hook 模式内部异常一律静默 exit 0，不阻塞会话；状态文件存在但损坏时按
 无人值守处理（fail-closed）。管理命令失败输出到 stderr 并以非零退出码结束。
 """
@@ -31,8 +31,8 @@ BLOCK_MESSAGE = (
 
 
 def state_dir() -> Path:
-    override = os.environ.get('MV_UNATTENDED_HOME')
-    return Path(override) if override else Path.home() / '.claude' / 'unattended'
+    override = os.environ.get('MV_UNATTENDED_WATCH_HOME')
+    return Path(override) if override else Path.home() / '.mv' / 'unattended-watch'
 
 
 def state_file() -> Path:

@@ -10,7 +10,7 @@ IMAGE=${4:-}
 HEALTH_URL=${5:-}
 [[ "$ACTION" =~ ^(deploy|rollback|status)$ && "$ENV" =~ ^(dev|prod)$ ]] || exit 2
 [[ "$APP" =~ ^[a-z][a-z0-9_-]{0,62}$ ]] || exit 2
-DIR="$HOME/.local/share/skills/$APP"
+DIR="$HOME/.mv/container-deploy/$APP"
 cd "$DIR"
 [[ -f compose.yml && -f ".env.$ENV" ]] || { echo 'Missing deployed Compose/env files' >&2; exit 3; }
 chmod 600 ".env.$ENV"
