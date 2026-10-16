@@ -75,5 +75,5 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 ## 可用增强工具
 
 - `bash "${SKILL_ROOT}/scripts/security-scan.sh" source .`：调用已有 Gitleaks（可选；缺失应如实报告）。
-- 本 skill 不安装自动 Hook。平台保护和项目自身 Hook 按原有约定运行。
+- 本 skill 不安装自动 Hook（仓库唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式安装）。平台保护和项目自身 Hook 按原有约定运行。
 - 仓库保护、CODEOWNERS、PR 审查和 CI 由 Git 平台管理，不在 skill 内重新实现。
