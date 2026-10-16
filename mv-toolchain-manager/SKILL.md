@@ -29,7 +29,7 @@ description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node
 
 ## 便携安装器 fallback
 
-面向无 mise/SDKMAN/nvm 的环境，安装到 `~/.local/sdks/`，跨会话缓存、会话级激活：
+面向无 mise/SDKMAN/nvm 的环境，安装到 `~/.tcm/`，跨会话缓存、会话级激活：
 
 自带安装器管理 JDK、Maven、Gradle、Node.js；它不安装 pnpm/yarn。包管理器按 `packageManager` 和项目约定另行准备，并验证实际版本。
 
@@ -40,7 +40,7 @@ python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" ensure --project .
 eval "$(python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" activate --print sh)"
 ```
 
-PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话执行；cmd 使用 `activate --print cmd` 生成文件，再在当前会话 `call "%USERPROFILE%\.local\sdks\activate.cmd"`。激活和后续构建必须处于同一进程环境，不能假设下一次工具调用继承环境。
+PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话执行；cmd 使用 `activate --print cmd` 生成文件，再在当前会话 `call "%USERPROFILE%\.tcm\activate.cmd"`。激活和后续构建必须处于同一进程环境，不能假设下一次工具调用继承环境。
 
 硬约束：
 

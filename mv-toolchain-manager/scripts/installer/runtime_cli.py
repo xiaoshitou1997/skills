@@ -3,7 +3,7 @@
 
 Subcommands (all emit JSON on stdout; progress/diagnostics on stderr):
   detect     Scan project files for required versions.
-  installed  List versions cached under ~/.local/sdks (+ on PATH).
+  installed  List versions cached under ~/.tcm (+ on PATH).
   ensure     Detect + compare + download missing/mismatched + update selection.
   select     Switch the selected version for a tool (from already-installed set).
   list       Alias of `installed`, also prints the current selection.
@@ -37,7 +37,7 @@ import installed as installed_mod
 import mirrors
 import sources
 import versions
-from download import sdks_root
+from download import tcm_root
 
 
 def _emit_json(obj):
@@ -148,7 +148,7 @@ def _ensure_node(req, cache, result):
         )
         return
     urls = sources.node_urls(exact)
-    target = sdks_root() / 'node' / f'v{exact}'
+    target = tcm_root() / 'node' / f'v{exact}'
     try:
         download.install_portable(urls, target, f'Node.js {exact}')
     except Exception as e:
@@ -177,7 +177,7 @@ def _ensure_jdk(req, cache, result):
         )
         return
     urls = sources.jdk_urls(feat)
-    target = sdks_root() / 'jdk' / f'temurin-{feat}'
+    target = tcm_root() / 'jdk' / f'temurin-{feat}'
     try:
         download.install_portable(urls, target, f'Temurin JDK {feat}')
     except Exception as e:
@@ -206,7 +206,7 @@ def _ensure_maven(req, cache, result):
         )
         return
     urls = sources.maven_urls(exact)
-    target = sdks_root() / 'maven' / f'apache-maven-{exact}'
+    target = tcm_root() / 'maven' / f'apache-maven-{exact}'
     try:
         download.install_portable(urls, target, f'Apache Maven {exact}')
     except Exception as e:
@@ -235,7 +235,7 @@ def _ensure_gradle(req, cache, result):
         )
         return
     urls = sources.gradle_urls(exact)
-    target = sdks_root() / 'gradle' / f'gradle-{exact}'
+    target = tcm_root() / 'gradle' / f'gradle-{exact}'
     try:
         download.install_portable(urls, target, f'Gradle {exact}')
     except Exception as e:
@@ -310,7 +310,7 @@ def cmd_activate(args):
 # --------------------------------------------------------------------------
 # purge
 def cmd_purge(args):
-    root = sdks_root()
+    root = tcm_root()
     if args.tool:
         d = root / args.tool
         sel = activate.load_selection()

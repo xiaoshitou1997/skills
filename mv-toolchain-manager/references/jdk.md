@@ -25,7 +25,7 @@ https://api.adoptium.net/v3/binary/latest/<feature>/ga/<os>/<arch>/jdk/hotspot/n
 ## 安装目录约定
 
 ```
-~/.local/sdks/jdk/temurin-<feature>/
+~/.tcm/jdk/temurin-<feature>/
 ```
 
 按主版本命名。同一主版本下，API 永远返回最新 GA patch；重新 `ensure` 同一主版本时，若目录已存在则视为 `cached` 跳过。要强制升级到新 patch，先 `purge --tool jdk` 再 `ensure`。

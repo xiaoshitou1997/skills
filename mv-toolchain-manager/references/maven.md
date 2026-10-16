@@ -39,7 +39,7 @@ https://archive.apache.org/dist/maven/maven-3/<ver>/binaries/apache-maven-<ver>-
 ## 安装目录约定
 
 ```
-~/.local/sdks/maven/apache-maven-<ver>/
+~/.tcm/maven/apache-maven-<ver>/
 ```
 
 归档顶层目录名恰好是 `apache-maven-<ver>`，`install_portable` 直接折叠即可。

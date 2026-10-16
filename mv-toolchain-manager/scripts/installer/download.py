@@ -265,12 +265,12 @@ def install_portable(urls, target, label):
         shutil.rmtree(work, ignore_errors=True)
 
 
-def sdks_root():
-    """Resolve the install root ($HOME/.local/sdks by default)."""
-    override = os.environ.get('FF_SDKS_DIR')
+def tcm_root():
+    """Resolve the install root ($HOME/.tcm by default)."""
+    override = os.environ.get('FF_TCM_HOME')
     if override:
         return Path(override)
-    return Path.home() / '.local' / 'sdks'
+    return Path.home() / '.tcm'
 
 
 if __name__ == '__main__':

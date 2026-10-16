@@ -13,11 +13,11 @@ import re
 import sys
 from pathlib import Path
 
-from download import os_name, sdks_root
+from download import os_name, tcm_root
 
 
 def selection_path():
-    return sdks_root() / 'selection.json'
+    return tcm_root() / 'selection.json'
 
 
 def load_selection():
@@ -169,7 +169,7 @@ def emit(sel, fmt):
 def write_cmd_file(sel):
     """Materialize activate.cmd so the user can `call` it in cmd.exe."""
     out = emit_cmd(sel)
-    p = sdks_root() / 'activate.cmd'
+    p = tcm_root() / 'activate.cmd'
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(out, encoding='utf-8')
     return p

@@ -1,4 +1,4 @@
-"""Detect installed tool versions under $HOME/.local/sdks and on PATH."""
+"""Detect installed tool versions under $HOME/.tcm and on PATH."""
 from __future__ import annotations
 import os
 import re
@@ -7,12 +7,12 @@ import subprocess
 from pathlib import Path
 
 import versions
-from download import sdks_root
+from download import tcm_root
 
 
 def list_installed():
     """Return dict {node,jdk,maven,gradle} -> list of {version[, feature], path}."""
-    root = sdks_root()
+    root = tcm_root()
     out = {'node': [], 'jdk': [], 'maven': [], 'gradle': []}
 
     node_dir = root / 'node'
