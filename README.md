@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理、编码规范、技术栈约定、工程文档写作和离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理、非功能性需求采集、编码规范、技术栈约定、工程文档写作和离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 八个 skills
+## 九个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -12,6 +12,7 @@
 | `mv-image-build` | 宿主出包、WSL 瘦镜像构建与本地容器调测（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 镜像包部署 dev/prod 服务器、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
+| `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |

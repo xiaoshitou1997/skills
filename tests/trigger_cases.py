@@ -124,4 +124,20 @@ CASES = [
     {'skill': 'mv-unattended-watch', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '构建出包并部署到 dev 环境'},
     {'skill': 'mv-unattended-watch', 'kind': 'negative',
-     'query': '解释一下上下文压缩之后上下文里的约定为什么会丢'},]
+     'query': '解释一下上下文压缩之后上下文里的约定为什么会丢'},
+
+    # --- mv-nfr-intake：开工前非功能性需求采集确认，不含编码条款、选型与正式文档写作 ---
+    {'skill': 'mv-nfr-intake', 'kind': 'positive',
+     'query': '新项目要启动，先把用户规模、TPS、网络平面、部署约束这些非功能性需求问清楚再开工'},
+    {'skill': 'mv-nfr-intake', 'kind': 'positive',
+     'query': '系统要对接三个外部系统，调用频率差很多，网络也不归我们管，开工前把这些约束理一遍'},
+    {'skill': 'mv-nfr-intake', 'kind': 'positive',
+     'query': '这个新需求开发前，看看 NFR 画像还缺什么需要补的'},
+    {'skill': 'mv-nfr-intake', 'kind': 'positive',
+     'query': 'QPS 我们答不上来，按保守默认来，标成假设让我确认'},
+    {'skill': 'mv-nfr-intake', 'kind': 'negative', 'instead': 'mv-java-backend-standards',
+     'query': '审查这段 Service 代码的事务边界和异常处理是否合规'},
+    {'skill': 'mv-nfr-intake', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer',
+     'query': '把容量和网络约束整理成正式的 HLD 章节'},
+    {'skill': 'mv-nfr-intake', 'kind': 'negative',
+     'query': '把注释里的错别字改一下'},]

@@ -16,6 +16,7 @@ SKILLS = {
     'mv-tech-stack-standards',
     'mv-engineering-doc-writer',
     'mv-unattended-watch',
+    'mv-nfr-intake',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;

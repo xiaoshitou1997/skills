@@ -1,0 +1,3 @@
+interface:
+  display_name: "NFR Intake"
+  short_description: "开工前采集确认规模、网络、部署等非功能性需求，落盘项目画像文档。"
