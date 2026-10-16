@@ -24,11 +24,15 @@ CASES = [
     {'skill': 'mv-toolchain-manager', 'kind': 'negative', 'instead': 'mv-image-build',
      'query': '在 Docker 镜像里装 Node 20 用于构建前端'},
 
-    # --- mv-image-build：出包/镜像构建/本地调测，不含部署晋级、宿主工具链与 Git 发布 ---
+    # --- mv-image-build：宿主直启（默认）/出包/镜像构建/容器调测（显式），不含部署晋级、宿主工具链与 Git 发布 ---
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '这次改动在本地跑一下，我要打断点调试接口'},
     {'skill': 'mv-image-build', 'kind': 'positive',
+     'query': '不要走容器，直接在本机把服务跑起来，我开着终端看日志'},
+    {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '帮我把这个项目打成 Docker 镜像，出个包'},
+    {'skill': 'mv-image-build', 'kind': 'positive',
+     'query': '在 WSL 容器里验证一下这个镜像能不能正常启动'},
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '宿主构建报 Unable to establish loopback connection，帮我排查一下'},
     {'skill': 'mv-image-build', 'kind': 'negative', 'instead': 'mv-toolchain-manager',

@@ -9,7 +9,7 @@
 | Skill | 范围 |
 | --- | --- |
 | `mv-toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
-| `mv-image-build` | 宿主出包、WSL 瘦镜像构建与本地容器调测（工具链配合 mv-toolchain-manager） |
+| `mv-image-build` | 宿主出包、宿主直启（前台可见）与 WSL 瘦镜像/容器调测（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 镜像包部署 dev/prod 服务器、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
 | `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
@@ -61,7 +61,7 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## WSL 构建部署
 
-容器交付拆为两个 skill，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）为唯一接口：`mv-image-build` 负责编译出包（在宿主完成，工具链由 mv-toolchain-manager 准备）、在 WSL 内打包为只含运行时的瘦镜像与本地容器调测；`mv-container-deploy` 负责把镜像部署到本机 WSL（dev，即本地服务器）或远程服务器（prod）、健康验证、以同一 Image ID 晋级与回滚。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。经管道向 WSL 分发文件前，wsl-bridge.sh 校验明文：命中企业终端透明加密的 `%XXXX-Header` 密文头即报错终止，不产出损坏镜像；无此类环境的机器该检查为空操作。详见 [镜像构建契约](mv-image-build/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
+本地启动默认宿主直启：`java -jar`、`npm run dev` 等在宿主前台可见 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；仅明确要求"在容器里跑/验证镜像"时走容器调测，环境一致性由部署侧的同 Image ID dev 健康收据把关。容器交付拆为两个 skill，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）为唯一接口：`mv-image-build` 负责编译出包（在宿主完成，工具链由 mv-toolchain-manager 准备）、在 WSL 内打包为只含运行时的瘦镜像与本地容器调测（按显式要求）；`mv-container-deploy` 负责把镜像部署到本机 WSL（dev，即本地服务器）或远程服务器（prod）、健康验证、以同一 Image ID 晋级与回滚。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。经管道向 WSL 分发文件前，wsl-bridge.sh 校验明文：命中企业终端透明加密的 `%XXXX-Header` 密文头即报错终止，不产出损坏镜像；无此类环境的机器该检查为空操作。详见 [镜像构建契约](mv-image-build/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
 
 ```bash
 SKILL_ROOT="/实际绝对路径/mv-image-build"

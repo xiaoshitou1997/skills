@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Package prebuilt host artifacts into thin runtime images (build side of the delivery pipeline).
-# Windows 团队规范:镜像构建一律经 WSL,没有 WSL 就失败,禁止本机直接启动应用(见 scripts/wsl-bridge.sh)。
+# Windows 团队规范:镜像构建一律经 WSL,没有 WSL 就失败,容器路径不回退宿主(见 scripts/wsl-bridge.sh)。
 # 编译出包在宿主完成(工具链见 mv-toolchain-manager);本脚本只检测产物、打瘦镜像、输出镜像身份。
 # 镜像常驻:构建只新增镜像,任何流程不得 rmi/prune/清理镜像。
 # 与 mv-container-deploy 的接口:输出 IMAGE=<repo>:<tag> 与 IMAGE_ID=...,部署侧只消费该镜像引用。

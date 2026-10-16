@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Windows 宿主与 WSL Docker 之间的桥:可用性硬门禁、发行版探测、单文件推送。
-# 团队规范:应用一律以 Docker 容器运行;Windows 上容器必须经 WSL,没有 WSL 就失败,
-# 禁止本机(宿主)直接启动。镜像常驻:任何流程不得 rmi/prune/清理镜像。
+# 团队规范:容器路径(镜像构建、容器调测)一律经 WSL,没有 WSL 就失败,不回退宿主;
+# 启动类意图默认宿主直启(前台可见,见 SKILL.md)。镜像常驻:任何流程不得 rmi/prune/清理镜像。
 # 环境变量:FF_WSL_DISTRO 指定发行版(默认取第一个);FF_WSL_BRIDGE=0 仅供测试/CI 绕过。
 set -euo pipefail
 
@@ -52,8 +52,8 @@ cmd_require() {
       return 0
     fi
     command -v wsl.exe >/dev/null 2>&1 || {
-      echo '未检测到 wsl.exe。团队规范:Windows 上一律经 WSL 运行容器,禁止本机直接启动应用;' >&2
-      echo '请先安装 WSL2(管理员 PowerShell 执行 wsl --install -d Ubuntu)后重试。' >&2
+      echo '未检测到 wsl.exe。团队规范:Windows 上容器构建/调测一律经 WSL,容器路径不回退宿主;' >&2
+      echo '请先安装 WSL2(管理员 PowerShell 执行 wsl --install -d Ubuntu)后重试;只需本地启动应用可走宿主直启模式(见 SKILL.md)。' >&2
       return 3
     }
     local d
@@ -75,11 +75,11 @@ cmd_distro() {
   bridge_disabled && return 0
   local d
   d=$(distro_name) || {
-    echo '未检测到可用的 WSL;团队规范要求 Windows 经 WSL 运行容器,禁止本机直接启动(详见 require 子命令指引)' >&2
+    echo '未检测到可用的 WSL;团队规范要求 Windows 上容器构建/调测经 WSL,容器路径不回退宿主(详见 require 子命令指引)' >&2
     return 3
   }
   [[ -n "$d" ]] || {
-    echo '未检测到可用的 WSL;团队规范要求 Windows 经 WSL 运行容器,禁止本机直接启动(详见 require 子命令指引)' >&2
+    echo '未检测到可用的 WSL;团队规范要求 Windows 上容器构建/调测经 WSL,容器路径不回退宿主(详见 require 子命令指引)' >&2
     return 3
   }
   printf '%s\n' "$d"
