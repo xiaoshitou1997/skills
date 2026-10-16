@@ -15,7 +15,7 @@ if not Path(BASH).exists():
     BASH = 'bash'
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
-IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
+IMAGE_BUILD = (ROOT / 'mv-local-debug/scripts/image-build.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 
 
@@ -103,6 +103,20 @@ class WorkflowTests(unittest.TestCase):
             self.assertIn('app.jar', log)          # 产物改名进瘦上下文
             self.assertNotIn('demo-app-1.0.0.jar', log)  # 原名不进上下文
             self.assertNotIn('-sources.jar', log)  # sources jar 被排除
+
+    def test_build_rejects_ambiguous_artifacts(self):
+        # 交付契约要求唯一产物:多个候选拒绝并点名 FF_ARTIFACT,不按 mtime 静默猜测
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / '.dockerignore').write_text('.env*\n.git\n')
+            (d / 'pom.xml').write_text('<project/>')
+            target = d / 'target'
+            target.mkdir()
+            (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
+            (target / 'demo-app-1.0.1.jar').write_bytes(b'another-jar')
+            run = subprocess.run([BASH, IMAGE_BUILD, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn('FF_ARTIFACT', run.stderr)
 
     def test_build_without_artifact_fails_with_guidance(self):
         with tempfile.TemporaryDirectory() as d:

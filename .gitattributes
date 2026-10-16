@@ -5,3 +5,5 @@
 # 否则真 Linux bash 会因 CRLF 报 `$'\r': command not found`。
 *.sh text eol=lf
 *.py text eol=lf
+# Windows 批处理按 CRLF 入库与检出;LF 化的 .cmd 在部分解析场景会异常。
+*.cmd text eol=crlf

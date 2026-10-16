@@ -11,7 +11,7 @@ BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/b
 if not Path(BASH).exists():
     BASH = 'bash'
 # bash 不接受 Windows 反斜杠路径(msys 会吞掉反斜杠),统一转为正斜杠。
-BRIDGE = (ROOT / 'mv-image-build/scripts/wsl-bridge.sh').as_posix()
+BRIDGE = (ROOT / 'mv-local-debug/scripts/wsl-bridge.sh').as_posix()
 
 # 伪造 wsl.exe:$FAKE_WSL_HOME 映射 WSL 侧 /home/tester;仅实现 bridge 用到的调用形态。
 STUB = '''#!/usr/bin/env bash
@@ -102,11 +102,15 @@ class WslBridgeTests(unittest.TestCase):
             good.write_text('#!/usr/bin/env bash\necho ok\n')
             bad = Path(d) / 'bad.sh'
             bad.write_text('%ENC-Header-001\x00binary garbage')
+            # 回归:本机真实密文头形态尾部是 # 占位而非数字,字符类必须覆盖
+            bad2 = Path(d) / 'bad2.sh'
+            bad2.write_text('%TSD-Header-###%\x00binary garbage')
             run = self._run('plain', good.as_posix())
             self.assertEqual(run.returncode, 0, run.stderr)
-            run = self._run('plain', bad.as_posix())
-            self.assertEqual(run.returncode, 3)
-            self.assertIn('-Header', run.stderr)
+            for badf in (bad, bad2):
+                run = self._run('plain', badf.as_posix())
+                self.assertEqual(run.returncode, 3, badf.name)
+                self.assertIn('-Header', run.stderr)
 
     @NT_ONLY
     def test_require_passes_with_fake_wsl_docker(self):

@@ -32,6 +32,7 @@ wsl_cmd() {
 }
 
 # wsl -l 等输出可能是 UTF-16;剔除空字节与回车后按文本处理。
+# 注意:tr 通道只对 ASCII 输出(发行版名、$HOME)可靠,依赖 UTF-16LE 假设;输出形态变化时需同步调整。
 wsl_out() {
   wsl_cmd "$@" 2>/dev/null | tr -d '\0\r'
 }
@@ -85,13 +86,15 @@ cmd_distro() {
   printf '%s\n' "$d"
 }
 
-# 端点透明加密会给文件加 %XXXX-Header 形状的密文头;经管道分发的脚本/配置必须先校验明文。
+# 端点透明加密会给文件加 %XXXX-Header 形状的密文头(实测形态:Header- 后跟井号占位,而非数字);
+# 经管道分发的脚本/配置必须先校验明文。字符类取 [^%]:只要求 -Header- 后还有非 % 字符即判定密文。
+# 注意:本文件任何位置(含注释与报错文案)都不得出现能被该正则匹配的完整密文头样例,否则自检对明文误报。
 cmd_plain() {
   [[ $# -ge 1 ]] || usage
   local f
   for f in "$@"; do
     [[ -f "$f" ]] || { echo "Missing file: $f" >&2; return 3; }
-    if grep -q '%[A-Z][A-Z0-9]*-Header-[0-9]' "$f" 2>/dev/null; then
+    if grep -q '%[A-Z][A-Z0-9]*-Header-[^%]' "$f" 2>/dev/null; then
       echo "文件已被端点透明加密(%XXXX-Header 密文头),无法使用: $f" >&2
       echo '请用白名单编辑器重新保存明文,或从仓库重新安装本 skill' >&2
       return 3
@@ -138,7 +141,7 @@ cmd_exec() {
 
 main() {
   # 端点可能把本脚本加密为密文;先自检,给出可执行的处理指引。
-  if grep -q '%[A-Z][A-Z0-9]*-Header-[0-9]' "$0" 2>/dev/null; then
+  if grep -q '%[A-Z][A-Z0-9]*-Header-[^%]' "$0" 2>/dev/null; then
     echo 'wsl-bridge.sh 已被端点透明加密为密文,无法执行' >&2
     echo '请用白名单编辑器重新保存明文,或从仓库重新安装本 skill' >&2
     exit 3
