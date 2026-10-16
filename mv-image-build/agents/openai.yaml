@@ -1,3 +1,0 @@
-interface:
-  display_name: "Image Build"
-  short_description: "宿主出包、宿主直启（前台可见）与 WSL 瘦镜像/容器调测；输出镜像身份交由部署侧晋级。"

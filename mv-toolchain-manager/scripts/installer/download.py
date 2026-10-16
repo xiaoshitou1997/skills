@@ -5,6 +5,7 @@ Installer artifacts (.msi/.exe/.pkg/.dmg/.bat/.deb/.rpm) are rejected before
 any network request. No version manager, no installer, no admin rights.
 """
 from __future__ import annotations
+import hashlib
 import os
 import platform
 import shutil
@@ -13,6 +14,7 @@ import sys
 import tarfile
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -21,6 +23,10 @@ ALLOWED_EXTS = ('.zip', '.tar.gz', '.tgz')
 BLOCKED_EXTS = ('.msi', '.exe', '.pkg', '.dmg', '.bat', '.deb', '.rpm', '.ps1')
 TIMEOUT = 180  # seconds; JDK/Node archives can be large on slow links
 CHUNK = 64 * 1024
+
+
+class ChecksumMismatch(RuntimeError):
+    """Downloaded archive does not match the publisher's checksum. Fail closed."""
 
 
 def os_name():
@@ -93,6 +99,71 @@ def download(url, dest, show_progress=True):
     return dest
 
 
+# --------------------------------------------------------------------------
+# Checksum verification (best-effort fetch of the publisher's checksum file)
+def _checksum_candidates(url):
+    """Locations where the publisher typically publishes a checksum for url."""
+    cands = [url + '.sha256', url + '.sha512']
+    if 'nodejs.org' in urllib.parse.urlsplit(url).netloc:
+        cands.append(url.rsplit('/', 1)[0] + '/SHASUMS256.txt')
+    return cands
+
+
+def _fetch_checksum_text(url):
+    req = urllib.request.Request(
+        url, headers={'User-Agent': 'build-toolchain-installer/1.0'})
+    with urllib.request.urlopen(req, timeout=30, context=ssl.create_default_context()) as r:
+        return r.read().decode('utf-8', 'replace')
+
+
+def verify_download(url, archive):
+    """Verify archive against the publisher's checksum when one is published.
+
+    Checks <url>.sha256 / <url>.sha512 and (nodejs.org) SHASUMS256.txt.
+    Hex mismatch raises ChecksumMismatch (fail closed — the caller must not
+    fall through to the next candidate URL). Sources publishing no checksum
+    only get a warning; the limitation stays honest instead of silent.
+    """
+    archive = Path(archive)
+    name = archive.name
+    for cand in _checksum_candidates(url):
+        try:
+            text = _fetch_checksum_text(cand)
+        except Exception:
+            continue
+        if not text:
+            continue
+        for line in text.splitlines():
+            toks = line.split()
+            if not toks:
+                continue
+            hexdigest = toks[0].lower()
+            if len(hexdigest) == 64:
+                algo = 'sha256'
+            elif len(hexdigest) == 128:
+                algo = 'sha512'
+            else:
+                continue
+            if any(c not in '0123456789abcdef' for c in hexdigest):
+                continue
+            # SHASUMS256.txt 行尾带文件名;单文件 .sha256/.sha512 只有一段 hex
+            if len(toks) >= 2 and not toks[-1].lstrip('*').endswith(name):
+                continue
+            h = hashlib.new(algo)
+            with open(archive, 'rb') as f:
+                for chunk in iter(lambda: f.read(CHUNK), b''):
+                    h.update(chunk)
+            actual = h.hexdigest()
+            if actual != hexdigest:
+                raise ChecksumMismatch(
+                    f'checksum mismatch for {name} from {url}: '
+                    f'expected {hexdigest} ({algo}), got {actual}')
+            sys.stderr.write(f'  checksum OK ({algo})\n')
+            return
+    sys.stderr.write(
+        '  WARNING: no published checksum found; archive integrity not verified\n')
+
+
 def probe_url(url):
     """Verify a URL is actually downloadable without fetching the body.
 
@@ -116,11 +187,8 @@ def probe_url(url):
             cl = r.headers.get('Content-Length')
             return int(cl) if cl else None
     except urllib.error.HTTPError as e:
-        if e.code == 405:
-            pass  # HEAD not allowed -> fall through to ranged GET
-        elif e.code in (401, 403, 404):
-            raise RuntimeError(f'HTTP {e.code}')
-        else:
+        # 任何非 200 的 HEAD 结果(含 401/403/404)都直接判失败,交由下一候选
+        if e.code != 405:
             raise RuntimeError(f'HTTP {e.code}')
     except urllib.error.URLError as e:
         raise RuntimeError(f'network: {e.reason}')
@@ -144,14 +212,31 @@ def probe_url(url):
         raise RuntimeError(f'network: {e.reason}')
 
 
+def _member_target(dest, name):
+    """Resolve an archive member name; raise ValueError if it escapes dest."""
+    if name.startswith(('/', '\\')) or (len(name) > 1 and name[1] == ':'):
+        raise ValueError(f'unsafe absolute path in archive: {name}')
+    dest_r = dest.resolve()
+    target = (dest_r / name).resolve()
+    if dest_r != target and dest_r not in target.parents:
+        raise ValueError(f'unsafe path in archive (escapes destination): {name}')
+    return target
+
+
 def extract(archive, dest):
-    """Extract a zip/tar.gz into dest (created if missing)."""
+    """Extract a zip/tar.gz into dest (created if missing).
+
+    Paths are checked before extraction (zip-slip / tar-slip): absolute member
+    names and names resolving outside dest are rejected outright.
+    """
     archive = Path(archive)
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)
     low = archive.name.lower()
     if low.endswith('.zip'):
         with zipfile.ZipFile(archive) as z:
+            for info in z.infolist():
+                _member_target(dest, info.filename)
             z.extractall(dest)
     elif low.endswith(('.tar.gz', '.tgz')):
         # Windows tar handles gz; fall back to Python tarfile
@@ -159,7 +244,16 @@ def extract(archive, dest):
             try:
                 t.extractall(dest, filter='data')
             except TypeError:
-                # Python < 3.12 has no filter argument
+                # Python without filter= support: apply manual member checks
+                # (absolute/'..' paths and link targets escaping dest).
+                for m in t.getmembers():
+                    _member_target(dest, m.name)
+                    if m.issym() or m.islnk():
+                        link = os.path.normpath(
+                            os.path.join(os.path.dirname(m.name), m.linkname))
+                        if m.linkname.startswith(('/', '\\')) or link.startswith('..'):
+                            raise ValueError(
+                                f'unsafe link target in archive: {m.name} -> {m.linkname}')
                 t.extractall(dest)
     else:
         raise ValueError(f"Cannot extract {archive}: unsupported archive type")
@@ -235,8 +329,12 @@ def install_portable(urls, target, label):
             sys.stderr.write(f"  downloading {label}\n    {url}\n")
             try:
                 download(url, archive)
+                verify_download(url, archive)
                 sys.stderr.write('  extracting...\n')
                 extract(archive, work / 'extracted')
+            except ChecksumMismatch:
+                # 校验和不匹配是安全事件,直接失败,不换下一个候选 URL 继续试
+                raise
             except Exception as e:
                 sys.stderr.write(f"  download failed: {e}\n")
                 fetch_errors.append((url, str(e)))

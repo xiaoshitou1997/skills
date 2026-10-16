@@ -91,10 +91,19 @@ def cmd_ensure(args):
     if 'gradle' in reqs:
         _ensure_gradle(reqs['gradle'], cache, result)
 
+    # 任一工具失败都抬升为顶层 error:以退出码做门禁的调用方必须看到非零,
+    # 不能让"部分成功"伪装成整体成功(已 resolved 的条目仍写入 selection)。
+    errors = [a for a in result['actions'] if 'error' in a]
+    if errors:
+        result['error'] = '{} tool(s) failed: {}'.format(
+            len(errors), '; '.join(str(a.get('error'))[:120] for a in errors))
+
     if result['resolved']:
         activate.save_selection(result['resolved'])
 
     fmt = args.print or 'sh'
+    if fmt == 'auto':  # 与 cmd_activate 同口径:auto 先探测 shell,避免 emit 抛 ValueError
+        fmt = activate.detect_shell()
     snippet = ''
     if result['resolved']:
         sel = activate.load_selection()
@@ -309,6 +318,20 @@ def cmd_activate(args):
 
 # --------------------------------------------------------------------------
 # purge
+def _purge_guard(root):
+    """Full purge refuses degenerate roots (home itself, filesystem root).
+
+    MV_TOOLCHAIN_MANAGER_HOME legitimately redirects to any scratch/test dir,
+    so only clearly dangerous targets are rejected — deleting HOME or '/'.
+    """
+    r = Path(root).expanduser().resolve()
+    home = Path.home().resolve()
+    if r == home or r.parent == r:
+        raise SystemExit(
+            f'refusing to purge {r}: it resolves to HOME or a filesystem root; '
+            'check MV_TOOLCHAIN_MANAGER_HOME')
+
+
 def cmd_purge(args):
     root = install_root()
     if args.tool:
@@ -323,6 +346,7 @@ def cmd_purge(args):
             return {'purged': str(d)}
         _emit_json({'nothing': str(d)})
         return {'nothing': str(d)}
+    _purge_guard(root)
     sel_p = activate.selection_path()
     if sel_p.exists():
         try:
@@ -330,7 +354,12 @@ def cmd_purge(args):
         except OSError:
             pass
     if root.exists():
-        shutil.rmtree(root, ignore_errors=True)
+        # 不再用 ignore_errors=True 静默吞错:删不掉的文件必须如实报告并以非零退出。
+        try:
+            shutil.rmtree(root)
+        except OSError as e:
+            _emit_json({'error': f'purge failed: {e}'})
+            return {'error': f'purge failed: {e}'}
         _emit_json({'purged': str(root)})
         return {'purged': str(root)}
     _emit_json({'nothing': str(root)})

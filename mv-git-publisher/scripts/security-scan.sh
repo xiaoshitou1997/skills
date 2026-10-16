@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Optional integrations, fail closed if FF_REQUIRE_SECURITY_SCAN=1.
+# gitleaks 的 dir 子命令要求 gitleaks >= 8.19(旧版只有 detect,会以 unknown command 失败);
+# dir 模式只扫工作区文件,不扫 git 历史(历史泄漏需另行全量扫描)。
 set -euo pipefail
 MODE=${1:-source}
 TARGET=${2:-.}

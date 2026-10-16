@@ -24,7 +24,7 @@ python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" --mirror none ensure --
 |-----|------|-----|-------|--------|
 | `cn` | `cdn.npmmirror.com/binaries/node` | `mirrors.tuna.tsinghua.edu.cn/Adoptium` | `mirrors.tuna.tsinghua.edu.cn/apache/maven` | `mirrors.cloud.tencent.com/gradle` |
 
-这些是第三方托管的上游镜像，不应称为官方源。可用性、同步时效和内容完整性需自行验证；安装器的可达性预检不等于校验发行方摘要或签名。配置见 `scripts/installer/mirrors.py`，新增镜像应先审查来源与发行文件校验机制。
+这些是第三方托管的上游镜像，不应称为官方源。可用性与同步时效需自行验证；下载后会按上游校验和核对（镜像提供同名校验和文件时），但镜像可同时篡改文件与校验和，完整性的最终保证仍以官方源为准。配置见 `scripts/installer/mirrors.py`，新增镜像应先审查来源与发行文件校验机制。
 
 ## 候选顺序
 

@@ -14,7 +14,7 @@ SECRET = re.compile(
 )
 
 
-def git(*args, text=False):
+def git(*args):
     return subprocess.run(['git', *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout
 
 

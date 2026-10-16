@@ -54,9 +54,9 @@ def detect_jdk(project):
     project = Path(project)
     jv = project / '.java-version'
     if jv.exists():
-        v = jv.read_text(encoding='utf-8', errors='ignore').strip().split()[0]
-        if v:
-            return {'source': '.java-version', 'constraint': _major(v)}
+        text = jv.read_text(encoding='utf-8', errors='ignore').strip()
+        if text:  # 空文件守卫,与 detect_node 同口径
+            return {'source': '.java-version', 'constraint': _major(text.split()[0])}
     sdk = project / '.sdkmanrc'
     if sdk.exists():
         for line in sdk.read_text(encoding='utf-8', errors='ignore').splitlines():

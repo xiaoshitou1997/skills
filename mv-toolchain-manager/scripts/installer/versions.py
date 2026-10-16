@@ -9,7 +9,7 @@ import re
 _VERSION_RE = re.compile(r'(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?')
 
 # Node majors that are/have been LTS (for 'lts' preference).
-NODE_LTS_MAJORS = {22, 20, 18, 16, 14, 12, 10, 8, 6, 4}
+NODE_LTS_MAJORS = {24, 22, 20, 18, 16, 14, 12, 10, 8, 6, 4}
 
 
 def parse_version(v):

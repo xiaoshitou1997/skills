@@ -1,6 +1,6 @@
 ---
 name: mv-toolchain-manager
-description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node.js 工具链，以及按项目约定选择 npm/pnpm/yarn 时使用。适用于缺少工具、Java class version 不匹配、EBADENGINE 和明确的运行时版本请求；Docker 镜像构建与本地调测使用 mv-image-build，部署晋级归 mv-container-deploy。
+description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node.js 工具链，以及按项目约定选择 npm/pnpm/yarn 时使用。适用于缺少工具、Java class version 不匹配、EBADENGINE 和明确的运行时版本请求；Docker 镜像构建与本地调测使用 mv-local-debug，部署晋级归 mv-container-deploy。
 ---
 
 # Toolchain Manager
@@ -23,7 +23,7 @@ description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node
 - 不进行系统范围 sudo 安装，不修改注册表、`.bashrc`、`.zshrc` 或 PowerShell profile，除非用户明确授权。
 - 优先项目/用户态工具链，严格使用项目要求的 major/minor，不随意升级。
 - 自带便携安装器位于 `scripts/installer/`（`runtime_cli.py`），仅在第 3-4 步均无可用方案、且用户同意后使用。
-- `mv-image-build` 的产物在宿主构建：宿主 JDK/Maven/Gradle/Node 工具链是交付前置条件，交付前先确认就绪。
+- `mv-local-debug` 的产物在宿主构建：宿主 JDK/Maven/Gradle/Node 工具链是交付前置条件，交付前先确认就绪。
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 - 不按缓存内容拼 classpath：依赖解析与手工验证的完整条款见 [manual-classpath](references/manual-classpath.md)。
 
@@ -49,11 +49,11 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 3. 默认仅官方源；镜像只在 `FF_MIRROR=cn` 或 `--mirror cn` 显式启用，禁止自动选第三方源。
 4. 环境变量仅当前会话生效：禁止 `setx`、写 shell profile、改注册表；cmd 激活必须 `call activate.cmd`。
 
-安装器目前不强制验证发行摘要或签名；可达性预检不等于产物完整性校验。需要来源认证时按发行方指南验证产物后再使用。检测细节见 [detection](references/detection.md)，网络和来源见 [mirrors](references/mirrors.md)，工具细节按需读取 [Node.js](references/nodejs.md)、[JDK](references/jdk.md)、[Maven](references/maven.md)、[Gradle](references/gradle.md)。
+安装器下载后自动核对发行方校验和：依次探测 `<url>.sha256`/`<url>.sha512` 与 nodejs.org 的 `SHASUMS256.txt`，命中即校验、不匹配立即失败，源未发布校验和时如实提示未验证。镜像源提供同名校验和时同样核对，但其可信度以镜像为准；需要来源认证时按发行方指南验证签名后再使用。检测细节见 [detection](references/detection.md)，网络和来源见 [mirrors](references/mirrors.md)，工具细节按需读取 [Node.js](references/nodejs.md)、[JDK](references/jdk.md)、[Maven](references/maven.md)、[Gradle](references/gradle.md)。
 
 ## 输出
 
-给出项目要求、当前版本、选择或准备的运行时、验证结果，并提示调用 `mv-image-build` 继续出镜像/本地调试（部署晋级归 `mv-container-deploy`）。
+给出项目要求、当前版本、选择或准备的运行时、验证结果，并提示调用 `mv-local-debug` 继续出镜像/本地调试（部署晋级归 `mv-container-deploy`）。
 
 ## 与项目自检配合
 

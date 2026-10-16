@@ -1,6 +1,6 @@
 ---
 name: mv-tech-stack-standards
-description: 新建项目技术选型、确定或调整项目技术栈基线、评估依赖引入与版本升级、盘点项目现有技术栈时使用。编写业务代码的规范归 mv-java-backend-standards，本机 JDK/Node 等工具链安装切换归 mv-toolchain-manager，构建出包归 mv-image-build，部署晋级归 mv-container-deploy。
+description: 新建项目技术选型、确定或调整项目技术栈基线、评估依赖引入与版本升级、盘点项目现有技术栈时使用。编写业务代码的规范归 mv-java-backend-standards，本机 JDK/Node 等工具链安装切换归 mv-toolchain-manager，构建出包归 mv-local-debug，部署晋级归 mv-container-deploy。
 ---
 
 # Tech Stack Standards
@@ -41,4 +41,4 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 
 ## 边界
 
-编码规范、分层与写法归 mv-java-backend-standards；本机工具链检测安装归 mv-toolchain-manager；构建出包归 mv-image-build，容器部署归 mv-container-deploy；基线与项目实际冲突时项目优先。
+编码规范、分层与写法归 mv-java-backend-standards；本机工具链检测安装归 mv-toolchain-manager；构建出包归 mv-local-debug，容器部署归 mv-container-deploy；基线与项目实际冲突时项目优先。

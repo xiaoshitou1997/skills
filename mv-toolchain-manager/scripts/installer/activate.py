@@ -13,6 +13,10 @@ import re
 import sys
 from pathlib import Path
 
+# 直接执行本模块(而非经 runtime_cli)时,同目录兄弟模块不可导入;补上脚本目录。
+if __package__ in (None, ''):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 from download import install_root, os_name
 
 
@@ -155,13 +159,28 @@ def emit_cmd(sel):
     return '\n'.join(lines) + '\n'
 
 
+# 双引号内会被 shell 展开或截断的字符;路径含这些字符时宁可拒绝也不生成错误片段。
+_UNSAFE_IN_SNIPPET = re.compile(r'["`$]')
+
+
+def _guard_paths(sel, is_cmd=False):
+    for tool, entry in sel.items():
+        p = str(entry.get('path', '')) if isinstance(entry, dict) else str(entry)
+        if _UNSAFE_IN_SNIPPET.search(p) or (is_cmd and '%' in p):
+            raise ValueError(
+                f'{tool} path contains characters unsafe for activation snippets: {p!r}')
+
+
 def emit(sel, fmt):
     fmt = (fmt or 'sh').lower()
     if fmt in ('sh', 'bash', 'zsh'):
+        _guard_paths(sel)
         return emit_sh(sel)
     if fmt in ('ps1', 'powershell', 'pwsh'):
+        _guard_paths(sel)
         return emit_ps1(sel)
     if fmt in ('cmd', 'cmd.exe', 'bat'):
+        _guard_paths(sel, is_cmd=True)
         return emit_cmd(sel)
     raise ValueError(f"unknown shell format: {fmt}")
 
@@ -171,5 +190,9 @@ def write_cmd_file(sel):
     out = emit_cmd(sel)
     p = install_root() / 'activate.cmd'
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(out, encoding='utf-8')
+    if os.name == 'nt':
+        # cmd.exe 按 ANSI 代码页解析批处理;UTF-8 写出的非 ASCII 路径(如中文用户名)会乱码。
+        p.write_bytes(out.encode('mbcs', errors='strict'))
+    else:
+        p.write_text(out, encoding='utf-8')
     return p

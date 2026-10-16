@@ -27,7 +27,8 @@ def sniff(project):
     pom = project / 'pom.xml'
     if pom.exists():
         try:
-            root = ET.fromstring(pom.read_text(encoding='utf-8'))
+            # ET.parse 相比 fromstring(read_text) 能正确处理带 UTF-8 BOM 的 pom
+            root = ET.parse(pom).getroot()
         except (OSError, ET.ParseError):
             root = None  # 损坏的 pom 同样只跳过该来源
         if root is not None:

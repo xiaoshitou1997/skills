@@ -117,9 +117,12 @@ def backup(path: Path):
 
 
 def write_settings(path: Path, settings: dict) -> None:
+    # 临时文件 + 原子替换:中断也不会留下截断的 settings.json(配合调用前的备份双保险)。
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(settings, ensure_ascii=False, indent=2) + '\n',
-                    encoding='utf-8')
+    tmp = path.with_name(path.name + '.tmp-unattended')
+    tmp.write_text(json.dumps(settings, ensure_ascii=False, indent=2) + '\n',
+                   encoding='utf-8')
+    os.replace(tmp, path)
 
 
 def main(argv=None) -> int:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploy prebuilt immutable images and manage promotion/rollback (delivery side of the pipeline).
 # Windows 团队规范:容器部署一律经 WSL,没有 WSL 就失败,禁止本机直接启动应用(见 scripts/wsl-bridge.sh)。
-# 镜像由 mv-image-build 在宿主出包后构建;本脚本只做预检、传输、启动、健康验证、收据与回滚。
+# 镜像由 mv-local-debug 在宿主出包后构建;本脚本只做预检、传输、启动、健康验证、收据与回滚。
 # 目标机不执行构建,只加载并运行不可变镜像;镜像常驻,任何流程不得 rmi/prune/清理镜像。
 set -euo pipefail
 umask 077
@@ -126,7 +126,9 @@ case "$ACTION" in
     # 收据/发布历史与运行状态同侧保存:桥接模式在 WSL 的用户目录,否则在本机用户目录。
     RECEIPT_ROOT=${WSL_HOME:-$HOME}
     RECEIPT_DIR="$RECEIPT_ROOT/.mv/container-deploy/receipts/$APP"
-    RECEIPT_FILE="$RECEIPT_DIR/$LOCAL_ID"
+    # 文件名不能沿用 Image ID 原文:native 回退路径下 sha256:xxx 的冒号是 NTFS 备用数据流语义,
+    # 统一冒号替换为连字符(WSL/远端 Linux 与 Windows 三侧一致)。
+    RECEIPT_FILE="$RECEIPT_DIR/${LOCAL_ID//:/-}"
     if [[ "$ENV" == prod && "${FF_REQUIRE_DEV_PROOF:-1}" == 1 ]]; then
       if [[ -n "$WSL_DISTRO" ]]; then
         wsl_bash bash -c 'test -f "$1"' _ "$RECEIPT_FILE" || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
@@ -143,11 +145,12 @@ case "$ACTION" in
       ssh "${SSH_OPTS[@]}" "$SSH_DEST" "mkdir -p '.mv/container-deploy/$APP' && chmod 700 '.mv/container-deploy/$APP'"
       # Stream immutable image data; no registry and no remote source compilation.
       docker_cli save "$IMAGE" | ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker load >/dev/null
-      LOCAL_ID=$(docker_cli image inspect --format '{{.Id}}' "$IMAGE")
       REMOTE_ID=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker image inspect --format '{{.Id}}' "$IMAGE")
       [[ "$LOCAL_ID" == "$REMOTE_ID" ]] || { echo 'Transferred image ID mismatch' >&2; exit 3; }
       scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.mv/container-deploy/$APP/compose.yml" >/dev/null
       scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.mv/container-deploy/$APP/.env.$ENV" >/dev/null
+      # scp 落盘到 target-runner 收紧权限之间有窗口,立即按 600 收口。
+      ssh "${SSH_OPTS[@]}" "$SSH_DEST" "chmod 600 '.mv/container-deploy/$APP/.env.$ENV'"
       OUTPUT=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
       printf '%s\n' "$OUTPUT"
     else

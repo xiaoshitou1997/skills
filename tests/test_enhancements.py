@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 # PATH 里排在前的可能是 System32 的 WSL bash,必须显式使用 Git Bash;
@@ -17,7 +18,7 @@ DOCTOR = (ROOT / 'mv-toolchain-manager/scripts/doctor.py').as_posix()
 PREFLIGHT = (ROOT / 'mv-container-deploy/scripts/deploy-preflight.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 RUNNER = (ROOT / 'mv-container-deploy/scripts/target-runner.sh').as_posix()
-QUALITY = (ROOT / 'mv-image-build/scripts/quality-check.sh').as_posix()
+QUALITY = (ROOT / 'mv-local-debug/scripts/quality-check.sh').as_posix()
 
 
 def exec_run(*cmd, cwd=None, env=None, input=None):
@@ -43,6 +44,8 @@ class EnhancementsTests(unittest.TestCase):
             data=json.loads(p.stdout)
             self.assertIn('docker_compose', data['checks'])
             self.assertEqual(list(Path(d).iterdir()), [])
+            # 探针冒烟文件必须用完即清,不在系统临时目录留残留
+            self.assertFalse((Path(tempfile.gettempdir()) / 'ff_build_chain_smoke.java').exists())
 
     def test_preflight_rejects_missing_docker(self):
         with tempfile.TemporaryDirectory() as d:
@@ -175,6 +178,58 @@ esac
             if not sealed(target/'current-image'):
                 self.assertEqual((target/'current-image').read_text(encoding='utf-8').strip(),'api:old')
             self.assertFalse((target/'releases.tsv').exists())
+
+
+    def test_purge_guard_refuses_home_and_root(self):
+        sys.path.insert(0, str(ROOT / 'mv-toolchain-manager/scripts/installer'))
+        import runtime_cli as rc
+        with self.assertRaises(SystemExit):
+            rc._purge_guard(Path.home())
+        # 正常根(默认安装位置形状)与测试覆盖目录不拦
+        rc._purge_guard(Path.home() / '.mv' / 'toolchain-manager')
+        rc._purge_guard(Path(tempfile.gettempdir()) / 'btc-purge-guard-test')
+
+    def test_download_rejects_zip_slip(self):
+        sys.path.insert(0, str(ROOT / 'mv-toolchain-manager/scripts/installer'))
+        import download as dl
+        with tempfile.TemporaryDirectory() as d:
+            evil = Path(d) / 'evil.zip'
+            with zipfile.ZipFile(evil, 'w') as z:
+                z.writestr('../evil.txt', 'pwned')
+            with self.assertRaises(ValueError):
+                dl.extract(evil, Path(d) / 'out')
+            self.assertFalse((Path(d) / 'evil.txt').exists())
+
+    def test_verify_download_fails_closed_on_mismatch(self):
+        sys.path.insert(0, str(ROOT / 'mv-toolchain-manager/scripts/installer'))
+        import download as dl
+        with tempfile.TemporaryDirectory() as d:
+            archive = Path(d) / 'gradle-8.5-bin.zip'
+            archive.write_bytes(b'not-a-real-archive')
+            orig = dl._fetch_checksum_text
+            dl._fetch_checksum_text = lambda url: 'a' * 64 + '\n'
+            try:
+                with self.assertRaises(dl.ChecksumMismatch):
+                    dl.verify_download(
+                        'https://services.gradle.org/distributions/gradle-8.5-bin.zip', archive)
+            finally:
+                dl._fetch_checksum_text = orig
+
+    def test_verify_download_accepts_matching_checksum(self):
+        sys.path.insert(0, str(ROOT / 'mv-toolchain-manager/scripts/installer'))
+        import hashlib
+        import download as dl
+        with tempfile.TemporaryDirectory() as d:
+            archive = Path(d) / 'gradle-8.5-bin.zip'
+            archive.write_bytes(b'archive-bytes')
+            good = hashlib.sha256(b'archive-bytes').hexdigest()
+            orig = dl._fetch_checksum_text
+            dl._fetch_checksum_text = lambda url: good + '\n'
+            try:
+                dl.verify_download(
+                    'https://services.gradle.org/distributions/gradle-8.5-bin.zip', archive)
+            finally:
+                dl._fetch_checksum_text = orig
 
 
 if __name__ == '__main__':

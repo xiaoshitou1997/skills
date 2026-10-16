@@ -18,11 +18,11 @@ case "$ACTION" in
     gh pr create --base "$BASE" --head "$CURRENT" --title "$TITLE" --body-file "$BODY_FILE"
     ;;
   checks)
-    [[ $# == 1 ]] || exit 2
+    [[ $# == 1 ]] || { echo 'Usage: pr.sh checks' >&2; exit 2; }
     gh pr checks
     ;;
   view)
-    [[ $# == 1 ]] || exit 2
+    [[ $# == 1 ]] || { echo 'Usage: pr.sh view' >&2; exit 2; }
     gh pr view --json number,title,url,state,baseRefName,headRefName
     ;;
   *) echo 'Usage: pr.sh create BASE TITLE BODY_FILE | checks | view' >&2; exit 2 ;;

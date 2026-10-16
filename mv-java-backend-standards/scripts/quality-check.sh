@@ -11,7 +11,11 @@ if [[ -f package.json ]]; then
   done
   if [[ ${#PYBIN[@]} -eq 0 ]] && command -v py >/dev/null 2>&1; then PYBIN=(py -3); fi
   [[ ${#PYBIN[@]} -gt 0 ]] || { echo 'python3, python or py -3 required for package.json inspection' >&2; exit 3; }
-  mapfile -t CHECKS < <("${PYBIN[@]}" - "$MODE" <<'PY'
+  CHECKS=()
+  # mapfile 需 bash 4+;while-read 写法兼容 macOS 自带 bash 3.2。
+  while IFS= read -r line; do
+    if [[ -n "$line" ]]; then CHECKS+=("$line"); fi
+  done < <("${PYBIN[@]}" - "$MODE" <<'PY'
 import json,sys
 p=json.load(open('package.json',encoding='utf-8'))
 s=p.get('scripts',{})

@@ -1,7 +1,0 @@
-# syntax=docker/dockerfile:1.7
-# 瘦交付模板:静态前端产物由宿主构建,镜像只负责托管。
-# 产物需位于构建上下文根部的 app/ 目录(image-build.sh 自动放入 dist/ 或 build/ 内容)。
-ARG RUNTIME_IMAGE=nginx:alpine
-FROM ${RUNTIME_IMAGE}
-COPY app/ /usr/share/nginx/html/
-EXPOSE 80

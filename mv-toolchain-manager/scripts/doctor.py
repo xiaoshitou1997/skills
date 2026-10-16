@@ -53,6 +53,12 @@ def _nio_smoke():
         p = subprocess.run(["java", str(src)], capture_output=True, text=True, timeout=30)
     except (OSError, subprocess.TimeoutExpired):
         return {"ok": False, "detail": "java probe failed to run"}
+    finally:
+        # 探针文件用完即清,不在临时目录留残留。
+        try:
+            src.unlink()
+        except OSError:
+            pass
     out = ((p.stdout or "") + (p.stderr or "")).strip()
     if "CHAIN-OK" in out:
         return {"ok": True, "detail": "clean chain"}

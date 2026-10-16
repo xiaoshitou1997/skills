@@ -1,6 +1,6 @@
 ---
 name: mv-unattended-watch
-description: 用户宣布离场并把后续事务全权交给 AI 时使用：典型表述如「无人值守」「全权交给AI」「全权交给你」「我要睡觉了」「我要下班了」「我要去玩了」「我离开了」「后面你自己看着办」「别再问我」。激活后写入机器级状态文件，由用户显式安装的值守 Hook 每轮重新注入值守提醒并硬拦截 AskUserQuestion，保证跨上下文压缩仍不提问；值守期间按保守边界自行做最优决策并记录决策日志，用户回来后解除并汇总。负向边界：用户在线时的一次性委托或单点问题不激活本模式；值守期间遇到的提交发布归 mv-git-publisher，构建出包与本地调试归 mv-image-build，部署晋级归 mv-container-deploy，本 skill 只负责模式开关与值守纪律。
+description: 用户宣布离场并把后续事务全权交给 AI 时使用：典型表述如「无人值守」「全权交给AI」「全权交给你」「我要睡觉了」「我要下班了」「我要去玩了」「我离开了」「后面你自己看着办」「别再问我」。激活后写入机器级状态文件，由用户显式安装的值守 Hook 每轮重新注入值守提醒并硬拦截 AskUserQuestion，保证跨上下文压缩仍不提问；值守期间按保守边界自行做最优决策并记录决策日志，用户回来后解除并汇总。负向边界：用户在线时的一次性委托或单点问题不激活本模式；值守期间遇到的提交发布归 mv-git-publisher，构建出包与本地调试归 mv-local-debug，部署晋级归 mv-container-deploy，本 skill 只负责模式开关与值守纪律。
 ---
 
 # Unattended Watch
@@ -24,7 +24,7 @@ description: 用户宣布离场并把后续事务全权交给 AI 时使用：典
 }
 ```
 
-值守 Hook 由用户显式安装（仓库分发不自动安装 Hook，本 skill 是唯一例外）：`python3 "${SKILL_ROOT}/scripts/install_hooks.py"`，`--dry-run` 预览、`--remove` 卸载，写入用户级 `~/.claude/settings.json` 四个条目：
+值守 Hook 由用户显式安装（仓库分发不自动安装 Hook，本 skill 是唯一例外）：`python3 "${SKILL_ROOT}/scripts/install_hooks.py"`，`--dry-run` 预览、`--remove` 卸载，写入用户级 `~/.claude/settings.json` 四个条目（路径可用环境变量 `MV_UNATTENDED_SETTINGS` 覆盖，供测试与隔离）：
 
 | Hook | 行为 |
 | --- | --- |
@@ -52,7 +52,7 @@ description: 用户宣布离场并把后续事务全权交给 AI 时使用：典
 1. 不调用 AskUserQuestion；看到 Hook 注入的值守提醒按提醒执行，未看到提醒但 `gate.py status` 显示生效中时同样执行。
 2. 每项重要决策（方案选择、跳过的步骤、执行的写操作）追加一行到决策日志：`时间 | 决策 | 理由 | 可逆性 | 证据`，证据为命令、路径或输出摘要。
 3. 可逆的本地操作直接执行；不可逆/对外操作在 `boundaries.irreversible` 为 `defer` 时一律挂起：登记到日志「待确认」清单，继续其余工作，不空转等待；为 `allowed`（用户显式授权）时执行且必须留日志。
-4. 不降低各领域 skill 的既有红线：提交发布走 mv-git-publisher（先 pull、线性历史、AI 署名），构建调试走 mv-image-build、部署晋级走 mv-container-deploy；无人值守不豁免任何「不可违反的原则」。
+4. 不降低各领域 skill 的既有红线：提交发布走 mv-git-publisher（先 pull、线性历史、AI 署名），构建调试走 mv-local-debug、部署晋级走 mv-container-deploy；无人值守不豁免任何「不可违反的原则」。
 5. 遇到必须用户裁决且无最优解的情况（如 Git 冲突无法取舍），停止该事务、登记待确认，转向其余任务。
 
 ## 解除流程
