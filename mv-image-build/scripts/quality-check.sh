@@ -4,8 +4,14 @@ set -euo pipefail
 MODE=${1:-quick}
 [[ "$MODE" == quick || "$MODE" == full ]] || { echo 'Usage: quality-check.sh quick|full' >&2; exit 2; }
 if [[ -f package.json ]]; then
-  command -v python3 >/dev/null || { echo 'python3 required for package.json inspection' >&2; exit 3; }
-  mapfile -t CHECKS < <(python3 - "$MODE" <<'PY'
+  # Python 命令按环境探测:与 SKILL.md 承诺的 python3/python/py -3 三选一保持一致。
+  PYBIN=()
+  for c in python3 python; do
+    command -v "$c" >/dev/null 2>&1 && { PYBIN=("$c"); break; }
+  done
+  if [[ ${#PYBIN[@]} -eq 0 ]] && command -v py >/dev/null 2>&1; then PYBIN=(py -3); fi
+  [[ ${#PYBIN[@]} -gt 0 ]] || { echo 'python3, python or py -3 required for package.json inspection' >&2; exit 3; }
+  mapfile -t CHECKS < <("${PYBIN[@]}" - "$MODE" <<'PY'
 import json,sys
 p=json.load(open('package.json',encoding='utf-8'))
 s=p.get('scripts',{})

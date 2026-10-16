@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # 瘦交付模板:编译出包在宿主完成,镜像只负责打包运行时。
-# 产物需位于构建上下文根部的 app.jar(deliver.sh 自动放入,或 FF_ARTIFACT 指定)。
+# 产物需位于构建上下文根部的 app.jar(image-build.sh 自动放入,或 FF_ARTIFACT 指定)。
 ARG RUNTIME_IMAGE=eclipse-temurin:21-jre
 FROM ${RUNTIME_IMAGE}
 WORKDIR /app

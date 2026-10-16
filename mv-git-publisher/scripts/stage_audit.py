@@ -6,7 +6,12 @@ import subprocess
 import sys
 
 DANGEROUS = re.compile(r'(^|/)(\.env($|\.)|id_(rsa|ed25519)|.*\.(pem|p12|pfx|key)|credentials(\.json)?$|.*secrets.*)', re.I)
-SECRET = re.compile(rb'-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----|(?i:aws_secret_access_key\s*[:=])')
+SECRET = re.compile(
+    rb'-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----'
+    rb'|(?i:aws_secret_access_key\s*[:=])'
+    rb'|gh[pousr]_[A-Za-z0-9]{20,}'
+    rb"|(?i:(?:api_?key|secret|password|passwd|token)\s*[:=]\s*[\"']?[A-Za-z0-9+/_\-]{16,})"
+)
 
 
 def git(*args, text=False):

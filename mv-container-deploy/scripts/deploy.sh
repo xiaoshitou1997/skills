@@ -39,6 +39,10 @@ if [[ -n "${FF_HEALTH_URL:-}" && ! "${FF_HEALTH_URL}" =~ ^https?://[a-zA-Z0-9._:
   echo 'FF_HEALTH_URL contains unsupported characters; use a simple http(s) health URL without query/credentials' >&2
   exit 2
 fi
+if [[ -n "${FF_READY_TIMEOUT:-}" && ! "${FF_READY_TIMEOUT}" =~ ^[0-9]+$ ]]; then
+  echo 'FF_READY_TIMEOUT must be a positive integer (seconds)' >&2
+  exit 2
+fi
 if [[ "$ACTION" == deploy && "$ENV" == prod && "$IMAGE" == *-dirty* ]]; then
   echo 'Refusing to deploy an image tagged from an uncommitted working tree to prod' >&2
   exit 3
@@ -144,7 +148,7 @@ case "$ACTION" in
       [[ "$LOCAL_ID" == "$REMOTE_ID" ]] || { echo 'Transferred image ID mismatch' >&2; exit 3; }
       scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.mv/container-deploy/$APP/compose.yml" >/dev/null
       scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.mv/container-deploy/$APP/.env.$ENV" >/dev/null
-      OUTPUT=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh")
+      OUTPUT=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
       printf '%s\n' "$OUTPUT"
     else
       if [[ -n "$WSL_DISTRO" ]]; then
@@ -152,14 +156,14 @@ case "$ACTION" in
         bash "$HERE/wsl-bridge.sh" push "$COMPOSE" "$APPDIR/compose.yml"
         bash "$HERE/wsl-bridge.sh" push ".env.$ENV" "$APPDIR/.env.$ENV"
         bash "$HERE/wsl-bridge.sh" plain "$HERE/target-runner.sh"
-        OUTPUT=$(wsl_bash bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh")
+        OUTPUT=$(wsl_bash bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
       else
         DIR="$HOME/.mv/container-deploy/$APP"
         mkdir -p "$DIR"
         chmod 700 "$DIR"
         cp -- "$COMPOSE" "$DIR/compose.yml"
         cp -- ".env.$ENV" "$DIR/.env.$ENV"
-        OUTPUT=$(bash "$HERE/target-runner.sh" deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}")
+        OUTPUT=$(bash "$HERE/target-runner.sh" deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}")
       fi
       printf '%s\n' "$OUTPUT"
     fi
@@ -179,14 +183,14 @@ case "$ACTION" in
     ;;
   status|rollback)
     if [[ -n "$SSH_DEST" ]]; then
-      ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh"
+      ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
     else
       init_runtime
       if [[ -n "$WSL_DISTRO" ]]; then
         bash "$HERE/wsl-bridge.sh" plain "$HERE/target-runner.sh"
-        wsl_bash bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" < "$HERE/target-runner.sh"
+        wsl_bash bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
       else
-        bash "$HERE/target-runner.sh" "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}"
+        bash "$HERE/target-runner.sh" "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}"
       fi
     fi
     ;;

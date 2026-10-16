@@ -8,8 +8,10 @@ ENV=${2:-}
 APP=${3:-}
 IMAGE=${4:-}
 HEALTH_URL=${5:-}
+READY_SECS=${6:-50}
 [[ "$ACTION" =~ ^(deploy|rollback|status)$ && "$ENV" =~ ^(dev|prod)$ ]] || exit 2
 [[ "$APP" =~ ^[a-z][a-z0-9_-]{0,62}$ ]] || exit 2
+[[ "$READY_SECS" =~ ^[0-9]+$ ]] || { echo 'READY_SECS must be a positive integer (seconds)' >&2; exit 2; }
 DIR="$HOME/.mv/container-deploy/$APP"
 cd "$DIR"
 [[ -f compose.yml && -f ".env.$ENV" ]] || { echo 'Missing deployed Compose/env files' >&2; exit 3; }
@@ -19,7 +21,11 @@ DOCKER=(docker compose --env-file ".env.$ENV" -f compose.yml -p "$APP")
 check_service() {
   local candidate=$1
   local attempt id health status all_ok probe_ok=0 missing_health=0
-  for attempt in {1..25}; do
+  # 就绪轮询上限默认 50 秒(25 次 × 2 秒),覆盖常规 Spring Boot/静态前端的启动窗口;
+  # 慢启动大应用用 FF_READY_TIMEOUT(秒)放大,由 deploy.sh 透传到目标机。
+  local attempts=$(( READY_SECS / 2 ))
+  if (( attempts < 1 )); then attempts=1; fi
+  for attempt in $(seq 1 "$attempts"); do
     id=$(FF_IMAGE="$candidate" "${DOCKER[@]}" ps -q)
     [[ -n "$id" ]] || { echo 'No compose containers started' >&2; return 1; }
     all_ok=1

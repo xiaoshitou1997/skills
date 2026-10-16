@@ -77,6 +77,7 @@ def _wsl_resources(distro):
             except (ValueError, IndexError):
                 continue
             cpus = int(lines[0])
+            # 经验阈值:低于 8 核 / 12GB 时 Gradle/Maven 与镜像构建明显变慢;仅建议输出,不是门禁。
             ok = cpus >= 8 and mem_mb >= 12000
             return {"ok": ok, "detail": f"nproc={cpus}, mem={mem_mb // 1024}GB (low values: check ~/.wslconfig)"}
     return {"ok": False, "detail": "no data"}

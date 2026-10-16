@@ -11,14 +11,7 @@
 
 ## 环境变量
 
-| 变量 | 含义 |
-| --- | --- |
-| `FF_DEV_SSH` | 可选的 `user@devhost`；未设置时使用本机 WSL Docker |
-| `FF_PROD_SSH` | 用户指定的 `user@prodhost`；生产部署必填 |
-| `FF_DEV_SSH_KEY`, `FF_PROD_SSH_KEY` | 可选的 SSH 私钥文件路径 |
-| `FF_COMPOSE_FILE` | 项目自定义的 Compose 文件名 |
-| `FF_HEALTH_URL` | 必须能**从目标机访问**的健康检查 URL，不要求客户端能够访问 |
-| `FF_REQUIRE_DEV_PROOF` | 默认值为 1：生产晋级要求 dev 成功验证收据 |
+环境变量（`FF_DEV_SSH`、`FF_PROD_SSH`、`FF_HEALTH_URL`、`FF_REQUIRE_DEV_PROOF`、`FF_READY_TIMEOUT` 等）的语义与默认值以 [配置参考](configuration.md) 的表格为单一事实源，本契约不再重复维护。
 
 ## 交付流程
 

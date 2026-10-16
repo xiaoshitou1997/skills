@@ -18,15 +18,23 @@ def sniff(project):
             found[fn] = path.read_text(encoding='utf-8', errors='replace').strip()[:4000]
     pkg = project / 'package.json'
     if pkg.exists():
-        data = json.loads(pkg.read_text(encoding='utf-8'))
-        found['node'] = {'engines': data.get('engines', {}), 'packageManager': data.get('packageManager')}
+        try:
+            data = json.loads(pkg.read_text(encoding='utf-8'))
+        except (OSError, json.JSONDecodeError):
+            data = None  # 单来源损坏只跳过该来源,不中断其余检测
+        if data is not None:
+            found['node'] = {'engines': data.get('engines', {}), 'packageManager': data.get('packageManager')}
     pom = project / 'pom.xml'
     if pom.exists():
-        root = ET.fromstring(pom.read_text(encoding='utf-8'))
-        properties = root.find('{*}properties')
-        if properties is not None:
-            vals = {child.tag.rsplit('}', 1)[-1]: (child.text or '').strip() for child in properties}
-            found['maven_java'] = {k: vals[k] for k in ('java.version', 'maven.compiler.release', 'maven.compiler.source', 'maven.compiler.target') if k in vals}
+        try:
+            root = ET.fromstring(pom.read_text(encoding='utf-8'))
+        except (OSError, ET.ParseError):
+            root = None  # 损坏的 pom 同样只跳过该来源
+        if root is not None:
+            properties = root.find('{*}properties')
+            if properties is not None:
+                vals = {child.tag.rsplit('}', 1)[-1]: (child.text or '').strip() for child in properties}
+                found['maven_java'] = {k: vals[k] for k in ('java.version', 'maven.compiler.release', 'maven.compiler.source', 'maven.compiler.target') if k in vals}
     for tool, rel in [('gradle', 'gradle/wrapper/gradle-wrapper.properties'), ('maven', '.mvn/wrapper/maven-wrapper.properties')]:
         path = project / rel
         if path.exists():
