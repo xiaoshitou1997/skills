@@ -14,6 +14,7 @@ SKILLS = {
     'mv-java-backend-standards',
     'mv-tech-stack-standards',
     'mv-engineering-doc-writer',
+    'mv-unattended-watch',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;

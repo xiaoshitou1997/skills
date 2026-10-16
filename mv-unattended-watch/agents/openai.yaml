@@ -1,0 +1,3 @@
+interface:
+  display_name: "Unattended Watch"
+  short_description: "用户离场后的无人值守值守：模式开关、值守 Hook、自行决策与决策日志。"

@@ -98,4 +98,18 @@ CASES = [
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative',
      'query': '把这套文档写作约定沉淀成仓库里的 skill'},
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-git-publisher',
-     'query': '帮这次的改动写一条规范的提交信息'},]
+     'query': '帮这次的改动写一条规范的提交信息'},
+
+    # --- mv-unattended-watch：离场无人值守模式开关与值守，不含具体领域操作 ---
+    {'skill': 'mv-unattended-watch', 'kind': 'positive',
+     'query': '我要睡觉了，剩下的活儿你全权处理，别再问我'},
+    {'skill': 'mv-unattended-watch', 'kind': 'positive',
+     'query': '全权交给AI，后面的所有疑问你自己做决定'},
+    {'skill': 'mv-unattended-watch', 'kind': 'positive',
+     'query': '我要下班了，无人值守跑完剩下的任务，明天我来看结果'},
+    {'skill': 'mv-unattended-watch', 'kind': 'negative', 'instead': 'mv-git-publisher',
+     'query': '提交并推送这次的改动'},
+    {'skill': 'mv-unattended-watch', 'kind': 'negative', 'instead': 'mv-container-delivery',
+     'query': '构建出包并部署到 dev 环境'},
+    {'skill': 'mv-unattended-watch', 'kind': 'negative',
+     'query': '解释一下上下文压缩之后上下文里的约定为什么会丢'},]

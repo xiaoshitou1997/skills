@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理、编码规范、技术栈约定和工程文档写作的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理、编码规范、技术栈约定、工程文档写作和离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 六个 skills
+## 七个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -14,6 +14,7 @@
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
+| `mv-unattended-watch` | 离场无人值守：跨上下文压缩的模式开关、值守 Hook、保守边界下的自行决策与决策日志 |
 
 命名规范：统一采用 `mv-` + 对象 + 职责词，职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](docs/structure-rules.md)。
 
