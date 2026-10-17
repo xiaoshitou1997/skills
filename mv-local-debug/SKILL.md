@@ -1,6 +1,6 @@
 ---
 name: mv-local-debug
-description: 在本机（宿主）把 Java（Gradle/Maven）/Node 项目直接跑起来调测时统一使用本 skill：宿主直启、debug/断点、热更新、本机联调、宿主构建或启动失败排查。触发场景：本地跑一下、启动应用、断点调试、热更新不起作用、排查宿主构建或启动失败。核心原则：直启一律在用户可见前台 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；只加载项目允许的开发环境设置，绝不默认连生产；宿主直启不产生镜像、不写部署收据。构建出包与镜像归 mv-image-build，容器部署（本机 WSL 即开发服务器）归 mv-container-deploy，宿主工具链安装归 mv-toolchain-manager。
+description: 在本机（宿主）把 Java（Gradle/Maven）/Node 项目直接跑起来调测时统一使用本 skill：宿主直启、debug/断点、热更新、本机联调、宿主构建或启动失败排查。触发场景：本地跑一下、启动应用、断点调试、热更新不起作用、排查宿主构建或启动失败。核心原则：直启一律在用户可见前台 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；只加载项目允许的开发环境设置，绝不默认连生产；宿主直启不产生镜像、不写部署收据。构建出包与镜像归 mv-image-build，容器部署（本机 WSL 即开发服务器）归 mv-container-deploy。
 ---
 
 # 本机（宿主）调测

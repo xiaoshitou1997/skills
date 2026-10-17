@@ -1,6 +1,6 @@
 ---
 name: mv-container-deploy
-description: 把已构建的容器镜像包部署到各环境与服务器（本机 WSL、开发服务器、生产），以及部署更新、健康验证、同镜像晋级生产与回滚时统一使用本 skill。触发场景：部署或更新容器、晋级生产、回滚版本、排查部署或启动失败、确认发布状态。核心原则：目标机不执行构建，只加载运行 mv-image-build 产出的不可变镜像；Windows 上容器操作一律经 WSL，没有 WSL 即明确失败；prod 晋级要求同一 Image ID 的 dev 健康验证收据与用户明确授权。当前编排器为 Docker Compose（swarm/k8s/k3s 为后续扩展，见交付契约限制）。出包与打镜像归 mv-image-build，本机直启调试归 mv-local-debug，宿主工具链安装归 mv-toolchain-manager，Git 提交发布归 mv-git-publisher。
+description: 把已构建的容器镜像包部署到各环境与服务器（本机 WSL、开发服务器、生产），以及部署更新、健康验证、同镜像晋级生产与回滚时统一使用本 skill。触发场景：部署或更新容器、晋级生产、回滚版本、排查部署或启动失败、确认发布状态。核心原则：目标机不执行构建，只加载运行 mv-image-build 产出的不可变镜像；Windows 上容器操作一律经 WSL，没有 WSL 即明确失败；prod 晋级要求同一 Image ID 的 dev 健康验证收据与用户明确授权。当前编排器为 Docker Compose（swarm/k8s/k3s 为后续扩展，见交付契约限制）。出包与打镜像归 mv-image-build，本机直启调试归 mv-local-debug。
 ---
 
 # 容器部署与晋级

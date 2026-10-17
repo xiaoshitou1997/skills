@@ -1,6 +1,6 @@
 ---
 name: mv-image-build
-description: 把 Java（Gradle/Maven）/Node 项目的宿主产物打包为容器镜像时统一使用本 skill：宿主出包、WSL 瘦镜像构建、镜像身份输出、镜像构建失败排查。触发场景：打镜像、出镜像包、构建交付镜像、排查镜像构建失败。核心原则：编译出包在宿主完成（宿主工具链由 mv-toolchain-manager 准备）；镜像构建一律经 WSL，没有 WSL 即明确失败，不回退宿主；本 skill 只构建不运行——镜像验证与部署归 mv-container-deploy（本机 WSL 即默认 dev 目标）；镜像常驻不清理。本机直启调试归 mv-local-debug，部署晋级回滚归 mv-container-deploy，宿主工具链安装归 mv-toolchain-manager。
+description: 把 Java（Gradle/Maven）/Node 项目的宿主产物打包为容器镜像时统一使用本 skill：宿主出包、WSL 瘦镜像构建、镜像身份输出、镜像构建失败排查。触发场景：打镜像、出镜像包、构建交付镜像、排查镜像构建失败。核心原则：编译出包在宿主完成（宿主工具链由 mv-toolchain-manager 准备）；镜像构建一律经 WSL，没有 WSL 即明确失败，不回退宿主；本 skill 只构建不运行——镜像验证与部署归 mv-container-deploy（本机 WSL 即默认 dev 目标）；镜像常驻不清理。本机直启调试归 mv-local-debug。
 ---
 
 # 镜像构建
