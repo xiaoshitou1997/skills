@@ -18,6 +18,7 @@ SKILLS = {
     'mv-java-backend-standards',
     'mv-tech-stack-standards',
     'mv-engineering-doc-writer',
+    'mv-document-figure-production',
     'mv-unattended-watch',
     'mv-nfr-intake',
 }

@@ -132,6 +132,24 @@ CASES = [
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-git-publisher',
      'query': '帮这次的改动写一条规范的提交信息'},
 
+    # --- mv-document-figure-production：文档配图制作/插入/换图，不负责正文写作 ---
+    {'skill': 'mv-document-figure-production', 'kind': 'positive',
+     'query': '给 Word 文档画一个时序图，保留可编辑图源，生成图片并插到第二节里'},
+    {'skill': 'mv-document-figure-production', 'kind': 'positive',
+     'query': '我正在做 PPT，第 3 页需要一张架构图，画好后直接插进幻灯片并检查'},
+    {'skill': 'mv-document-figure-production', 'kind': 'positive',
+     'query': '这个 docx 里的登录流程图过时了，改图源并准确换掉原图，别碰其他图'},
+    {'skill': 'mv-document-figure-production', 'kind': 'positive',
+     'query': '把 PPTX 第 5 页已有的拓扑图片换成新版，保持位置和比例'},
+    {'skill': 'mv-document-figure-production', 'kind': 'positive', 'required': ['mv-engineering-doc-writer'],
+     'query': '写一份 HLD 到 Word，包含配套架构图，完成后把图插在章节里'},
+    {'skill': 'mv-document-figure-production', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer',
+     'query': '只评审这份 HLD 的技术决策和事实，不新增或修改任何图'},
+    {'skill': 'mv-document-figure-production', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer',
+     'query': '把这段需求笔记整理成纯文本 PRD，不需要图'},
+    {'skill': 'mv-document-figure-production', 'kind': 'negative',
+     'query': '给一张独立照片调亮度，不要放进文档'},
+
     # --- mv-unattended-watch：离场无人值守模式开关与值守，不含具体领域操作 ---
     {'skill': 'mv-unattended-watch', 'kind': 'positive',
      'query': '我要睡觉了，剩下的活儿你全权处理，别再问我'},
