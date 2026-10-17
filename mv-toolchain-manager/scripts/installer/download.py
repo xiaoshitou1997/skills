@@ -17,6 +17,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+from email.message import Message
 from pathlib import Path
 
 ALLOWED_EXTS = ('.zip', '.tar.gz', '.tgz')
@@ -46,17 +47,63 @@ def arch():
     return m
 
 
-def validate_archive_url(url):
-    """Raise ValueError if the URL is not a whitelisted portable archive."""
-    low = url.lower().split('#')[0].split('?')[0]
+def _validate_archive_name(name):
+    # URL filenames are untrusted, including Content-Disposition on signed URLs.
+    # Reject path components instead of silently taking basename (also on Windows).
+    if (not name or any(c in name for c in '/\\:')
+            or any(ord(c) < 32 or ord(c) == 127 for c in name)):
+        raise ValueError(f'Unsafe archive filename: {name!r}')
+    low = name.lower()
     for bad in BLOCKED_EXTS:
         if low.endswith(bad):
-            raise ValueError(f"Refusing installer artifact ({bad}): {url}")
-    if not any(low.endswith(ext) for ext in ALLOWED_EXTS):
+            raise ValueError(f'Refusing installer artifact ({bad}): {name}')
+    if not low.endswith(ALLOWED_EXTS):
         raise ValueError(
-            f"Unsupported archive extension for {url!r}; "
-            f"must be one of {ALLOWED_EXTS}."
-        )
+            f'Unsupported archive extension for {name!r}; must be one of {ALLOWED_EXTS}.')
+    return name
+
+
+def archive_filename(url, content_disposition=None):
+    """Safe portable filename from a release path or signed asset disposition.
+
+    GitHub signed URLs have an opaque path and response-content-disposition in
+    the query. Parse quoting and filename* with the standard MIME parser. The
+    same filename is used for validation, extraction and checksum matching.
+    """
+    parts = urllib.parse.urlsplit(url)
+    path_name = urllib.parse.unquote(parts.path.rsplit('/', 1)[-1])
+    # A query must never disguise an explicitly blocked installer path.
+    if path_name.lower().endswith(BLOCKED_EXTS):
+        _validate_archive_name(path_name)
+    dispositions = urllib.parse.parse_qs(parts.query).get(
+        'response-content-disposition', [])
+    if content_disposition:
+        dispositions.append(content_disposition)
+    names = []
+    for disposition in dispositions:
+        message = Message()
+        message['Content-Disposition'] = disposition
+        name = message.get_filename()
+        if name is not None:
+            names.append(_validate_archive_name(name))
+    if names:
+        if any(name != names[0] for name in names):
+            raise ValueError('Conflicting archive filenames in Content-Disposition')
+        return names[0]
+    return _validate_archive_name(path_name)
+
+
+def display_url(url):
+    """Diagnostic URL without signed query credentials or fragments."""
+    parts = urllib.parse.urlsplit(url)
+    return urllib.parse.urlunsplit((
+        parts.scheme, parts.netloc, parts.path,
+        '<redacted>' if parts.query else '', ''))
+
+
+def validate_archive_url(url):
+    """Raise ValueError unless the URL identifies a safe portable archive."""
+    archive_filename(url)
     return True
 
 
@@ -71,6 +118,7 @@ def download(url, dest, show_progress=True):
     ctx = ssl.create_default_context()
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT, context=ctx) as resp:
+            archive_filename(resp.geturl(), resp.headers.get('Content-Disposition'))
             total = resp.headers.get('Content-Length')
             total = int(total) if total else None
             done = 0
@@ -93,9 +141,9 @@ def download(url, dest, show_progress=True):
                 sys.stderr.write('\n')
             tmp.replace(dest)
     except urllib.error.HTTPError as e:
-        raise RuntimeError(f"HTTP {e.code} downloading {url}") from e
+        raise RuntimeError(f"HTTP {e.code} downloading {display_url(url)}") from e
     except urllib.error.URLError as e:
-        raise RuntimeError(f"URL error downloading {url}: {e.reason}") from e
+        raise RuntimeError(f"URL error downloading {display_url(url)}: {e.reason}") from e
     return dest
 
 
@@ -156,7 +204,7 @@ def verify_download(url, archive):
             actual = h.hexdigest()
             if actual != hexdigest:
                 raise ChecksumMismatch(
-                    f'checksum mismatch for {name} from {url}: '
+                    f'checksum mismatch for {name} from {display_url(url)}: '
                     f'expected {hexdigest} ({algo}), got {actual}')
             sys.stderr.write(f'  checksum OK ({algo})\n')
             return
@@ -184,6 +232,7 @@ def probe_url(url):
         with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
             if r.status != 200:
                 raise RuntimeError(f'HTTP {r.status}')
+            archive_filename(r.geturl(), r.headers.get('Content-Disposition'))
             cl = r.headers.get('Content-Length')
             return int(cl) if cl else None
     except urllib.error.HTTPError as e:
@@ -200,6 +249,7 @@ def probe_url(url):
         with urllib.request.urlopen(req, timeout=30, context=ctx) as r:
             if r.status not in (200, 206):
                 raise RuntimeError(f'HTTP {r.status}')
+            archive_filename(r.geturl(), r.headers.get('Content-Disposition'))
             cr = r.headers.get('Content-Range')
             if cr and '/' in cr:
                 total = cr.rsplit('/', 1)[-1]
@@ -299,22 +349,22 @@ def install_portable(urls, target, label):
             validate_archive_url(url)
         except ValueError as e:
             rejected.append((url, f'blocked: {e}'))
-            sys.stderr.write(f'    [block] {url} -> {e}\n')
+            sys.stderr.write(f'    [block] {display_url(url)} -> {e}\n')
             continue
         try:
             length = probe_url(url)
             validated.append((url, length))
             size_str = f'{length} bytes' if length else 'size unknown'
-            sys.stderr.write(f'    [ok]    {url} ({size_str})\n')
+            sys.stderr.write(f'    [ok]    {display_url(url)} ({size_str})\n')
         except Exception as e:
             rejected.append((url, str(e)))
-            sys.stderr.write(f'    [skip]  {url} -> {e}\n')
+            sys.stderr.write(f'    [skip]  {display_url(url)} -> {e}\n')
 
     if not validated:
         raise RuntimeError(
             f'no downloadable URL for {label}. '
             f'All candidates rejected: '
-            + '; '.join(f'{u} -> {r}' for u, r in rejected)
+            + '; '.join(f'{display_url(u)} -> {r}' for u, r in rejected)
         )
 
     # Phase 2: GET + extract. Mid-stream failures may fall through to the
@@ -323,26 +373,24 @@ def install_portable(urls, target, label):
     work = Path(tempfile.mkdtemp(prefix='btc-installer-'))
     fetch_errors = []
     try:
-        for url, _length in validated:
-            archive_name = url.split('/')[-1].split('?')[0]
-            archive = work / archive_name
-            sys.stderr.write(f"  downloading {label}\n    {url}\n")
+        for index, (url, _length) in enumerate(validated):
+            archive_dir = work / f'archive-{index}'
+            archive_dir.mkdir()
+            archive = archive_dir / archive_filename(url)
+            extracted = work / f'extracted-{index}'
+            sys.stderr.write(f"  downloading {label}\n    {display_url(url)}\n")
             try:
                 download(url, archive)
                 verify_download(url, archive)
                 sys.stderr.write('  extracting...\n')
-                extract(archive, work / 'extracted')
+                extract(archive, extracted)
             except ChecksumMismatch:
                 # 校验和不匹配是安全事件,直接失败,不换下一个候选 URL 继续试
                 raise
             except Exception as e:
                 sys.stderr.write(f"  download failed: {e}\n")
                 fetch_errors.append((url, str(e)))
-                extracted = work / 'extracted'
-                if extracted.exists():
-                    shutil.rmtree(extracted, ignore_errors=True)
                 continue
-            extracted = work / 'extracted'
             entries = [p for p in extracted.iterdir() if not p.name.startswith('.')]
             if len(entries) == 1 and entries[0].is_dir():
                 single = entries[0]
@@ -357,7 +405,7 @@ def install_portable(urls, target, label):
             return target, 'installed'
         raise RuntimeError(
             f'all probed-OK URLs failed during transfer for {label}: '
-            + '; '.join(f'{u} -> {e}' for u, e in fetch_errors)
+            + '; '.join(f'{display_url(u)} -> {e}' for u, e in fetch_errors)
         )
     finally:
         shutil.rmtree(work, ignore_errors=True)

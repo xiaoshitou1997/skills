@@ -33,7 +33,7 @@ python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" --mirror none ensure --
 | 工具 | 顺序 |
 |------|------|
 | Node | `[npmmirror, nodejs.org]` |
-| JDK | `[tuna Adoptium, api.adoptium.net (官方 API)]` |
+| JDK | `[tuna Adoptium, 官方 assets API 解析出的真实归档链接]` |
 | Maven | `[tuna apache, dlcdn.apache.org, archive.apache.org]` |
 | Gradle | `[tencent gradle, services.gradle.org]` |
 
@@ -57,13 +57,13 @@ Phase 2 (fetch): 对 validated 列表首个 URL 发 GET + 解压。
 
 ## JDK 镜像的特别处理
 
-官方 JDK URL 是 Adoptium API endpoint，会 302 重定向到带签名 token 的 GitHub release-assets（短期有效、不能直接镜像）。处理：
+`sources.jdk_urls(feature)` 先通过官方 assets API 取得 `binary.package.link` 与 `name`，核对归档文件名及平台扩展名，再构造候选：
 
-1. `_jdk_filename(feature)` 先 HEAD 官方 API，跟随重定向，从最终 URL 的 `response-content-disposition` 解析出真实文件名（如 `OpenJDK21U-jdk_x64_windows_hotspot_21.0.11_10.zip`）。
-2. 用该文件名拼接镜像 URL：`https://mirrors.tuna.tsinghua.edu.cn/Adoptium/21/jdk/x64/windows/OpenJDK21U-jdk_x64_windows_hotspot_21.0.11_10.zip`。
-3. 候选列表：`[镜像 URL, 官方 API URL]`。两者都过 probe，命中谁就下载谁。
+1. 以官方元数据中的真实文件名拼接已显式启用的镜像 URL。
+2. 候选列表为 `[镜像 URL, 官方真实归档 URL]`；未启用镜像时仅保留官方归档。
+3. 下载器对候选执行 probe，通过后才下载；不把无扩展名 API endpoint 或短期签名跳转地址加入归档候选。
 
-如果 `_jdk_filename` 因网络问题失败，会跳过 mirror URL，仅保留官方 API URL，并在 stderr 打印 warning。
+镜像不替代官方元数据解析。官方 assets API 不可用或元数据不合法时，解析明确失败，不猜文件名、不静默切换到未验证的地址。
 
 ## 验证 mirror 实际被使用
 
@@ -76,7 +76,7 @@ python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" --mirror cn ensure --jd
 ```
   probing 2 candidate URL(s) for Temurin JDK 21
     [ok]    https://mirrors.tuna.tsinghua.edu.cn/Adoptium/21/jdk/x64/windows/OpenJDK21U-jdk_x64_windows_hotspot_21.0.11_10.zip (205073954 bytes)
-    [ok]    https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse (...)
+    [ok]    <官方 assets API 返回的真实归档 URL> (...)
   downloading Temurin JDK 21
     https://mirrors.tuna.tsinghua.edu.cn/Adoptium/21/jdk/x64/windows/...   <-- 走了 mirror
 ```

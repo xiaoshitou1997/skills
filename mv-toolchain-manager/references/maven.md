@@ -14,7 +14,7 @@ https://dlcdn.apache.org/maven/maven-3/<ver>/binaries/apache-maven-<ver>-bin.<ex
 https://archive.apache.org/dist/maven/maven-3/<ver>/binaries/apache-maven-<ver>-bin.<ext>
 ```
 
-两者均为 Apache 官方基础设施，**不是第三方镜像**。`sources.maven_urls` 返回 `(primary, archive)`，`ensure` 先试 primary，失败再试 archive。
+两者均为 Apache 官方基础设施，**不是第三方镜像**。未启用镜像时，`sources.maven_urls` 返回 `[primary, archive]`，安装器先 probe 候选再按顺序下载；启用镜像时镜像地址前置。摘要不匹配直接失败，不换源继续。
 
 | 平台 | `<ext>` |
 |------|---------|
@@ -35,6 +35,8 @@ https://archive.apache.org/dist/maven/maven-3/<ver>/binaries/apache-maven-<ver>-
 | `3.9` | 取 3.9.x 最高 |
 | `*` / `latest` / 空 | 取列表最高 |
 | 范围（如 `>=3.8`） | 按约束匹配列表最高 |
+
+非精确版本依赖官方列表可用；列表获取失败、为空或无匹配时明确报错，不把原始范围字符串当作版本下载。精确版本免联网仅指解析阶段，缺少归档时安装仍需 probe 与下载。
 
 ## 安装目录约定
 

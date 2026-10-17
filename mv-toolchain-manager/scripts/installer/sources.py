@@ -25,10 +25,7 @@ import versions
 
 NODE_INDEX = 'https://nodejs.org/dist/index.json'
 NODE_DIST = 'https://nodejs.org/dist/v{ver}/node-v{ver}-{plat}-{arch}.{ext}'
-ADOPTIUM_LATEST = (
-    'https://api.adoptium.net/v3/binary/latest/{feat}/ga/{os}/{arch}/'
-    'jdk/hotspot/normal/eclipse'
-)
+ADOPTIUM_LATEST = 'https://api.adoptium.net/v3/assets/latest/{feat}/hotspot'
 MAVEN_PRIMARY = (
     'https://dlcdn.apache.org/maven/maven-3/{ver}/binaries/'
     'apache-maven-{ver}-bin.{ext}'
@@ -114,65 +111,49 @@ def node_urls(ver):
 # --------------------------------------------------------------------------
 # JDK (Temurin via Adoptium API)
 def jdk_url(feature):
-    """Official Temurin latest-GA binary URL for the given feature version.
+    """Resolve the latest GA portable package through the official assets API.
 
-    This is the API endpoint that 302-redirects to a signed GitHub release asset.
+    Return the release archive link, not the extensionless binary endpoint.
+    Keeping the stable release link also keeps its published checksum sidecars
+    discoverable before GitHub redirects the transfer to an expiring signed URL.
     """
     os_ = download.os_name()
-    arch = download.arch()
-    o = {'windows': 'windows', 'mac': 'mac', 'linux': 'linux'}[os_]
-    if os_ == 'mac':
-        a = {'x64': 'x64', 'arm64': 'arm64'}[arch]
-    else:
-        a = {'x64': 'x64', 'arm64': 'aarch64'}[arch]
-    return ADOPTIUM_LATEST.format(feat=feature, os=o, arch=a)
+    architecture = {'x64': 'x64', 'arm64': 'aarch64'}[download.arch()]
+    api = ADOPTIUM_LATEST.format(feat=feature) + '?' + urllib.parse.urlencode({
+        'architecture': architecture, 'image_type': 'jdk',
+        'os': os_, 'vendor': 'eclipse',
+    })
+    try:
+        assets = _get_json(api)
+        package = assets[0]['binary']['package']
+        url = package['link']
+        filename = download.archive_filename(url)
+        expected_ext = '.zip' if os_ == 'windows' else '.tar.gz'
+        if filename != package['name'] or not filename.lower().endswith(expected_ext):
+            raise ValueError('JDK package name or archive type does not match its link')
+        return url
+    except Exception as e:
+        raise RuntimeError(f'cannot resolve Temurin JDK {feature} from {api}: {e}') from e
 
 
 def _jdk_filename(feature):
-    """Resolve the exact filename of the latest GA Temurin archive for a feature.
-
-    e.g. 'OpenJDK21U-jdk_x64_windows_hotspot_21.0.11_10.zip'.
-    Returns None if the API cannot be reached (caller falls back to official URL).
-    """
-    api = jdk_url(feature)
+    """Exact portable filename from official metadata; None on resolution failure."""
     try:
-        req = urllib.request.Request(
-            api, method='HEAD',
-            headers={'User-Agent': 'build-toolchain-installer/1.0', 'Accept': '*/*'},
-        )
-        with urllib.request.urlopen(req, timeout=_TIMEOUT, context=_CTX) as r:
-            final = r.geturl()
+        return download.archive_filename(jdk_url(feature))
     except Exception as e:
         sys.stderr.write(f'  warning: cannot resolve JDK filename via API: {e}\n')
         return None
-    # The signed release-assets URL carries the filename in the
-    # `response-content-disposition` query parameter.
-    qs = urllib.parse.parse_qs(urllib.parse.urlparse(final).query)
-    rcd = urllib.parse.unquote(qs.get('response-content-disposition', [''])[0])
-    m = re.search(r'filename=([^;]+\.zip)', rcd)
-    if m:
-        return m.group(1)
-    path = urllib.parse.urlparse(final).path
-    if path.lower().endswith('.zip'):
-        return path.rsplit('/', 1)[-1]
-    return None
 
 
 def jdk_urls(feature):
-    """Ordered candidate URLs for JDK: mirror first (if active), then official API."""
+    """Mirror (only when opted in), then the official resolved release archive."""
     official = jdk_url(feature)
     out = []
     mt = mirrors.template_for('jdk')
     if mt:
-        os_ = download.os_name()
-        arch = download.arch()
-        filename = _jdk_filename(feature)
-        if filename:
-            out.append(mt.format(feat=feature, arch=arch, os=os_, filename=filename))
-        else:
-            sys.stderr.write(
-                '  warning: JDK filename unknown; skipping mirror, using official API\n'
-            )
+        out.append(mt.format(
+            feat=feature, arch=download.arch(), os=download.os_name(),
+            filename=download.archive_filename(official)))
     out.append(official)
     return out
 
@@ -199,20 +180,16 @@ def resolve_maven(constraint):
     """Resolve a Maven distribution version. Exact X.Y.Z passes through without network."""
     if constraint and versions.is_exact(constraint):
         return constraint
-    try:
-        avail = _list_maven_versions()
-    except Exception:
-        if constraint:
-            # cannot list versions, trust the supplied constraint as-is
-            return constraint
-        raise
+    avail = _list_maven_versions()
     if not constraint or constraint in ('*', 'latest'):
-        return avail[0] if avail else constraint
-    c = versions.parse_constraint(constraint)
-    for v in avail:
-        if c.matches(v):
-            return v
-    return constraint
+        if avail:
+            return avail[0]
+    else:
+        c = versions.parse_constraint(constraint)
+        for v in avail:
+            if c.matches(v):
+                return v
+    raise RuntimeError(f'no Maven version matches {constraint!r}')
 
 
 def maven_urls(ver):
@@ -232,8 +209,8 @@ def maven_urls(ver):
 # --------------------------------------------------------------------------
 # Gradle
 def resolve_gradle(constraint):
-    """Resolve a Gradle distribution version. Exact X.Y.Z passes through."""
-    if constraint and versions.is_exact(constraint):
+    """Exact X.Y / X.Y.Z passes through; ranges must resolve to a match."""
+    if constraint and re.fullmatch(r'\d+\.\d+(?:\.\d+)?', constraint):
         return constraint
     try:
         data = _get_json(GRADLE_CURRENT)
@@ -241,7 +218,9 @@ def resolve_gradle(constraint):
     except Exception:
         latest = None
     if not constraint or constraint in ('*', 'latest'):
-        return latest or constraint
+        if latest:
+            return latest
+        raise RuntimeError('cannot resolve latest Gradle version')
     if latest and versions.parse_constraint(constraint).matches(latest):
         return latest
     # fall back to scraping the distributions page for older versions
@@ -253,9 +232,9 @@ def resolve_gradle(constraint):
         for v in found:
             if c.matches(v):
                 return v
-    except Exception:
-        pass
-    return latest or constraint
+    except Exception as e:
+        raise RuntimeError(f'cannot resolve Gradle constraint {constraint!r}: {e}') from e
+    raise RuntimeError(f'no Gradle version matches {constraint!r}')
 
 
 def gradle_url(ver):

@@ -1,17 +1,18 @@
 # JDK（Eclipse Temurin）官方源
 
-仅使用 Eclipse Temurin（Adoptium 工作组维护的 OpenJDK 发行版），通过 Adoptium API 获取最新 GA 便携包。
+仅使用 Eclipse Temurin（Adoptium 工作组维护的 OpenJDK 发行版），通过 Adoptium assets API 解析指定主版本的最新 GA 便携归档；下载候选使用元数据返回的真实归档链接。
 
 ## 最新 GA 二进制（按主版本）
 
 ```
-https://api.adoptium.net/v3/binary/latest/<feature>/ga/<os>/<arch>/jdk/hotspot/normal/eclipse
+https://api.adoptium.net/v3/assets/latest/<feature>/hotspot?architecture=<arch>&image_type=jdk&os=<os>&vendor=eclipse
 ```
 
 - `<feature>`：主版本，如 `17`、`21`
 - `<os>`：`windows` / `mac` / `linux`
-- `<arch>`：`x64` / `aarch64`（macOS arm64 也用 `aarch64` 或 `arm64`，API 两者都接受；本 skill 对 mac 统一发 `arm64`）
-- 端点会 302 重定向到 GitHub Release 资产，`urllib` 默认跟随重定向。
+- `<arch>`：`x64` / `aarch64`（本机 `arm64` 统一映射为 `aarch64`）。
+- `sources.jdk_url` 从首个资产的 `binary.package.link` 与 `name` 取得真实归档链接和文件名，核对两者一致且扩展名符合平台，再交下载器 probe、下载与摘要校验；元数据不可用或不合法时明确失败。
+- 官方归档链接通常指向 GitHub Release；下载时 `urllib` 跟随重定向，不把无扩展名 API 或短期签名跳转地址作为归档候选。
 
 返回的归档：
 
@@ -34,7 +35,7 @@ https://api.adoptium.net/v3/binary/latest/<feature>/ga/<os>/<arch>/jdk/hotspot/n
 
 ## feature → GA 可用性
 
-并非所有主版本都有 GA（例如某些版本只有 EA）。API 对无 GA 的主版本返回 404。本 skill 的 `ensure --jdk <feat>` 在此情况下会在 `actions` 里记录 `error`，继续处理其它工具。
+并非所有主版本都有可用 GA 资产。API 返回失败、空资产或非法归档元数据时，`ensure --jdk <feat>` 在 `actions` 里记录 `error`，继续处理其他工具；任一工具失败会使整体 ensure 非零退出。
 
 ## 可用版本查询（调试用）
 

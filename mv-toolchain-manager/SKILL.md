@@ -23,7 +23,7 @@ description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node
 - 不进行系统范围 sudo 安装，不修改注册表、`.bashrc`、`.zshrc` 或 PowerShell profile，除非用户明确授权。
 - 优先项目/用户态工具链，严格使用项目要求的 major/minor，不随意升级。
 - 自带便携安装器位于 `scripts/installer/`（`runtime_cli.py`），仅在第 3-4 步均无可用方案、且用户同意后使用。
-- `mv-local-debug` 的产物在宿主构建：宿主 JDK/Maven/Gradle/Node 工具链是交付前置条件，交付前先确认就绪。
+- `mv-image-build` 的产物在宿主构建，宿主 JDK/Maven/Gradle/Node 工具链是出包前置条件；`mv-local-debug` 的宿主直启与调测也使用本 skill 准备的工具链。
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 - 不按缓存内容拼 classpath：依赖解析与手工验证的完整条款见 [manual-classpath](references/manual-classpath.md)。
 
@@ -49,7 +49,7 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 3. 默认仅官方源；镜像只在 `FF_MIRROR=cn` 或 `--mirror cn` 显式启用，禁止自动选第三方源。
 4. 环境变量仅当前会话生效：禁止 `setx`、写 shell profile、改注册表；cmd 激活必须 `call activate.cmd`。
 
-安装器下载后自动核对发行方校验和：依次探测 `<url>.sha256`/`<url>.sha512` 与 nodejs.org 的 `SHASUMS256.txt`，命中即校验、不匹配立即失败，源未发布校验和时如实提示未验证。镜像源提供同名校验和时同样核对，但其可信度以镜像为准；需要来源认证时按发行方指南验证签名后再使用。检测细节见 [detection](references/detection.md)，网络和来源见 [mirrors](references/mirrors.md)，工具细节按需读取 [Node.js](references/nodejs.md)、[JDK](references/jdk.md)、[Maven](references/maven.md)、[Gradle](references/gradle.md)。
+安装器下载后自动核对发行方校验和：依次探测 `<url>.sha256`/`<url>.sha512` 与 nodejs.org 的 `SHASUMS256.txt`，命中即校验、不匹配立即失败，未取得可用校验和时如实提示未验证，不把下载成功当作校验通过。镜像源提供同名校验和时同样核对，但其可信度以镜像为准；需要来源认证时按发行方指南验证签名后再使用。检测细节见 [detection](references/detection.md)，网络和来源见 [mirrors](references/mirrors.md)，工具细节按需读取 [Node.js](references/nodejs.md)、[JDK](references/jdk.md)、[Maven](references/maven.md)、[Gradle](references/gradle.md)。
 
 ## 输出
 

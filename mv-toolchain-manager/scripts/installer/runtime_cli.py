@@ -185,18 +185,21 @@ def _ensure_jdk(req, cache, result):
             {'tool': 'jdk', 'action': 'satisfied', 'version': entry['version']}
         )
         return
-    urls = sources.jdk_urls(feat)
+    urls = []
     target = install_root() / 'jdk' / f'temurin-{feat}'
     try:
+        urls = sources.jdk_urls(feat)
         download.install_portable(urls, target, f'Temurin JDK {feat}')
     except Exception as e:
-        result['actions'].append({'tool': 'jdk', 'error': f'download failed: {e}', 'urls': urls})
+        result['actions'].append({'tool': 'jdk', 'error': f'download failed: {e}',
+                                  'urls': [download.display_url(u) for u in urls]})
         return
     entry = {'version': feat, 'feature': feat, 'path': str(target)}
     cache['jdk'].append(entry)
     result['resolved']['jdk'] = entry
     result['actions'].append(
-        {'tool': 'jdk', 'action': 'installed', 'version': feat, 'urls': urls}
+        {'tool': 'jdk', 'action': 'installed', 'version': feat,
+         'urls': [download.display_url(u) for u in urls]}
     )
 
 
@@ -336,16 +339,22 @@ def cmd_purge(args):
     root = install_root()
     if args.tool:
         d = root / args.tool
-        sel = activate.load_selection()
-        if args.tool in sel:
-            sel.pop(args.tool, None)
-            activate.save_selection(sel, merge=False)
-        if d.exists():
-            shutil.rmtree(d, ignore_errors=True)
-            _emit_json({'purged': str(d)})
-            return {'purged': str(d)}
-        _emit_json({'nothing': str(d)})
-        return {'nothing': str(d)}
+        existed = d.exists()
+        try:
+            if existed:
+                shutil.rmtree(d)
+            # Only remove selection after deletion succeeds (or nothing exists).
+            sel = activate.load_selection()
+            if args.tool in sel:
+                sel.pop(args.tool)
+                activate.save_selection(sel, merge=False)
+        except OSError as e:
+            result = {'error': f'purge failed for {d}: {e}'}
+            _emit_json(result)
+            return result
+        result = {'purged' if existed else 'nothing': str(d)}
+        _emit_json(result)
+        return result
     _purge_guard(root)
     sel_p = activate.selection_path()
     if sel_p.exists():
