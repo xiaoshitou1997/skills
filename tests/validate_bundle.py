@@ -111,6 +111,27 @@ def metadata_errors(data, directory):
     return errors
 
 
+def agent_manifest_errors(text):
+    """Weak check on the optional distributer CLI display manifest.
+
+    short_description is presentation copy maintained by hand beside the
+    authoritative SKILL.md description; only shape and length are enforced,
+    not wording equality with the description.
+    """
+    errors = []
+    short = re.search(r'^[ \t]*short_description:\s*"([^"]*)"\s*$', text, re.M)
+    if not short:
+        errors.append('short_description must be a non-empty double-quoted string')
+    elif not short.group(1).strip():
+        errors.append('short_description must be non-empty')
+    elif len(short.group(1)) > 200:
+        errors.append('short_description exceeds 200 characters')
+    display = re.search(r'^[ \t]*display_name:\s*"([^"]*)"\s*$', text, re.M)
+    if not display or not display.group(1).strip():
+        errors.append('display_name must be a non-empty double-quoted string')
+    return errors
+
+
 def local_link_errors(path, data, root):
     """Check file destinations, excluding fenced examples and remote links."""
     errors = []
@@ -150,6 +171,10 @@ def validate():
                 error(f'Broken template: {name}/{ref}')
         if '${SKILL_ROOT}' in data and 'SKILL_ROOT`' not in data:
             error(f'SKILL_ROOT must be documented: {name}')
+        manifest = path.parent / 'agents' / 'openai.yaml'
+        if manifest.is_file():
+            for message in agent_manifest_errors(manifest.read_text(encoding='utf-8')):
+                error(f'{name}/agents/openai.yaml: {message}')
 
     for path in sorted(ROOT.rglob('*.md')):
         if any(part.startswith('.') for part in path.relative_to(ROOT).parts):
@@ -187,7 +212,7 @@ def validate():
     for message in errors:
         print('FAIL:', message)
     if not errors:
-        print(f'PASS: {len(SKILLS)} skills; metadata limits; local links; scripts; duplicates; Python + shell syntax')
+        print(f'PASS: {len(SKILLS)} skills; metadata limits; local links; scripts; duplicates; agent manifests; Python + shell syntax')
     return int(bool(errors))
 
 

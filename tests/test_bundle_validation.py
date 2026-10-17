@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from validate_bundle import local_link_errors, metadata_errors
+from validate_bundle import agent_manifest_errors, local_link_errors, metadata_errors
 
 
 class BundleValidationTests(unittest.TestCase):
@@ -32,6 +32,15 @@ class BundleValidationTests(unittest.TestCase):
     def test_body_limit_does_not_count_frontmatter(self):
         self.assertEqual(metadata_errors(self.document(body='一行\n' * 500), 'mv-example'), [])
         self.assertTrue(metadata_errors(self.document(body='一行\n' * 501), 'mv-example'))
+
+    def test_agent_manifest_weak_checks(self):
+        manifest = 'interface:\n  display_name: "Example"\n  short_description: "一句话职责。"\n'
+        self.assertEqual(agent_manifest_errors(manifest), [])
+        self.assertEqual(agent_manifest_errors(manifest.replace('一句话职责。', '字' * 200)), [])
+        self.assertTrue(agent_manifest_errors(manifest.replace('一句话职责。', '字' * 201)))
+        self.assertTrue(agent_manifest_errors(manifest.replace('一句话职责。', '')))
+        self.assertTrue(agent_manifest_errors('interface:\n  display_name: "Example"\n'))
+        self.assertTrue(agent_manifest_errors('interface:\n  short_description: 无引号文案\n'))
 
     def test_reference_links_are_checked_outside_entry_file(self):
         with tempfile.TemporaryDirectory() as directory:
