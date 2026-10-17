@@ -1,6 +1,6 @@
 ---
 name: mv-nfr-intake
-description: 新项目或新模块启动开发、日常新需求开工前，采集与确认非功能性需求（NFR：用户规模与容量、TPS/QPS 与峰值、外部依赖与调用频率、网络平面与连通归属、部署环境与约束、数据量与增长、关键业务流程、可用性与降级）时使用；业务编码开工前画像未确认须先过本 skill，用户提及吞吐、并发、用户量、日活、网络平面、专线、部署约束、拆分等时触发。画像落盘目标项目 docs/nfr-profile.md，已确认项跨需求复用，条件变化改文档即增量确认；答不上来的项按保守默认请用户确认后标假设，不编造取值。改文案、修注释、代码答疑与审查不触发。正式 PRD/HLD 归 mv-engineering-doc-writer，编码健壮性条款归 mv-java-backend-standards，技术选型归 mv-tech-stack-standards，出包与部署归 mv-local-debug 与 mv-container-deploy。
+description: 新项目或新模块启动开发、日常新需求开工前，采集与确认非功能性需求（NFR：用户规模与容量、TPS/QPS 与峰值、外部依赖与调用频率、网络平面与连通归属、部署环境与约束、数据量与增长、关键业务流程、可用性与降级）时使用；业务编码开工前画像未确认须先过本 skill，用户提及吞吐、并发、用户量、日活、网络平面、专线、部署约束、拆分等时触发。画像落盘目标项目 docs/nfr-profile.md，已确认项跨需求复用，条件变化改文档即增量确认；答不上来的项按保守默认请用户确认后标假设，不编造取值。改文案、修注释、代码答疑与审查不触发。正式 PRD/HLD 归 mv-engineering-doc-writer，编码健壮性条款归 mv-java-backend-standards，技术选型归 mv-tech-stack-standards，出包与镜像归 mv-image-build，部署归 mv-container-deploy，本机调试归 mv-local-debug。
 ---
 
 # 非功能性需求采集
@@ -59,7 +59,7 @@ description: 新项目或新模块启动开发、日常新需求开工前，采�
 
 ## 边界
 
-正式 PRD/HLD 写作归 mv-engineering-doc-writer，画像与开放问题可作为其输入；编码健壮性条款见 mv-java-backend-standards；画像引出的技术选型与基线归 mv-tech-stack-standards；出包与镜像构建见 mv-local-debug，部署晋级回滚归 mv-container-deploy。
+正式 PRD/HLD 写作归 mv-engineering-doc-writer，画像与开放问题可作为其输入；编码健壮性条款见 mv-java-backend-standards；画像引出的技术选型与基线归 mv-tech-stack-standards；出包与镜像构建见 mv-image-build，部署晋级回滚归 mv-container-deploy，宿主直启调试见 mv-local-debug。
 
 ## 参考
 

@@ -1,6 +1,6 @@
 ---
 name: mv-toolchain-manager
-description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node.js 工具链，以及按项目约定选择 npm/pnpm/yarn 时使用。适用于缺少工具、Java class version 不匹配、EBADENGINE 和明确的运行时版本请求；Docker 镜像构建与本地调测使用 mv-local-debug，部署晋级归 mv-container-deploy。
+description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node.js 工具链，以及按项目约定选择 npm/pnpm/yarn 时使用。适用于缺少工具、Java class version 不匹配、EBADENGINE 和明确的运行时版本请求；Docker 镜像构建归 mv-image-build，本机直启调试归 mv-local-debug，部署晋级归 mv-container-deploy。
 ---
 
 # 工具链管理
@@ -53,7 +53,7 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 
 ## 输出
 
-给出项目要求、当前版本、选择或准备的运行时、验证结果，并提示调用 `mv-local-debug` 继续出镜像/本地调试（部署晋级归 `mv-container-deploy`）。
+给出项目要求、当前版本、选择或准备的运行时、验证结果，并按意图提示调用 `mv-image-build` 出镜像或 `mv-local-debug` 宿主直启调试（部署晋级归 `mv-container-deploy`）。
 
 ## 与项目自检配合
 

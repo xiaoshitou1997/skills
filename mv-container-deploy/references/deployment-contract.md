@@ -1,6 +1,6 @@
 # Docker 交付契约
 
-目标：加载运行 `mv-local-debug` 从同一份提交构建的**一个**不可变镜像，先部署到 dev 验证健康，再以相同 Image ID 晋级到 prod。本 skill 不构建镜像；镜像身份以 `mv-local-debug` 输出的 `IMAGE=<repo>:<tag>` 与 `IMAGE_ID` 为准。
+目标：加载运行 `mv-image-build` 从同一份提交构建的**一个**不可变镜像，先部署到 dev 验证健康，再以相同 Image ID 晋级到 prod。本 skill 不构建镜像；镜像身份以 `mv-image-build` 输出的 `IMAGE=<repo>:<tag>` 与 `IMAGE_ID` 为准。
 
 ## 项目输入
 

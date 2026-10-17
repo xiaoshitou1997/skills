@@ -1,15 +1,16 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、WSL 容器构建/调测/部署、工具链管理、非功能性需求采集、编码规范、技术栈约定、工程文档写作和离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、非功能性需求采集、编码规范、技术栈约定、工程文档写作和离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 九个 skills
+## 十个 skills
 
 | Skill | 范围 |
 | --- | --- |
 | `mv-toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
-| `mv-local-debug` | 本机调测：宿主直启（默认、前台可见）、出包打镜像与 WSL 容器调测（显式；工具链配合 mv-toolchain-manager） |
+| `mv-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零 WSL、零镜像） |
+| `mv-image-build` | 宿主出包与 WSL 瘦镜像构建：只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 镜像包部署 dev/prod 服务器、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
 | `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
@@ -61,10 +62,10 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## WSL 构建部署
 
-本地启动默认宿主直启：`java -jar`、`npm run dev` 等在宿主前台可见 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；仅明确要求"在容器里跑/验证镜像"时走容器调测，环境一致性由部署侧的同 Image ID dev 健康收据把关。容器交付拆为两个 skill，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）为唯一接口：`mv-local-debug` 负责「本机调测」——编译出包（在宿主完成，工具链由 mv-toolchain-manager 准备）、宿主直启（默认）、WSL 容器调测（显式）与打包只含运行时的瘦镜像；`mv-container-deploy` 负责「环境交付」——把镜像部署到本机 WSL（dev，即本地服务器）或远程服务器（prod）、健康验证、以同一 Image ID 晋级与回滚。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。经管道向 WSL 分发文件前，wsl-bridge.sh 校验明文：命中企业终端透明加密的 `%XXXX-Header` 密文头即报错终止，不产出损坏镜像；无此类环境的机器该检查为空操作。详见 [镜像构建契约](mv-local-debug/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
+本地"跑一下"默认宿主直启：`java -jar`、`npm run dev` 等在宿主前台可见 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默——归 `mv-local-debug`，纯宿主、零 WSL。WSL 就是一台开发服务器：在 WSL/容器里跑属于部署，归 `mv-container-deploy`（dev 默认目标机就是本机 WSL，验证健康后写收据；prod 需明确授权）。两者之间是 `mv-image-build`：宿主出包后在 WSL 打包只含运行时的瘦镜像，只构建不运行，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）交接部署侧；晋级 prod 要求同一 Image ID 的 dev 健康收据。项目文档化的开发拓扑就是容器（compose 起全套依赖、宿主无法独立启动）时，"本地跑一下"按项目约定直接走 `mv-container-deploy` 的 dev 交付。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。经管道向 WSL 分发文件前，wsl-bridge.sh 校验明文：命中企业终端透明加密的 `%XXXX-Header` 密文头即报错终止，不产出损坏镜像；无此类环境的机器该检查为空操作。详见 [镜像构建契约](mv-image-build/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
 
 ```bash
-SKILL_ROOT="/实际绝对路径/mv-local-debug"
+SKILL_ROOT="/实际绝对路径/mv-image-build"
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
 bash "$SKILL_ROOT/scripts/image-build.sh" build dev myapp
 
@@ -73,7 +74,7 @@ bash "$SKILL_ROOT/scripts/deploy.sh" deploy dev myapp 'myapp:TAG'
 bash "$SKILL_ROOT/scripts/deploy.sh" status dev myapp
 ```
 
-构建需要 Docker/Compose，远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/local-debug/`，收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
+构建需要 Docker/Compose，远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/image-build/`，收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
 
 Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装时该 skill 仅在当前上下文内有效）。值守 Hook 机制依赖 Claude Code 的 Hook 事件（UserPromptSubmit/SessionStart/PreToolUse）与 `~/.claude/settings.json`，仅 Claude Code 上可安装；分发到其他 agent 时无法安装 Hook，该 skill 自动降级为仅当前上下文有效的值守模式。
 

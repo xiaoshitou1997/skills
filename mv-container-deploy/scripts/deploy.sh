@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploy prebuilt immutable images and manage promotion/rollback (delivery side of the pipeline).
 # Windows 团队规范:容器部署一律经 WSL,没有 WSL 就失败,禁止本机直接启动应用(见 scripts/wsl-bridge.sh)。
-# 镜像由 mv-local-debug 在宿主出包后构建;本脚本只做预检、传输、启动、健康验证、收据与回滚。
+# 镜像由 mv-image-build 在宿主出包后构建;本脚本只做预检、传输、启动、健康验证、收据与回滚。
 # 目标机不执行构建,只加载并运行不可变镜像;镜像常驻,任何流程不得 rmi/prune/清理镜像。
 set -euo pipefail
 umask 077

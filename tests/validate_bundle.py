@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SKILLS = {
     'mv-toolchain-manager',
+    'mv-image-build',
     'mv-local-debug',
     'mv-container-deploy',
     'mv-git-publisher',
@@ -26,13 +27,13 @@ DUPLICATE_GROUPS = [
      'mv-local-debug/scripts/doctor.py',
      'mv-container-deploy/scripts/doctor.py'],
     ['mv-git-publisher/scripts/quality-check.sh',
-     'mv-local-debug/scripts/quality-check.sh',
+     'mv-image-build/scripts/quality-check.sh',
      'mv-java-backend-standards/scripts/quality-check.sh'],
     ['mv-git-publisher/scripts/security-scan.sh',
-     'mv-local-debug/scripts/security-scan.sh'],
-    ['mv-local-debug/scripts/wsl-bridge.sh',
+     'mv-image-build/scripts/security-scan.sh'],
+    ['mv-image-build/scripts/wsl-bridge.sh',
      'mv-container-deploy/scripts/wsl-bridge.sh'],
-    ['mv-local-debug/templates/compose.delivery.yml',
+    ['mv-image-build/templates/compose.delivery.yml',
      'mv-container-deploy/templates/compose.delivery.yml'],
 ]
 

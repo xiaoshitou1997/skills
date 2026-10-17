@@ -18,7 +18,7 @@ DOCTOR = (ROOT / 'mv-toolchain-manager/scripts/doctor.py').as_posix()
 PREFLIGHT = (ROOT / 'mv-container-deploy/scripts/deploy-preflight.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 RUNNER = (ROOT / 'mv-container-deploy/scripts/target-runner.sh').as_posix()
-QUALITY = (ROOT / 'mv-local-debug/scripts/quality-check.sh').as_posix()
+QUALITY = (ROOT / 'mv-image-build/scripts/quality-check.sh').as_posix()
 
 
 def exec_run(*cmd, cwd=None, env=None, input=None):

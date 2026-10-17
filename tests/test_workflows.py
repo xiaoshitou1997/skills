@@ -15,7 +15,7 @@ if not Path(BASH).exists():
     BASH = 'bash'
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
-IMAGE_BUILD = (ROOT / 'mv-local-debug/scripts/image-build.sh').as_posix()
+IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 
 

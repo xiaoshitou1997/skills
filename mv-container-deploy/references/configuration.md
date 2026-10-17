@@ -14,7 +14,7 @@
 | `FF_WSL_DISTRO` | Windows 指定 WSL 发行版；默认取第一个可用发行版 |
 | `FF_WSL_BRIDGE` | 设为 `0` 绕过 WSL 桥接；仅供测试/CI，Windows 生产使用违反团队规范 |
 
-Windows 上容器部署一律经 WSL（`scripts/wsl-bridge.sh` 桥接）：镜像由 mv-local-debug 在宿主出包后构建，本 skill 经 WSL 执行 docker；运行状态、dev 收据与发布历史保存在 WSL 侧 `~/.mv/container-deploy/`（native 模式在本机用户目录同路径）。没有 WSL 时部署直接失败，不回退本机直接启动。
+Windows 上容器部署一律经 WSL（`scripts/wsl-bridge.sh` 桥接）：镜像由 mv-image-build 在宿主出包后构建，本 skill 经 WSL 执行 docker；运行状态、dev 收据与发布历史保存在 WSL 侧 `~/.mv/container-deploy/`（native 模式在本机用户目录同路径）。没有 WSL 时部署直接失败，不回退本机直接启动。
 
 项目的 `.env.dev` / `.env.prod` 应包含 `APP_ENV`、`HOST_PORT`、`CONTAINER_PORT` 和应用必须的环境变量；真实密码不能入 Git。示例：
 
@@ -36,7 +36,7 @@ SPRING_PROFILES_ACTIVE=dev
 
 ## 环境一致性
 
-必须在 dev / prod 使用相同镜像 Tag，并检查 Image ID。预先建立的 Docker Runtime image 不应编译进 dev/prod Secrets 或不同构建期 API Endpoint（构建期固化归 `mv-local-debug` 出包阶段处理）。
+必须在 dev / prod 使用相同镜像 Tag，并检查 Image ID。预先建立的 Docker Runtime image 不应编译进 dev/prod Secrets 或不同构建期 API Endpoint（构建期固化归 `mv-image-build` 出包阶段处理）。
 
 ## 限制
 
