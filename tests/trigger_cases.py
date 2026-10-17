@@ -1,6 +1,6 @@
 """触发契约用例：每条用例是一个用户请求与期望的路由结果。
 
-- kind='positive'：query 应触发 skill 字段指定的 skill。
+- kind='positive'：query 应触发 skill 字段指定的 skill；required 可列必要协作项，其他合理协作不算失败。
 - kind='negative'：query 不得触发 skill 字段指定的 skill；instead 给出
   预期的正确去向，缺省表示任何 skill 都不应触发。
 
@@ -20,9 +20,9 @@ CASES = [
     {'skill': 'mv-toolchain-manager', 'kind': 'positive',
      'query': '把本地开发用的 JDK 切到 21，不要污染全局环境'},
     {'skill': 'mv-toolchain-manager', 'kind': 'negative', 'instead': 'mv-container-deploy',
-     'query': '帮我构建 jar 包并部署到 dev 环境'},
+     'query': '宿主工具链已准备并验证完成，帮我构建 jar 镜像并部署到 dev 环境，无需安装切换工具'},
     {'skill': 'mv-toolchain-manager', 'kind': 'negative', 'instead': 'mv-image-build',
-     'query': '在 Docker 镜像里装 Node 20 用于构建前端'},
+     'query': '前端已在宿主出包，工具链正常，把 dist 打成瘦运行时镜像，只构建不运行'},
 
     # --- mv-local-debug：本机（宿主）直启调试，零 WSL 零镜像，不含构建出包、容器与部署 ---
     {'skill': 'mv-local-debug', 'kind': 'positive',
@@ -48,7 +48,7 @@ CASES = [
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '出个镜像包就行，先不用部署'},
     {'skill': 'mv-image-build', 'kind': 'positive',
-     'query': 'WSL 里构建镜像一直卡在下载依赖，帮我排查'},
+     'query': '宿主已经编译出包，WSL 打瘦镜像时拉取基础镜像一直卡住，帮我排查'},
     {'skill': 'mv-image-build', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '在 WSL 容器里验证一下这个镜像能不能正常启动'},
     {'skill': 'mv-image-build', 'kind': 'negative', 'instead': 'mv-local-debug',
@@ -57,7 +57,7 @@ CASES = [
      'query': '把本机开发用的 JDK 切到 21'},
 
     # --- mv-container-deploy：部署/晋级/回滚，不含出包与本地调测 ---
-    {'skill': 'mv-container-deploy', 'kind': 'positive',
+    {'skill': 'mv-container-deploy', 'kind': 'positive', 'required': ['mv-image-build'],
      'query': '构建出包并部署到 dev 环境'},
     {'skill': 'mv-container-deploy', 'kind': 'positive',
      'query': 'dev 容器起不来，帮我排查部署失败的原因'},
@@ -127,8 +127,8 @@ CASES = [
      'query': '给新接口写一份 API 文档，包含字段说明、错误码和示例'},
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '按照 MOP 把这次生产升级实际执行一遍'},
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative',
-     'query': '把这套文档写作约定沉淀成仓库里的 skill'},
+    {'skill': 'mv-engineering-doc-writer', 'kind': 'positive',
+     'query': '把这套文档写作约定沉淀成仓库里的 skill，只整理工程文档内容'},
     {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-git-publisher',
      'query': '帮这次的改动写一条规范的提交信息'},
 
@@ -136,7 +136,7 @@ CASES = [
     {'skill': 'mv-unattended-watch', 'kind': 'positive',
      'query': '我要睡觉了，剩下的活儿你全权处理，别再问我'},
     {'skill': 'mv-unattended-watch', 'kind': 'positive',
-     'query': '全权交给AI，后面的所有疑问你自己做决定'},
+     'query': '我离开了，全权交给AI，后面的所有疑问你自己做决定'},
     {'skill': 'mv-unattended-watch', 'kind': 'positive',
      'query': '我要下班了，无人值守跑完剩下的任务，明天我来看结果'},
     {'skill': 'mv-unattended-watch', 'kind': 'negative', 'instead': 'mv-git-publisher',
@@ -160,4 +160,21 @@ CASES = [
     {'skill': 'mv-nfr-intake', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer',
      'query': '把容量和网络约束整理成正式的 HLD 章节'},
     {'skill': 'mv-nfr-intake', 'kind': 'negative',
-     'query': '把注释里的错别字改一下'},]
+     'query': '把注释里的错别字改一下'},
+    {'skill': 'mv-git-publisher', 'kind': 'positive',
+     'query': '只帮这次改动起草提交信息，先不提交也不推送'},
+    {'skill': 'mv-git-publisher', 'kind': 'positive',
+     'query': '评审这个 PR 标题和描述，只修改文稿，不创建 PR'},
+    {'skill': 'mv-unattended-watch', 'kind': 'positive',
+     'query': '我回来了，取消无人值守并汇总决策日志'},
+    {'skill': 'mv-unattended-watch', 'kind': 'positive',
+     'query': '取消无人值守，恢复正常模式'},
+    {'skill': 'mv-unattended-watch', 'kind': 'negative',
+     'query': '我还在线，这个函数的命名全权交给你，其他问题继续问我'},
+    {'skill': 'mv-unattended-watch', 'kind': 'negative',
+     'query': '这一个变量名别再问我，按仓库惯例处理，我继续和你讨论接口'},
+    {'skill': 'mv-container-deploy', 'kind': 'positive',
+     'query': '项目 README 规定开发时必须用 Compose 起全套，宿主无法独立运行，按这个方式在本地跑一下'},
+    {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-container-deploy',
+     'query': '项目 README 规定开发时必须用 Compose 起全套，宿主无法独立运行，按这个方式在本地跑一下'},
+]

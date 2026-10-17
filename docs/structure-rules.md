@@ -14,18 +14,19 @@
 6. 注册：`tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格；改名或移除时加同步脚本 STALE 清单（「校验与同步点」第 2 条）。
 7. 全量过一遍「校验与同步点」。
 8. 为 description 加触发正反例并实测（「触发契约评测」）。
-9. 核对与其他 skill 的边界句式，不与现有 skill 抢触发（「章节骨架与句式」）。
+9. 核对与其他 skill 的边界句式：职责归属清楚，允许同一任务按阶段合理协作（「章节骨架与句式」）。
 10. 本机安装为可选项（「校验与同步点」末段）。
 
 ## Frontmatter
 
 - `name`：kebab-case 小写，≤64 字符，必须与目录名一致，且以 `mv-` 前缀开头（校验覆盖；前缀见「命名先例」）。
-- `description`：≤1024 字符，写触发场景而非功能罗列；包含用户可能的表述关键词；写明负向边界（何时不适用、归哪个 skill 管）。中英文均可，与仓库现有中文风格一致。
-- 可选 `allowed-tools`：仅为只读、无副作用的命令预授权；写操作不预授权。
+- `description`：≤1024 字符，写触发场景而非功能罗列；包含用户可能的表述关键词；写明负向边界（何时不适用、归哪个 skill 管）。面向中文受众，使用中文描述，代码、标识符与必要技术词保留英文（校验覆盖非空与长度）。
+- frontmatter 使用仓库支持的标量字段子集：普通单行、引号字符串或块标量；字段唯一，`name`、`description` 必填。校验检查该子集的结构与字段，不宣称支持完整通用 YAML 语法。
+- 可选 `allowed-tools`：仅为只读、无副作用的命令预授权；写操作不预授权，不用同时包含写子命令的宽泛模式（如 `git branch:*`、`git remote:*`）。
 
 ## 正文（SKILL.md）
 
-- ≤500 行，长句拆为一条一行；超出的细节下沉 `references/`，正文只留当前有效工作流。
+- SKILL.md 正文 ≤500 行（不含 frontmatter，校验覆盖），长句拆为一条一行；超出的细节下沉 `references/`，正文只留当前有效工作流。
 - 从 SKILL.md 引用脚本用 `${SKILL_ROOT}/scripts/<file>` 并说明 SKILL_ROOT 需显式赋值（校验覆盖路径存在性）。
 - 引用 references 用相对链接 `references/<file>`（校验覆盖文件存在）。
 - 默认中文工程书面语：不用人称、不用对话痕迹用语、不用无依据夸饰；同概念全文同术语。中文为主，该用英文的用英文：代码、命令、路径、标识符、技术词保留英文，不强行翻译。
@@ -62,10 +63,10 @@
 
 改动后必须全部过一遍：
 
-1. `python3 tests/validate_bundle.py`（skill 集合、frontmatter、引用、复制脚本一致性、bash/py 语法）。
+1. `python3 tests/validate_bundle.py`：skill 集合；frontmatter 标量子集结构、字段唯一、必填元数据、名称格式/限长及目录一致；description 非空/限长；SKILL.md 正文行数（不含 frontmatter）；所有 Markdown 的显式本地链接目标存在性（不验证锚点）；正文脚本/模板路径与 SKILL_ROOT 声明；复制脚本一致性；Bash/Python 语法。
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格、相关引用及同步脚本的 STALE 清单。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`、`tests/test_wsl_bridge.py`，必要时补离线用例（假 docker/假 wsl.exe stub 风格）。
-4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 过该 skill 正反例；无 claude CLI 时按 `tests/trigger_cases.py` 人工核对。
+4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 在隔离环境评测该 skill 正反例；CLI 或凭据缺失时明确记为未执行，并按 `tests/trigger_cases.py` 人工核对，不能把人工核对写成真实路由通过。
 
 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部 skills 并清理改名/合并前旧版本；是否安装、装到哪台机器由使用者决定，不属于校验流程。旧版本清理名称仅维护在脚本内 STALE 清单，不写入文档。
 
@@ -98,9 +99,10 @@
 
 ## 触发契约评测
 
-description 的真实职责是路由（该触发时触发、不该触发时安静）；静态校验只查得到非空和长度，行为只能实测：
+description 的真实职责是路由（该触发时触发、不该触发时安静）；静态校验检查字段及长度，路由行为需实测。一个任务可以按职责触发多个 skill，合理协作本身不构成边界问题：
 
-- 用例集中在 `tests/trigger_cases.py`：每个 skill 正例（应触发）+ 反例（不得触发，标注 instead 正确去向或 none）。
-- 触发场景：description 改动、新增 skill、拆分/合并改动边界之后，运行 `python3 tests/run_trigger_evals.py [skill]`；`--list` 离线查看矩阵。运行需 claude CLI 并按用例消耗 token，无 CLI 时人工核对该 skill 正反例。
-- 判定口径：正例以目标 skill 触发为准；反例以目标 skill 未触发为准，instead 未触发记 WARN 不计失败。
-- 反例失败 = description 边界失效：改 description 或拆边界，不修改用例迁就实现。
+- 用例集中在 `tests/trigger_cases.py`：正例记录应触发目标及必要协作集合，反例记录不得触发目标与预期去向；用例前提须足以排除工具链缺失等无关因素。
+- 触发场景：description 改动、新增 skill、拆分/合并改动边界之后，运行 `python3 tests/run_trigger_evals.py [skill]`；`--list` 离线查看矩阵，`--claude` 指定 CLI 路径，`--limit` 限定冒烟范围。运行按用例消耗 token；CLI 缺失或隔离环境缺少 `ANTHROPIC_API_KEY`/`CLAUDE_CODE_OAUTH_TOKEN` 时明确 SKIP，不复制用户登录文件。
+- 隔离要求：复制待测工作区的候选 skill 内容并记录 SHA-256；使用临时 HOME 与 `CLAUDE_CONFIG_DIR`、project-only settings，不加载用户已安装 skills、Hook、MCP 或动态 shell 内容，仅允许 Skill 工具。按完整 skill 身份检测调用，并核对会话完成结果；提前退出或达到轮数上限不能视为路由通过。
+- 判定口径：正例目标与必要协作集合均须触发，额外的合理协作不记边界告警；反例目标不得触发，预期去向未触发单独报告。先核对隔离、用例前提及实际职责，再判断失败原因；不能仅凭多 skill 调用判为 description 失效。
+- 路由缺陷修 description 或职责边界；用例与已确认职责不符时修用例并说明依据，不为消除失败迁就实现。

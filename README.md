@@ -12,12 +12,12 @@
 | `mv-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零 WSL、零镜像） |
 | `mv-image-build` | 宿主出包与 WSL 瘦镜像构建：只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 镜像包部署 dev/prod 服务器、健康验证、同镜像晋级与回滚 |
-| `mv-git-publisher` | 按逻辑变更提交并推送（默认整体动作）、创建与检查 GitHub PR |
+| `mv-git-publisher` | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
-| `mv-unattended-watch` | 离场无人值守：跨上下文压缩的模式开关、值守 Hook、保守边界下的自行决策与决策日志 |
+| `mv-unattended-watch` | 离场且全权委托时激活、回归或取消时解除；Claude Code 值守 Hook、保守决策与日志，其他 agent 降级为当前上下文模式 |
 
 命名规范：统一采用 `mv-` + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关），对象与职责词的选定走两步法与三条检查。职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](docs/structure-rules.md)。
 
@@ -76,8 +76,10 @@ bash "$SKILL_ROOT/scripts/deploy.sh" status dev myapp
 
 构建需要 Docker/Compose，远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/image-build/`，收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
 
-Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装时该 skill 仅在当前上下文内有效）。值守 Hook 机制依赖 Claude Code 的 Hook 事件（UserPromptSubmit/SessionStart/PreToolUse）与 `~/.claude/settings.json`，仅 Claude Code 上可安装；分发到其他 agent 时无法安装 Hook，该 skill 自动降级为仅当前上下文有效的值守模式。
+Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装或未正常运行时该 skill 仅在当前上下文内有效）。值守 Hook 机制依赖 Claude Code 的 Hook 事件（UserPromptSubmit/SessionStart/PreToolUse）与 `~/.claude/settings.json`，仅 Claude Code 上可安装；分发到其他 agent 时无法安装 Hook，该 skill 自动降级为仅当前上下文有效的值守模式。
 
 ## 验证
 
-分发前检查 skill 名称、引用、文档脚本路径及 Python/Bash 语法；使用脚本时按目标项目运行针对性验证。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。
+分发前运行 `python3 tests/validate_bundle.py`，检查十个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
+
+description 路由用 `python3 tests/run_trigger_evals.py [skill]` 在临时 HOME/配置与仅含候选工作区 skills 的隔离环境评测，记录候选内容 SHA-256；不加载用户已安装 skills、Hook、MCP，仅允许 Skill 工具。合理的多 skill 协作按职责与用例判定，不因多个 skill 同时触发而告警。CLI 或隔离所需凭据缺失时明确 SKIP，人工核对不等于真实路由通过；详见 [触发契约评测](docs/structure-rules.md#触发契约评测)。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。
