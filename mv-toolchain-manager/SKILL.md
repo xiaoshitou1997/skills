@@ -3,7 +3,7 @@ name: mv-toolchain-manager
 description: 识别、安装、选择或切换本地 JDK、Maven、Gradle、Node.js 工具链，以及按项目约定选择 npm/pnpm/yarn 时使用。适用于缺少工具、Java class version 不匹配、EBADENGINE 和明确的运行时版本请求；Docker 镜像构建与本地调测使用 mv-local-debug，部署晋级归 mv-container-deploy。
 ---
 
-# Toolchain Manager
+# 工具链管理
 
 ## 任务
 

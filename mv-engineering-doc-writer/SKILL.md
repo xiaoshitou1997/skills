@@ -4,7 +4,7 @@ description: >-
   编写、重写、评审和规范化软件工程文档时使用，覆盖 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产升级/部署 MOP（Method of Procedure）、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节等工程产物。需要产出可独立阅读、可评审、可实施、可运维、可归档的文档时适用。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节，术语与决策全程一致；除非用户明确要求其他格式，默认产出仓库友好的 Markdown。提交信息、PR 描述等 Git 短文本归 mv-git-publisher，业务代码实现归 mv-java-backend-standards，非工程类文稿不适用。
 ---
 
-# Engineering Doc Writer
+# 工程文档写作
 
 将工程文档作为独立交付物产出，而不是当前对话的延伸。
 
