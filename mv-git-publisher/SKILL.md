@@ -1,7 +1,7 @@
 ---
 name: mv-git-publisher
-description: 用户要求提交并推送代码（commit&push 一体）、拆分原子 commit、创建 PR 或查看 PR 检查结果时使用。按独立逻辑变更精细暂存，审查最终 staged diff，并遵循仓库提交规范；仅解释 Git 概念时无需加载完整发布流程。
-allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*), Bash(git branch:*), Bash(git remote:*)
+description: 用户要求提交并推送代码（commit&push 一体）、拆分原子 commit、创建 PR、查看 PR 检查结果，或仅起草、修改、评审 commit message 与 PR 标题/描述等 Git 短文本时使用。发布模式按独立逻辑变更精细暂存并审查最终 staged diff；短文本模式只输出文稿或评审意见，不暂存、commit、push 或创建 PR。仅解释 Git 概念无需加载完整发布流程，PRD/HLD/README 等工程文档归 mv-engineering-doc-writer。
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 ---
 
 # Git 发布
@@ -9,6 +9,11 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 本 skill 面向团队内跨项目复用；以下已确认的团队规则是默认基线，不因其他团队采用不同工作流而降为可选项。
 
 从加载的 SKILL.md 定位实际 skill 目录并赋给 `SKILL_ROOT`；此变量不保证由 agent 设置。保持用户仓库为工作目录，路径加引号。下文 Python 命令需使用本机可用的 Python 3 解释器。
+
+## 任务模式
+
+- **短文本模式**：仅起草、修改或评审 commit message、PR 标题/描述时，先确认文本对应的变更范围。commit 文稿以明确指定的 diff 为依据（已暂存时优先最终 staged diff）；PR 文稿以相对目标分支的全部提交与 diff 为依据。仅有用户提供的材料时说明证据范围，不把计划写成已完成；输出文稿或评审意见后结束，不执行发布工作流中的 pull、暂存、commit、push 或创建 PR。
+- **发布模式**：用户要求提交、推送或创建 PR 时，按相应工作流执行；commit&push 一体规则只适用于该模式。仅查看 PR/检查结果时保持只读，不因此提交或推送。
 
 ## 不可违反的原则
 

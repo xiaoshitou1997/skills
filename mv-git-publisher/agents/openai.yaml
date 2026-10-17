@@ -1,3 +1,3 @@
 interface:
   display_name: "Git Publisher"
-  short_description: "按逻辑变更原子提交并整体推送，创建与检查 GitHub PR。"
+  short_description: "原子提交推送、创建与检查 PR；纯起草评审 Git 短文本时只输出文稿。"
