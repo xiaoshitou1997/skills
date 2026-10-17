@@ -21,6 +21,10 @@ import download
 import runtime_cli
 import sources
 
+_spec = importlib.util.spec_from_file_location(
+    'release_safety_gate', ROOT / 'mv-unattended-watch/scripts/gate.py')
+gate = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(gate)
 
 
 def signed_url(filename):
@@ -300,6 +304,110 @@ class PurgeTests(OfflineTestCase):
         self.assertEqual(runtime_cli.main(['purge', '--tool', 'jdk']), 0)
         self.assertEqual(runtime_cli.activate.load_selection(), {'node': self.selection['node']})
         self.assertIn('nothing', json.loads(self.stdout.getvalue()))
+
+
+class GateSchemaTests(OfflineTestCase):
+    def setUp(self):
+        super().setUp()
+        self.enterContext(mock.patch.dict(os.environ, {'MV_UNATTENDED_WATCH_HOME': str(self.base)}))
+        self.state = {
+            'active': True, 'scope': 'machine',
+            'activated_at': '2020-01-01T00:00:00+08:00',
+            'expires_at': '2999-01-02T00:00:00+08:00',
+            'boundaries': {'irreversible': 'defer', 'notes': ''},
+            'log_path': 'relative/decisions.md',
+        }
+
+    def write(self, data):
+        gate.state_file().write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+
+    def test_valid_json_with_bad_fields_is_corrupt_and_blocked(self):
+        cases = [[], {}, {'active': 'true'}, {'active': False}, {'scope': []},
+                 {'activated_at': '2020-01-01T00:00:00'},
+                 {'expires_at': '2999-01-01T00:00:00'},
+                 {'expires_at': '2020-01-01T00:00:00'},
+                 {'expires_at': None}, {'expires_at': 'not-a-timestamp'},
+                 {'expires_at': 123}, {'expires_at': []},
+                 {'boundaries': []}, {'boundaries': {'irreversible': 'typo'}},
+                 {'boundaries': {'irreversible': 'defer', 'notes': []}},
+                 {'log_path': []}]
+        for changes in cases:
+            with self.subTest(changes=changes):
+                state = copy.deepcopy(self.state)
+                if isinstance(changes, dict) and changes:
+                    state.update(changes)
+                else:
+                    state = changes
+                self.write(state)
+                self.assertEqual(gate.read_state()[0], 'corrupt')
+                self.assertEqual(gate.main(['block']), 2)
+                self.assertEqual(gate.main(['status']), 1)
+                self.assertEqual(gate.main(['prompt']), 0)
+
+    def test_missing_required_field_is_corrupt(self):
+        for field in self.state:
+            with self.subTest(field=field):
+                state = copy.deepcopy(self.state)
+                del state[field]
+                self.write(state)
+                self.assertEqual(gate.read_state()[0], 'corrupt')
+                self.assertEqual(gate.main(['block']), 2)
+
+    def test_schema_does_not_impose_new_log_path_or_unknown_field_rules(self):
+        state = copy.deepcopy(self.state)
+        state['log_path'] = ''
+        state['future_extension'] = {'anything': True}
+        del state['boundaries']['notes']
+        self.write(state)
+        self.assertEqual(gate.read_state()[0], 'ok')
+        self.assertEqual(gate.main(['block']), 2)
+
+    def test_block_exception_still_denies_and_reminder_exception_is_nonblocking(self):
+        with mock.patch.object(gate, 'read_state', side_effect=RuntimeError('unexpected')):
+            self.assertEqual(gate.main(['block']), 2)
+            self.assertEqual(gate.main(['prompt']), 0)
+            self.assertEqual(gate.main(['status']), 1)
+        self.assertIn('fail-closed', self.stderr.getvalue())
+
+    def test_expired_valid_state_status_and_off_remain_normal(self):
+        state = copy.deepcopy(self.state)
+        state['expires_at'] = '2020-01-02T00:00:00+08:00'
+        self.write(state)
+        self.assertEqual(gate.read_state()[0], 'expired')
+        self.assertEqual(gate.main(['block']), 0)
+        self.assertEqual(gate.main(['status']), 0)
+        self.assertIn('已过期', self.stdout.getvalue())
+        for mode in ('prompt', 'compact', 'session'):
+            before = self.stdout.getvalue()
+            self.assertEqual(gate.main([mode]), 0)
+            self.assertEqual(self.stdout.getvalue(), before)
+        self.assertEqual(gate.main(['off']), 0)
+        self.assertFalse(gate.state_file().exists())
+        self.assertEqual(gate.main(['off']), 0)
+        self.assertEqual(gate.main(['block']), 0)
+
+    def test_naive_expiry_can_be_cleared_by_off(self):
+        state = copy.deepcopy(self.state)
+        state['expires_at'] = '2020-01-01T00:00:00'
+        self.write(state)
+        self.assertEqual(gate.main(['off']), 0)
+        self.assertFalse(gate.state_file().exists())
+
+    def test_expired_timestamp_cannot_hide_other_corrupt_fields(self):
+        self.state['expires_at'] = '2020-01-02T00:00:00+08:00'
+        self.state['boundaries'] = ['bad']
+        self.write(self.state)
+        self.assertEqual(gate.main(['block']), 2)
+        self.assertEqual(gate.main(['status']), 1)
+
+    def test_normal_on_status_block_off_lifecycle_in_temporary_state(self):
+        self.assertEqual(gate.main(['on', '--expires-hours', '1']), 0)
+        self.assertEqual(gate.read_state()[0], 'ok')
+        self.assertEqual(gate.main(['status']), 0)
+        self.assertEqual(gate.main(['block']), 2)
+        self.assertEqual(gate.main(['off']), 0)
+        self.assertEqual(gate.main(['block']), 0)
+        self.assertEqual(len(list(self.base.glob('decisions-*.md'))), 1)
 
 
 class VersionResolutionTests(OfflineTestCase):

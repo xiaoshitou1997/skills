@@ -8,8 +8,9 @@
   上下文）；block 硬拦截 AskUserQuestion（exit 2，stderr 作为拒绝理由反馈给模型）。
 
 状态目录默认 ~/.mv/unattended-watch/，环境变量 MV_UNATTENDED_WATCH_HOME 可覆盖（测试用）。
-失败语义：Hook 模式内部异常一律静默 exit 0，不阻塞会话；状态文件存在但损坏时按
-无人值守处理（fail-closed）。管理命令失败输出到 stderr 并以非零退出码结束。
+失败语义：提醒 Hook 内部异常静默 exit 0，不阻塞会话；block 异常 exit 2，继续拒绝
+提问。状态文件存在但损坏时按无人值守处理（fail-closed）。管理命令失败输出到
+stderr 并以非零退出码结束。
 """
 
 from __future__ import annotations
@@ -48,10 +49,11 @@ def local_now() -> datetime:
 
 
 def parse_ts(value):
-    if not value:
+    if not isinstance(value, str):
         return None
     try:
-        return datetime.fromisoformat(str(value))
+        ts = datetime.fromisoformat(value)
+        return ts if ts.utcoffset() is not None else None
     except ValueError:
         return None
 
@@ -64,18 +66,29 @@ def fmt_ts(value) -> str:
 def read_state():
     """返回 (status, data)，status 取值 missing / ok / corrupt / expired。"""
     path = state_file()
-    if not path.is_file():
-        return 'missing', None
     try:
         data = json.loads(path.read_text(encoding='utf-8'))
         if not isinstance(data, dict):
             raise ValueError('state must be a JSON object')
+        activated = parse_ts(data.get('activated_at'))
+        expires = parse_ts(data.get('expires_at'))
+        boundaries = data.get('boundaries')
+        # Validate the fields written by on before honoring an expiry. An old
+        # timestamp must not make a malformed state silently disable the gate.
+        if (data.get('active') is not True or data.get('scope') != 'machine'
+                or activated is None or expires is None
+                or not isinstance(boundaries, dict)
+                or boundaries.get('irreversible') not in ('defer', 'allowed')
+                or not isinstance(boundaries.get('notes', ''), str)
+                or not isinstance(data.get('log_path'), str)):
+            raise ValueError('invalid unattended state schema')
+        if expires <= local_now():
+            return 'expired', data
+        return 'ok', data
+    except FileNotFoundError:
+        return 'missing', None
     except (OSError, ValueError):
         return 'corrupt', None
-    expires = parse_ts(data.get('expires_at'))
-    if expires is not None and expires <= local_now():
-        return 'expired', data
-    return 'ok', data
 
 
 def boundary_line(data: dict) -> str:
@@ -263,6 +276,10 @@ def main(argv=None) -> int:
             return cmd_block()
         return cmd_remind(args.command)
     except Exception:
+        if args.command == 'block':
+            print('值守闸门内部错误：按 fail-closed 处理，禁止提问。', file=sys.stderr)
+            print(BLOCK_MESSAGE, file=sys.stderr)
+            return 2
         if args.command in ('on', 'off', 'status'):
             traceback.print_exc()
             print('gate.py 内部错误。', file=sys.stderr)
