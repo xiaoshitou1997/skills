@@ -36,7 +36,7 @@ project_checks() {
 
 init_runtime() {
   # Windows 无 WSL 时 bridge distro 直接失败,给出安装指引;FF_WSL_BRIDGE=0 仅供测试/CI。
-  WSL_DISTRO=$("$HERE/wsl-bridge.sh" distro)
+  WSL_DISTRO=$(bash "$HERE/wsl-bridge.sh" distro)
   WSL_HOME=''
   if [[ -n "$WSL_DISTRO" ]]; then
     bash "$HERE/wsl-bridge.sh" require >/dev/null
@@ -64,6 +64,8 @@ unique_artifact() {
 # (排除 -sources/-javadoc/original-*);Node 取 dist/ 或 build/。FF_ARTIFACT 显式指定
 # 时优先(文件→app.jar,目录→app/),供多模块或自定义布局使用。
 find_artifact() {
+  ARTIFACT=''
+  ARTIFACT_DIR=''
   if [[ -n "${FF_ARTIFACT:-}" ]]; then
     [[ -e "$FF_ARTIFACT" ]] || { echo "FF_ARTIFACT 不存在: $FF_ARTIFACT" >&2; exit 3; }
     if [[ -d "$FF_ARTIFACT" ]]; then ARTIFACT_DIR=$FF_ARTIFACT; else ARTIFACT=$FF_ARTIFACT; fi
@@ -79,7 +81,20 @@ find_artifact() {
     if [[ -d dist ]]; then ARTIFACT_DIR=dist; elif [[ -d build ]]; then ARTIFACT_DIR=build; fi
     [[ -n "$ARTIFACT_DIR" ]] || { echo '未找到 dist/ 或 build/ 静态产物;先在宿主出包(如 npm run build),或用 FF_ARTIFACT 指定产物目录' >&2; exit 3; }
   fi
+  [[ -n "$ARTIFACT" || -n "$ARTIFACT_DIR" ]] || { echo '未找到可交付产物;先在宿主出包,并用 FF_ARTIFACT 指定产物文件或目录' >&2; exit 3; }
 }
+
+# 瘦上下文不会应用项目 .dockerignore;显式目录也不能把仓库元数据或环境秘密带入。
+check_artifact_directory() (
+  shopt -s dotglob nullglob globstar
+  local path
+  for path in "$ARTIFACT_DIR"/.git "$ARTIFACT_DIR"/.env* "$ARTIFACT_DIR"/**/.git "$ARTIFACT_DIR"/**/.env*; do
+    if [[ -e "$path" || -L "$path" ]]; then
+      echo "产物目录包含 .git 或 .env*;拒绝打入镜像,请用 FF_ARTIFACT 指定纯产物目录: $path" >&2
+      exit 3
+    fi
+  done
+)
 
 # 统一 docker 入口:桥接模式下在 WSL 内执行,并关闭 MSYS 路径转换,防止 /mnt、镜像、路径参数被改写。
 docker_cli() {
@@ -109,6 +124,7 @@ case "$ACTION" in
       echo 'Unsupported project: build the artifact on the host and provide a thin Dockerfile.delivery' >&2; exit 3
     fi
     find_artifact
+    if [[ -n "$ARTIFACT_DIR" ]]; then check_artifact_directory; fi
     init_runtime
     REPO=${FF_IMAGE_REPO:-$APP}
     [[ "$REPO" =~ ^[a-zA-Z0-9][a-zA-Z0-9._/-]{0,140}$ ]] || { echo 'Unsafe image repo' >&2; exit 2; }
@@ -128,7 +144,7 @@ case "$ACTION" in
     if [[ -n "$WSL_DISTRO" ]]; then
       # 守卫:home 异常返回空串时 BUILD_DIR 会变成 WSL 根下的 /.mv,rm -rf 将误伤;为空即中止。
       [[ -n "$WSL_HOME" ]] || { echo '无法解析 WSL 用户目录(WSL_HOME 为空);中止,避免 rm -rf 误伤' >&2; exit 3; }
-      BUILD_DIR="$WSL_HOME/.mv/local-debug/build/$APP"
+      BUILD_DIR="$WSL_HOME/.mv/image-build/build/$APP"
       wsl_bash bash -c 'rm -rf "$1" && mkdir -p "$1"' _ "$BUILD_DIR"
       # 传输只经透读者(git/bash)通道:透明加密机器上 MSYS coreutils 读到密文,
       # 不能作为传输通道,也不用 grep 预检(会把健康产物误判为密文)。
@@ -142,13 +158,19 @@ case "$ACTION" in
         echo "ARTIFACT=$ARTIFACT"
       else
         if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+          # 选定目录本身作为临时工作树,归档根就是 app/ 的内容。先规范化目录,
+          # 兼容 ./dist/、带空格路径与仓库内外的绝对目录,不拼接归档内部路径。
+          ARTIFACT_DIR=$(CDPATH='' cd -- "$ARTIFACT_DIR" && pwd -P)
+          PROJECT_GIT_DIR=$(git rev-parse --absolute-git-dir)
           TMPIDX=$(mktemp "${TMPDIR:-/tmp}/deliver-idx.XXXXXX")
+          trap 'rm -f "$TMPIDX" 2>/dev/null || echo "WARNING: 临时索引清理失败,可手动删除: $TMPIDX" >&2' EXIT
           GIT_INDEX_FILE="$TMPIDX" git read-tree --empty
-          GIT_INDEX_FILE="$TMPIDX" git add -- "$ARTIFACT_DIR" || { rm -f "$TMPIDX"; echo "无法把 $ARTIFACT_DIR 加入临时索引" >&2; exit 3; }
+          # dist/build 通常被 .gitignore 忽略;只对显式选定的产物目录强制收录。
+          GIT_INDEX_FILE="$TMPIDX" git -C "$ARTIFACT_DIR" --git-dir="$PROJECT_GIT_DIR" --work-tree="$ARTIFACT_DIR" add -f -- . || { echo "无法把 $ARTIFACT_DIR 加入临时索引" >&2; exit 3; }
           TREE=$(GIT_INDEX_FILE="$TMPIDX" git write-tree)
-          GIT_INDEX_FILE="$TMPIDX" git archive "$TREE" | wsl_bash bash -c 'mkdir -p "$1" && tar -xf - -C "$1"' _ "$BUILD_DIR"
-          rm -f "$TMPIDX"
-          wsl_bash mv "$BUILD_DIR/$ARTIFACT_DIR" "$BUILD_DIR/app"
+          git archive "$TREE" | wsl_bash bash -c 'mkdir -p "$1" && tar -xf - -C "$1"' _ "$BUILD_DIR/app"
+          rm -f "$TMPIDX" 2>/dev/null || echo "WARNING: 临时索引清理失败,可手动删除: $TMPIDX" >&2
+          trap - EXIT
         else
           echo '静态产物目录进 WSL 需要 git 仓库(经 git archive 管道);请初始化 git 或改用 FF_ARTIFACT 指定文件' >&2
           exit 3
@@ -182,7 +204,7 @@ case "$ACTION" in
     if [[ "${FF_REQUIRE_SECURITY_SCAN:-0}" == 1 ]]; then
       if [[ -n "$WSL_DISTRO" ]]; then
         bash "$HERE/wsl-bridge.sh" plain "$SKILL_ROOT/scripts/security-scan.sh"
-        wsl_bash bash -s image "$IMAGE" < "$SKILL_ROOT/scripts/security-scan.sh"
+        wsl_bash env "FF_REQUIRE_SECURITY_SCAN=$FF_REQUIRE_SECURITY_SCAN" bash -s -- image "$IMAGE" < "$SKILL_ROOT/scripts/security-scan.sh"
       else
         bash "$SKILL_ROOT/scripts/security-scan.sh" image "$IMAGE"
       fi

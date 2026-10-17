@@ -5,7 +5,7 @@
 ## 项目输入
 
 - `.dockerignore` 必须显式排除 `.git` 和 `.env*`，不得通过取反规则重新包含秘密文件。检查全部构建上下文，确保不含私钥。
-- 产物在宿主构建：Gradle `build/libs` 唯一 boot jar、Maven `target` 唯一 jar、Node `dist/` 或 `build/`；检测到多个候选时拒绝并点名，不按时间戳静默猜测；多模块或自定义布局用 `FF_ARTIFACT` 指定。可提供 `Dockerfile.delivery`（只做产物复制，不做编译）覆盖内置 jar/web 瘦模板。
+- 产物在宿主构建：Gradle `build/libs` 唯一 boot jar、Maven `target` 唯一 jar、Node `dist/` 或 `build/`；检测到多个候选时拒绝并点名，不按时间戳静默猜测；多模块或自定义布局用 `FF_ARTIFACT` 指定。可提供 `Dockerfile.delivery`（只做产物复制，不做编译）覆盖内置 jar/web 瘦模板。选定的产物目录（含显式 `FF_ARTIFACT`）若任意层级包含 `.git` 或 `.env*` 会被拒绝；瘦上下文不依赖项目 `.dockerignore` 过滤目录内容。
 - 瘦上下文只含产物与 Dockerfile，源码不出宿主；桥接模式经 git 对象库管道（`hash-object` → `cat-file`，透读通道）或 push 管道进入 WSL，产物不依赖 Windows 盘中间态。
 
 ## 环境变量

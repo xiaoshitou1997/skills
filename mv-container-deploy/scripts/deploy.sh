@@ -34,7 +34,7 @@ if [[ "$ENV" == prod && "$ACTION" != status ]]; then
   [[ "$APPROVAL" == --approve-prod ]] || { echo 'Production mutation requires --approve-prod after explicit user authorization' >&2; exit 3; }
 fi
 
-# SSH reconstructs remote commands through a shell; reject metacharacters in pass-through values.
+# Health URL/timeout follow the target runner input contract.
 if [[ -n "${FF_HEALTH_URL:-}" && ! "${FF_HEALTH_URL}" =~ ^https?://[a-zA-Z0-9._:/-]+$ ]]; then
   echo 'FF_HEALTH_URL contains unsupported characters; use a simple http(s) health URL without query/credentials' >&2
   exit 2
@@ -91,7 +91,7 @@ env_checks() {
 
 init_runtime() {
   # Windows 无 WSL 时 bridge distro 直接失败,给出安装指引;FF_WSL_BRIDGE=0 仅供测试/CI。
-  WSL_DISTRO=$("$HERE/wsl-bridge.sh" distro)
+  WSL_DISTRO=$(bash "$HERE/wsl-bridge.sh" distro)
   WSL_HOME=''
   if [[ -n "$WSL_DISTRO" ]]; then
     bash "$HERE/wsl-bridge.sh" require >/dev/null
@@ -99,6 +99,17 @@ init_runtime() {
   else
     command -v docker >/dev/null 2>&1 || { echo 'Docker not installed' >&2; exit 3; }
   fi
+}
+
+# SSH 把 argv 重新拼成远端 shell 命令;逐参数 POSIX 单引号编码,保留空参数。
+# 不用 printf %q:远端登录 shell 不保证是 Bash。
+ssh_cli() {
+  local remote_command='' arg
+  for arg in "$@"; do
+    arg=${arg//\'/\'\\\'\'}
+    remote_command+=" '$arg'"
+  done
+  ssh "${SSH_OPTS[@]}" "$SSH_DEST" "$remote_command"
 }
 
 # 统一 docker 入口:桥接模式下在 WSL 内执行,并关闭 MSYS 路径转换,防止 /mnt、镜像、路径参数被改写。
@@ -144,14 +155,14 @@ case "$ACTION" in
     if [[ -n "$SSH_DEST" ]]; then
       ssh "${SSH_OPTS[@]}" "$SSH_DEST" "mkdir -p '.mv/container-deploy/$APP' && chmod 700 '.mv/container-deploy/$APP'"
       # Stream immutable image data; no registry and no remote source compilation.
-      docker_cli save "$IMAGE" | ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker load >/dev/null
-      REMOTE_ID=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" docker image inspect --format '{{.Id}}' "$IMAGE")
+      docker_cli save "$IMAGE" | ssh_cli docker load >/dev/null
+      REMOTE_ID=$(ssh_cli docker image inspect --format '{{.Id}}' "$IMAGE")
       [[ "$LOCAL_ID" == "$REMOTE_ID" ]] || { echo 'Transferred image ID mismatch' >&2; exit 3; }
       scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.mv/container-deploy/$APP/compose.yml" >/dev/null
       scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.mv/container-deploy/$APP/.env.$ENV" >/dev/null
       # scp 落盘到 target-runner 收紧权限之间有窗口,立即按 600 收口。
       ssh "${SSH_OPTS[@]}" "$SSH_DEST" "chmod 600 '.mv/container-deploy/$APP/.env.$ENV'"
-      OUTPUT=$(ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
+      OUTPUT=$(ssh_cli bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
       printf '%s\n' "$OUTPUT"
     else
       if [[ -n "$WSL_DISTRO" ]]; then
@@ -186,7 +197,7 @@ case "$ACTION" in
     ;;
   status|rollback)
     if [[ -n "$SSH_DEST" ]]; then
-      ssh "${SSH_OPTS[@]}" "$SSH_DEST" bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
+      ssh_cli bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
     else
       init_runtime
       if [[ -n "$WSL_DISTRO" ]]; then

@@ -9,7 +9,7 @@ description: 把已构建的容器镜像包部署到各环境与服务器（本�
 
 `deploy dev（本机/开发服务器）→ 验证健康写收据 → 用户授权 → 同 Image ID 晋级 prod → 异常回滚`
 
-- 本机调测（"本地跑一下"/debug/断点）归 `mv-image-build`；本 skill 的本机 dev 是**走门禁的交付目标**（健康验证后写收据），两者共用同一 WSL Docker。
+- 本机调测（"本地跑一下"/debug/断点）归 `mv-local-debug`，在宿主前台直启；本 skill 的本机 dev 是 WSL 容器部署目标，健康验证后写收据。
 - 与 Git 独立，不暗中 commit；生产数据库迁移与外部副作用不随容器回滚。
 
 ## 硬性规范（无例外）
@@ -60,7 +60,7 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod
 - dev 部署成功但提示 `No promotable dev receipt`：容器无 Docker HEALTHCHECK 且未设 `FF_HEALTH_URL`，补齐后重新部署才能拿到可晋级收据。
 - `Transferred image ID mismatch`：save/load 传输前后不一致即终止，检查目标机磁盘空间与 Docker 存储驱动，不跳过校验。
 - 远端启动失败但脚本已回滚：`releases.tsv` 与 `previous-image` 是事实源，用 `status` 核对当前镜像后再决定重试或人工介入。
-- Windows 侧连不上本机容器端口：确认 compose `ports` 已发布、目标端口未被占用（Mirrored 网络模式与 Windows 侧进程共享端口，见 `mv-image-build` 常见故障）。
+- Windows 侧连不上本机容器端口：确认 compose `ports` 已发布、目标端口未被占用；Mirrored 网络模式与 Windows 侧进程共享端口，排查方法见 [宿主端口占用](../mv-local-debug/references/troubleshooting.md#端口占用wsl-mirrored-共享端口层)。未安装 `mv-local-debug` 时，直接检查 Windows 与 WSL 两侧的端口占用及 Compose 映射。
 
 ## 发布门禁与自检
 
