@@ -92,7 +92,10 @@ module-task/          消息消费/任务（存在时）
 ## 数据库与事务
 
 - 查询指定必要字段；分页大集合，限制最大 page size；避免 N+1 查询，考虑批量查询/缓存权衡。
-- DDL / migration 用项目已有 Flyway/Liquibase/SQL 流程，默认不得随应用镜像回滚反向执行。
+- DDL / migration 用项目已有 Flyway/Liquibase/SQL 流程，默认不得随应用镜像回滚反向执行；schema 迁移与大表 DDL 执行策略见 [schema-migrations.md](schema-migrations.md)。
+- schema 全量版本化：建表、索引、约束、种子/字典数据一律进版本化迁移脚本，与代码同仓库同版本发布，空库一键拉起，部署与回滚不做手工 SQL。
+- 脚本一经任一环境应用不可修改、只追加新脚本，全环境共用一份，方言差异按方言目录（如 `db/migration/{vendor}`）承载；migrate 由流水线自动执行（开发/测试随应用启动，生产与应用启动解耦），人工只审批不执行。
+- 结构演进走 expand–contract，应用对上一版 schema 兼容：新增列先可空/带默认，回填或双写后切读，旧列延迟删除；回填按主键游标分批限速，收紧 `NOT NULL`/`UNIQUE` 前先回填查重。
 - 事务置于 Service 真实业务边界：不在长事务中执行远程 HTTP 或慢操作；分布式事务优先讨论 Outbox 等替代方案并与团队确认。事务代理、传播与自调用语义按所用框架理解（Spring 见 spring-guide.md）。
 - 避免日志打印账户机密、令牌或用户私密资料；敏感字段标记/脱敏。
 - 业务表统一审计字段 `created_at`、`updated_at`、`created_by`、`updated_by`（及逻辑删除标记，按项目既有约定）并实现自动填充；时间字段用 `LocalDateTime` 对应 datetime 列，不混用 `Date`；数据库列名一律 snake_case 命名，Java camelCase 字段通过 `@Column` 或等价注解显式映射，禁止依赖隐式命名策略。
@@ -127,6 +130,7 @@ module-task/          消息消费/任务（存在时）
 - [ ] 枚举字段全链路枚举类型；错误码一场景一码；用户可见文案走国际化资源
 - [ ] 配置类型化绑定、kebab-case，敏感配置外置
 - [ ] 审计字段、时间类型、分页、SQL 参数化符合项目基线；REST 动词/URL/DTO 校验/统一响应/VO 脱敏合规
+- [ ] schema 全量版本化（空库一键拉起、脚本只追加、生产 migrate 与启动解耦），大表 DDL 走在线路径并设锁等待超时，应用与上一版 schema 兼容
 - [ ] 按项目框架并读对应指南（Spring Boot、持久层）条款后自查
 - [ ] 测试覆盖正常/边界/异常路径，覆盖率达标，CI 全绿
 - [ ] 运行期约束（schema 策略、惰性依赖、调度、启动恢复）已文档化
