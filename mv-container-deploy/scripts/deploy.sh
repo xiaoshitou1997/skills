@@ -90,7 +90,8 @@ env_checks() {
 }
 
 init_runtime() {
-  # Windows 无 WSL 时 bridge distro 直接失败,给出安装指引;FF_WSL_BRIDGE=0 仅供测试/CI。
+  # Windows 无 WSL 时 distro 为空但 require 会给出安装指引;非 Windows 宿主 distro 返回空,native 分支查宿主 Docker。
+  # FF_WSL_BRIDGE=0 仅供测试/CI。
   WSL_DISTRO=$(bash "$HERE/wsl-bridge.sh" distro)
   WSL_HOME=''
   if [[ -n "$WSL_DISTRO" ]]; then

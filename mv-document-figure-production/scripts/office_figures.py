@@ -7,6 +7,7 @@ from decimal import Decimal, InvalidOperation
 import os
 from pathlib import Path
 import posixpath
+import shutil
 import struct
 import sys
 import tempfile
@@ -292,8 +293,12 @@ class Package:
                         or archive.read(changed_part) != updates[changed_part]
                         or archive.read(relation_part) != updates[relation_part]):
                     fail('output image reference check failed')
-            # Linking an already-validated temporary file creates the destination exclusively.
-            os.link(temporary, output)
+            # Linking an already-validated temporary file creates the destination exclusively;
+            # fall back to copying on filesystems without hardlink support (NFS/SMB/container volumes).
+            try:
+                os.link(temporary, output)
+            except OSError:
+                shutil.copyfile(temporary, output)
         finally:
             os.unlink(temporary)
 
