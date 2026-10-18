@@ -6,6 +6,7 @@ import shutil
 from pathlib import Path
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 
@@ -18,6 +19,7 @@ if not Path(BASH).exists():
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
 IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
+CRANE_BUILD = (ROOT / 'mv-image-build/scripts/crane-build.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 
 
@@ -129,6 +131,121 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('mvn -B package', run.stderr)
             self.assertIn('mv-toolchain-manager', run.stderr)
+
+    # --- crane 路径（无 WSL）:基镜像+产物层组装,镜像身份契约与 Docker 路径同源 ---
+
+    # 假 crane:mutate 时在 -o 指定路径写最小 docker 格式镜像 tar(不含 RepoTags,由脚本补写);
+    # CRANE_BAD_NAME=1 时故意写错 Config 文件名,测一致性守卫。
+    FAKE_CRANE = r"""#!/bin/sh
+printf '%s\n' "$*" >> "$CRANE_LOG"
+if [ "$1" = "mutate" ]; then
+  prev=""
+  for a in "$@"; do
+    [ "$prev" = "-o" ] && out="$a"
+    prev="$a"
+  done
+  d=$(mktemp -d)
+  printf 'image-config-bytes' > "$d/c.json"
+  hex=$(sha256sum "$d/c.json" | cut -d' ' -f1)
+  if [ -n "$CRANE_BAD_NAME" ]; then nm="deadbeef.json"; else nm="$hex.json"; fi
+  mv "$d/c.json" "$d/$nm"
+  printf '[{"Config":"%s","Layers":[]}]\n' "$nm" > "$d/manifest.json"
+  tar -C "$d" -cf "$out" manifest.json "$nm"
+  rm -rf "$d"
+fi
+"""
+
+    def _crane_env(self, d):
+        bin_dir = d / 'bin'
+        bin_dir.mkdir(exist_ok=True)
+        fake_crane = bin_dir / 'crane'
+        fake_crane.write_text(self.FAKE_CRANE)
+        fake_crane.chmod(0o755)
+        env = os.environ.copy()
+        env['PATH'] = str(bin_dir) + os.pathsep + env['PATH']
+        env['CRANE_LOG'] = str(d / 'crane.log')
+        return env
+
+    def test_crane_java_build_matches_jar_template(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / 'pom.xml').write_text('<project/>')
+            target = d / 'target'
+            target.mkdir()
+            (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
+            (target / 'demo-app-1.0.0-sources.jar').write_bytes(b'not-deliverable')
+            env = self._crane_env(d)
+            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            # 模板对齐:temurin 21 基镜像 + /app/app.jar + 非 root + 8080 + java -jar 入口
+            self.assertIn('MODE=java BASE=eclipse-temurin:21-jre', run.stdout)
+            self.assertIn('--entrypoint java,-jar,/app/app.jar', run.stdout)
+            self.assertIn('--user 10001', run.stdout)
+            self.assertIn('--exposed-ports 8080', run.stdout)
+            self.assertIn('ARTIFACT=crane-image.tar', run.stdout)
+            # 非 git 目录:Tag 公式记 unversioned 且强制 -dirty,与 Docker 路径同规则
+            self.assertRegex(run.stdout, r'IMAGE=demo:unversioned-dirty-[0-9]{14}')
+            expected_id = hashlib.sha256(b'image-config-bytes').hexdigest()
+            self.assertIn(f'IMAGE_ID=sha256:{expected_id}', run.stdout)
+            # RepoTags 补写:docker load 后按 IMAGE 引用可寻址
+            with tarfile.open(d / 'crane-image.tar') as t:
+                manifest = json.load(t.extractfile('manifest.json'))
+            self.assertEqual(manifest[0]['RepoTags'][0], run.stdout.strip().split('IMAGE=')[1].splitlines()[0])
+            self.assertIn('SECURITY_SCAN=skipped', run.stderr)
+
+    def test_crane_web_build_uses_nginx_root(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / 'package.json').write_text('{}')
+            (d / 'dist').mkdir()
+            (d / 'dist' / 'index.html').write_text('<html></html>')
+            env = self._crane_env(d)
+            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn('MODE=web BASE=nginx:alpine', run.stdout)
+            self.assertIn('--exposed-ports 80', run.stdout)
+
+    def test_crane_server_requires_entrypoint(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / 'package.json').write_text('{}')
+            payload = d / 'srv'
+            payload.mkdir()
+            (payload / 'server.js').write_text('console.log(1)')
+            env = self._crane_env(d)
+            env['FF_STACK'] = 'server'
+            env['FF_ARTIFACT'] = str(payload)
+            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn('FF_ENTRYPOINT', run.stderr)
+
+    def test_crane_rejects_tar_identity_mismatch(self):
+        # manifest Config 文件名与配置摘要不一致 = 产物格式异常,必须失败而非输出假身份
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / 'pom.xml').write_text('<project/>')
+            target = d / 'target'
+            target.mkdir()
+            (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
+            env = self._crane_env(d)
+            env['CRANE_BAD_NAME'] = '1'
+            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn('一致性校验失败', run.stderr)
+
+    def test_crane_rejects_payload_with_env_secret(self):
+        # 产物目录守卫与 Docker 路径同源:.env* 不进镜像层
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / 'package.json').write_text('{}')
+            payload = d / 'dist'
+            payload.mkdir()
+            (payload / '.env.local').write_text('SECRET=1')
+            env = self._crane_env(d)
+            env['FF_ARTIFACT'] = str(payload)
+            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn('.env', run.stderr)
 
 
     def _offline_env(self, d, *, wsl=False):

@@ -5,7 +5,7 @@
 set -euo pipefail
 MODE=${1:-source}
 TARGET=${2:-.}
-[[ "$MODE" == source || "$MODE" == image ]] || { echo 'Usage: security-scan.sh source [path] | image IMAGE' >&2; exit 2; }
+[[ "$MODE" == source || "$MODE" == image || "$MODE" == image-tar ]] || { echo 'Usage: security-scan.sh source [path] | image IMAGE | image-tar TAR' >&2; exit 2; }
 REQUIRED=${FF_REQUIRE_SECURITY_SCAN:-0}
 if [[ "$MODE" == source ]]; then
   if command -v gitleaks >/dev/null 2>&1; then
@@ -17,7 +17,12 @@ if [[ "$MODE" == source ]]; then
   fi
 else
   if command -v trivy >/dev/null 2>&1; then
-    trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress "$TARGET"
+    # image: 扫描本地 Docker 内的镜像引用;image-tar: 扫描 docker load 可用的镜像 tar(crane 路径,无需守护进程)。
+    if [[ "$MODE" == image-tar ]]; then
+      trivy image --input "$TARGET" --exit-code 1 --severity HIGH,CRITICAL --no-progress
+    else
+      trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress "$TARGET"
+    fi
   elif [[ "$REQUIRED" == 1 ]]; then
     echo 'Trivy unavailable; image security gate not satisfied' >&2; exit 3
   else

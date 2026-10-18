@@ -42,13 +42,15 @@ CASES = [
     {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-git-publisher',
      'query': '把这些改动提交并推送'},
 
-    # --- mv-image-build：宿主出包 + WSL 瘦镜像构建，只构建不运行 ---
+    # --- mv-image-build：宿主出包 + 瘦镜像构建（默认 WSL，无 WSL 走 crane），只构建不运行 ---
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '帮我把这个项目打成 Docker 镜像，出个包'},
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '出个镜像包就行，先不用部署'},
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '宿主已经编译出包，WSL 打瘦镜像时拉取基础镜像一直卡住，帮我排查'},
+    {'skill': 'mv-image-build', 'kind': 'positive',
+     'query': '这台机器没有 WSL，用 crane 把这个 Spring Boot 项目打出镜像，先不部署'},
     {'skill': 'mv-image-build', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '在 WSL 容器里验证一下这个镜像能不能正常启动'},
     {'skill': 'mv-image-build', 'kind': 'negative', 'instead': 'mv-local-debug',

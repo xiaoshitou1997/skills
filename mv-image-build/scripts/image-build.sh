@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Package prebuilt host artifacts into thin runtime images (build side of the delivery pipeline).
-# Windows 团队规范:镜像构建一律经 WSL,没有 WSL 就失败,容器路径不回退宿主(见 scripts/wsl-bridge.sh)。
+# Docker engine path: package prebuilt host artifacts into thin runtime images inside WSL.
+# 团队规范:镜像构建默认经 WSL;无 WSL 时走同目录 crane-build.sh(crane 路径,Java/Node 通用);不在宿主安装 Docker。
 # 编译出包在宿主完成(工具链见 mv-toolchain-manager);本脚本只检测产物、打瘦镜像、输出镜像身份。
 # 镜像常驻:构建只新增镜像,任何流程不得 rmi/prune/清理镜像。
 # 与 mv-container-deploy 的接口:输出 IMAGE=<repo>:<tag> 与 IMAGE_ID=...,部署侧只消费该镜像引用。
@@ -35,7 +35,8 @@ project_checks() {
 }
 
 init_runtime() {
-  # Windows 无 WSL 时 bridge distro 直接失败,给出安装指引;FF_WSL_BRIDGE=0 仅供测试/CI。
+  # Windows 无 WSL 时 bridge distro 返回空走 native 前需先过 require;非 Windows 宿主 distro 直接返回空,native 分支查宿主 Docker。
+  # FF_WSL_BRIDGE=0 仅供测试/CI。
   WSL_DISTRO=$(bash "$HERE/wsl-bridge.sh" distro)
   WSL_HOME=''
   if [[ -n "$WSL_DISTRO" ]]; then
