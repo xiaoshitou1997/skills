@@ -23,7 +23,8 @@
 ## 宿主无 Docker 或 crane 路径故障
 
 - 宿主无容器运行时（Windows 无 WSL，或 Linux/macOS 未装 Docker）：走 `scripts/crane-build.sh`（crane 路径，Java/Node 通用）；Windows 宿主不得以在宿主安装 Docker 代替。
-- `crane: command not found`：从 [go-containerregistry releases](https://github.com/google/go-containerregistry/releases) 下载单文件二进制并加入 PATH，不需要安装 Docker 或任何守护进程。
+- `crane: command not found`：交 `mv-toolchain-manager` 按需准备（`ensure --crane`，默认最新版或指定精确版本），并在同一会话执行激活片段后重试；不需要安装 Docker 或任何守护进程，也不要求用户手工下载。
+- `crane-build.sh` 报缺少 Python：交 `mv-toolchain-manager` 按需准备（`ensure --python 3.12`），并在同一会话执行激活片段后重试；宿主完全没有 Python 时先执行其 `scripts/installer/bootstrap-python.sh 3.12`（stdout 是激活片段，`eval` 后即可用）。Python 只用于补写 `RepoTags` 和核对配置摘要，不参与编译。
 - crane 拉取基础镜像失败：crane 走宿主网络直连 registry，按宿主代理与 DNS 排查，私有仓库认证走标准 docker config；已有兼容基础镜像时用 `FF_RUNTIME_IMAGE` 指定（建议固定摘要）后重试。
 - `crane-build.sh` 报"无法识别项目栈"：项目根缺少 pom.xml、build.gradle(.kts) 或 package.json（如多模块仓库在子目录构建）；用 `FF_STACK=java|web|server` 显式指定。
 - `crane-build.sh` 报镜像 tar 一致性校验失败：manifest Config 文件名与配置摘要不一致，产物格式异常；核对 crane 版本与 tar 结构后重试，不使用未经校验的镜像身份。

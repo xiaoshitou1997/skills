@@ -8,7 +8,7 @@
 
 | Skill | 范围 |
 | --- | --- |
-| `mv-toolchain-manager` | JDK/Maven/Gradle/Node.js 检测与准备，优先项目管理器及 wrapper |
+| `mv-toolchain-manager` | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发；镜像构建的 crane 路径缺 crane 时按需准备 |
 | `mv-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零 WSL、零镜像） |
 | `mv-image-build` | 宿主出包与瘦镜像构建（默认 WSL；无 WSL 走 crane 组装镜像，Java/Node 通用）：只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 镜像包部署 dev/prod 服务器、健康验证、同镜像晋级与回滚 |
@@ -78,7 +78,7 @@ bash "$SKILL_ROOT/scripts/deploy.sh" deploy dev myapp 'myapp:TAG'
 bash "$SKILL_ROOT/scripts/deploy.sh" status dev myapp
 ```
 
-Docker 路径构建需要 Docker/Compose（Windows 侧装在 WSL 内）；crane 路径仅需宿主安装 crane 并能拉取基础镜像。远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/image-build/`，仅 Windows 桥接模式，其余宿主用本地临时目录；收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
+Docker 路径构建需要 Docker/Compose（Windows 侧装在 WSL 内）；crane 路径的 crane 与解析镜像 tar 的 Python 由 `mv-toolchain-manager` 按需准备（`ensure --crane` / `ensure --python 3.12`；宿主无 Python 时用其 `bootstrap-python.sh`），仅需能拉取基础镜像。远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/image-build/`，仅 Windows 桥接模式，其余宿主用本地临时目录；收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
 
 Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装或未正常运行时该 skill 仅在当前上下文内有效）。值守 Hook 机制依赖 Claude Code 的 Hook 事件（UserPromptSubmit/SessionStart/PreToolUse）与 `~/.claude/settings.json`，仅 Claude Code 上可安装；分发到其他 agent 时无法安装 Hook，该 skill 自动降级为仅当前上下文有效的值守模式。
 

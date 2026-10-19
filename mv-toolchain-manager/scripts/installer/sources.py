@@ -5,6 +5,7 @@ Sources (official only):
   - JDK (Temurin): api.adoptium.net
   - Maven: dlcdn.apache.org  (older -> archive.apache.org)
   - Gradle: services.gradle.org/distributions  (+ /versions/current JSON)
+  - crane: github.com/google/go-containerregistry releases (on demand, no mirror)
 
 When `FF_MIRROR` (or `--mirror`) is active, mirror URLs are prepended to the
 candidate list returned by the plural URL builders (node_urls / jdk_urls /
@@ -38,6 +39,11 @@ MAVEN_DIR = 'https://dlcdn.apache.org/maven/maven-3/'
 GRADLE_DIST = 'https://services.gradle.org/distributions/gradle-{ver}-bin.zip'
 GRADLE_CURRENT = 'https://services.gradle.org/versions/current'
 GRADLE_DISTRIBUTIONS = 'https://services.gradle.org/distributions/'
+CRANE_RELEASES_LATEST = 'https://github.com/google/go-containerregistry/releases/latest'
+CRANE_DIST = (
+    'https://github.com/google/go-containerregistry/releases/download/'
+    'v{ver}/go-containerregistry_{os}_{arch}.tar.gz'
+)
 
 _TIMEOUT = 60
 _CTX = ssl.create_default_context()
@@ -57,6 +63,15 @@ def _get_json(url):
 
 def _get_text(url):
     return _get(url).decode('utf-8', errors='replace')
+
+
+def _final_url(url):
+    """Follow redirects and return the final URL (used for GitHub release tags)."""
+    req = urllib.request.Request(
+        url, headers={'User-Agent': 'build-toolchain-installer/1.0', 'Accept': '*/*'}
+    )
+    with urllib.request.urlopen(req, timeout=_TIMEOUT, context=_CTX) as resp:
+        return resp.geturl()
 
 
 # --------------------------------------------------------------------------
@@ -250,3 +265,217 @@ def gradle_urls(ver):
         out.append(mt.format(ver=ver))
     out.append(GRADLE_DIST.format(ver=ver))
     return out
+
+
+# --------------------------------------------------------------------------
+# crane (go-containerregistry) — on-demand image assembler, not project-detected
+def resolve_crane(constraint):
+    """Resolve a crane version. Exact passes through; otherwise resolve latest
+    through the GitHub release redirect (avoids the unauthenticated API limit)."""
+    c = (constraint or '').strip().lstrip('vV')
+    if c and versions.is_exact(c):
+        return c
+    final = _final_url(CRANE_RELEASES_LATEST)
+    m = re.search(r'/tag/v?(\d+\.\d+\.\d+)$', final)
+    if not m:
+        raise RuntimeError(f'cannot resolve latest crane release from {final}')
+    latest = m.group(1)
+    if not c or c in ('*', 'latest'):
+        return latest
+    if versions.parse_constraint(c).matches(latest):
+        return latest
+    raise RuntimeError(
+        f'no crane version matches {constraint!r}; pass an exact version '
+        f'(latest is {latest})')
+
+
+def crane_urls(ver):
+    """Official crane release archive for this host. No mirror: go-containerregistry
+    releases ship from GitHub only."""
+    os_ = {'windows': 'Windows', 'mac': 'Darwin', 'linux': 'Linux'}[download.os_name()]
+    arch = {'x64': 'x86_64', 'arm64': 'arm64'}.get(download.arch())
+    if not arch:
+        raise RuntimeError(
+            f'unsupported CPU architecture for crane: {download.arch()}')
+    return [CRANE_DIST.format(ver=ver, os=os_, arch=arch)]
+
+
+# --------------------------------------------------------------------------
+# CPython (python-build-standalone) — on demand for the mv-image-build crane path
+PYBS_RELEASES_LATEST = (
+    'https://github.com/astral-sh/python-build-standalone/releases/latest'
+)
+PYBS_SUMS = (
+    'https://github.com/astral-sh/python-build-standalone/releases/download/'
+    '{tag}/SHA256SUMS'
+)
+PYBS_DIST = (
+    'https://github.com/astral-sh/python-build-standalone/releases/download/'
+    '{tag}/cpython-{ver}+{tag}-{triple}-install_only.tar.gz'
+)
+
+
+def python_triple():
+    """python-build-standalone target triple for this host."""
+    pairs = {
+        ('windows', 'x64'): 'x86_64-pc-windows-msvc',
+        ('windows', 'arm64'): 'aarch64-pc-windows-msvc',
+        ('linux', 'x64'): 'x86_64-unknown-linux-gnu',
+        ('linux', 'arm64'): 'aarch64-unknown-linux-gnu',
+        ('mac', 'x64'): 'x86_64-apple-darwin',
+        ('mac', 'arm64'): 'aarch64-apple-darwin',
+    }
+    key = (download.os_name(), download.arch())
+    if key not in pairs:
+        raise RuntimeError(
+            f'unsupported platform for portable Python: {key[0]}/{key[1]}')
+    return pairs[key]
+
+
+def _pybs_tag():
+    final = _final_url(PYBS_RELEASES_LATEST)
+    m = re.search(r'/tag/(\d+)$', final)
+    if not m:
+        raise RuntimeError(
+            f'cannot resolve latest python-build-standalone release from {final}')
+    return m.group(1)
+
+
+def resolve_python(constraint):
+    """Resolve a stable CPython version from python-build-standalone.
+
+    Returns (version, release_tag). Exact X.Y.Z must exist in the latest
+    release; major/minor/range constraints pick the highest matching stable
+    version. Pre-releases such as 3.16.0a1 are ignored.
+    """
+    tag = _pybs_tag()
+    triple = python_triple()
+    text = _get_text(PYBS_SUMS.format(tag=tag))
+    pattern = re.compile(
+        r'^cpython-(\d+\.\d+\.\d+)\+' + re.escape(tag) + '-'
+        + re.escape(triple) + r'-install_only\.tar\.gz$')
+    available = []
+    for line in text.splitlines():
+        toks = line.split()
+        if len(toks) < 2:
+            continue
+        m = pattern.match(toks[-1].lstrip('*'))
+        if m:
+            available.append(m.group(1))
+    if not available:
+        raise RuntimeError(
+            f'no portable CPython asset for {triple} in python-build-standalone {tag}')
+    available.sort(key=versions.parse_version, reverse=True)
+    c = (constraint or '').strip().lstrip('vV')
+    if c and versions.is_exact(c):
+        if c not in available:
+            raise RuntimeError(
+                f'CPython {c} is not in python-build-standalone {tag} for {triple}')
+        return c, tag
+    pc = versions.parse_constraint(c)
+    for ver in available:
+        if pc.matches(ver):
+            return ver, tag
+    raise RuntimeError(
+        f'no CPython version matches {constraint!r} in python-build-standalone {tag}')
+
+
+def python_urls(ver, tag):
+    """Official python-build-standalone archive for this host."""
+    return [PYBS_DIST.format(ver=ver, tag=tag, triple=python_triple())]
+
+
+# --------------------------------------------------------------------------
+# Node package-manager packages (npm registry, exact packageManager versions)
+NPM_REGISTRY = 'https://registry.npmjs.org'
+
+
+def package_manager_package(tool, version):
+    """Registry package implementing the requested package-manager release."""
+    if tool == 'pnpm':
+        return 'pnpm'
+    if tool == 'yarn':
+        parsed = versions.parse_version(version)
+        if not parsed:
+            raise RuntimeError(f'cannot parse Yarn version {version!r}')
+        # `yarn` is Yarn Classic; modern Yarn's distributable CLI is published
+        # separately. Corepack is intentionally not a runtime dependency.
+        return 'yarn' if parsed[0] < 2 else '@yarnpkg/cli-dist'
+    raise RuntimeError(f'{tool!r} is not an independently installable npm package')
+
+
+def resolve_npm_package(name, constraint):
+    """Resolve a registry package to an immutable tarball + SRI integrity.
+
+    Project `packageManager` values are expected to pin exact versions. `latest`
+    is allowed only for lockfile-only pnpm fallback and is resolved through the
+    registry's dist-tags; ranges use the latest tag only when it matches.
+    """
+    c = (constraint or '').strip().lstrip('vV')
+    encoded = urllib.parse.quote(name, safe='@')
+    if c and versions.is_exact(c):
+        metadata = _get_json(f'{NPM_REGISTRY}/{encoded}/{c}')
+    else:
+        root = _get_json(f'{NPM_REGISTRY}/{encoded}')
+        latest = ((root.get('dist-tags') or {}).get('latest') or '').lstrip('vV')
+        if not latest:
+            raise RuntimeError(f'no latest version published for npm package {name}')
+        if c and c not in ('*', 'latest') and not versions.parse_constraint(c).matches(latest):
+            raise RuntimeError(
+                f'npm package {name} latest {latest} does not match {constraint!r}; '
+                'pin an exact packageManager version')
+        metadata = (root.get('versions') or {}).get(latest)
+        if not metadata:
+            metadata = _get_json(f'{NPM_REGISTRY}/{encoded}/{latest}')
+    version = str(metadata.get('version') or '').lstrip('vV')
+    dist = metadata.get('dist') or {}
+    tarball = dist.get('tarball')
+    integrity = dist.get('integrity')
+    if not version or not tarball or not integrity:
+        raise RuntimeError(
+            f'npm registry metadata for {name}@{constraint or "latest"} lacks '
+            'version, tarball, or integrity')
+    return {'version': version, 'url': tarball, 'integrity': integrity}
+
+
+# --------------------------------------------------------------------------
+# uv (Astral official GitHub release archives)
+UV_RELEASES_LATEST = 'https://github.com/astral-sh/uv/releases/latest'
+UV_DIST = 'https://github.com/astral-sh/uv/releases/download/{ver}/uv-{triple}.{ext}'
+
+
+def resolve_uv(constraint):
+    """Resolve an exact uv version or discover the official latest release."""
+    c = (constraint or '').strip().lstrip('vV')
+    if c and versions.is_exact(c):
+        return c
+    final = _final_url(UV_RELEASES_LATEST)
+    m = re.search(r'/tag/v?(\d+\.\d+\.\d+)$', final)
+    if not m:
+        raise RuntimeError(f'cannot resolve latest uv release from {final}')
+    latest = m.group(1)
+    if not c or c in ('*', 'latest') or versions.parse_constraint(c).matches(latest):
+        return latest
+    raise RuntimeError(f'uv latest {latest} does not match {constraint!r}')
+
+
+def uv_triple():
+    """Astral uv archive triple for this host."""
+    pairs = {
+        ('windows', 'x64'): ('x86_64-pc-windows-msvc', 'zip'),
+        ('windows', 'arm64'): ('aarch64-pc-windows-msvc', 'zip'),
+        ('linux', 'x64'): ('x86_64-unknown-linux-gnu', 'tar.gz'),
+        ('linux', 'arm64'): ('aarch64-unknown-linux-gnu', 'tar.gz'),
+        ('mac', 'x64'): ('x86_64-apple-darwin', 'tar.gz'),
+        ('mac', 'arm64'): ('aarch64-apple-darwin', 'tar.gz'),
+    }
+    key = (download.os_name(), download.arch())
+    if key not in pairs:
+        raise RuntimeError(f'unsupported platform for uv: {key[0]}/{key[1]}')
+    return pairs[key]
+
+
+def uv_urls(ver):
+    """Official uv release archive for this host."""
+    triple, ext = uv_triple()
+    return [UV_DIST.format(ver=ver, triple=triple, ext=ext)]

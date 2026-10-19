@@ -27,6 +27,8 @@ bridge_disabled() {
 }
 
 # Git Bash 会对参数做 MSYS 路径转换;调用 wsl.exe 必须关闭,否则 /mnt、-d 等参数被改写。
+# 必须用 --exec:不带它时 wsl.exe 把余下参数拼接后交给默认 shell,引号与位置参数会丢失
+# (实测 bash -c '...' _ PATH 时 PATH 到不了 $1),push/exec 因此失效。
 wsl_cmd() {
   MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe "$@"
 }
@@ -60,7 +62,7 @@ cmd_require() {
     local d
     d=$(distro_name) || true
     [[ -n "$d" ]] || { echo 'WSL 已安装但没有可用发行版;请执行 wsl --install -d Ubuntu 后重试' >&2; return 3; }
-    wsl_cmd -d "$d" docker version >/dev/null 2>&1 || {
+    wsl_cmd -d "$d" --exec docker version >/dev/null 2>&1 || {
       echo "WSL 发行版 $d 内 docker 不可用;请在该发行版安装 Docker Engine,或启用 Docker Desktop 的 WSL 集成后重试" >&2
       return 3
     }
@@ -107,14 +109,14 @@ cmd_topath() {
   local d
   d=$(cmd_distro) || return 3
   [[ -n "$d" ]] || { echo 'topath 仅在经 WSL 桥接时可用' >&2; return 3; }
-  wsl_out -d "$d" wslpath -u "$1"
+  wsl_out -d "$d" --exec wslpath -u "$1"
 }
 
 cmd_home() {
   local d
   d=$(cmd_distro) || return 3
   [[ -n "$d" ]] || { echo 'home 仅在经 WSL 桥接时可用' >&2; return 3; }
-  wsl_out -d "$d" sh -c 'echo $HOME'
+  wsl_out -d "$d" --exec sh -c 'echo $HOME'
 }
 
 cmd_push() {
@@ -123,8 +125,8 @@ cmd_push() {
   cmd_plain "$f" || return 3
   d=$(cmd_distro) || return 3
   [[ -n "$d" ]] || { echo 'push 仅在经 WSL 桥接时可用' >&2; return 3; }
-  wsl_cmd -d "$d" bash -c 'mkdir -p "$(dirname "$1")" && cat > "$1"' _ "$t" < "$f"
-  wsl_cmd -d "$d" bash -c 'test -s "$1"' _ "$t" || { echo "推送后文件为空: $t" >&2; return 3; }
+  wsl_cmd -d "$d" --exec bash -c 'mkdir -p "$(dirname "$1")" && cat > "$1"' _ "$t" < "$f"
+  wsl_cmd -d "$d" --exec bash -c 'test -s "$1"' _ "$t" || { echo "推送后文件为空: $t" >&2; return 3; }
 }
 
 cmd_exec() {
@@ -136,7 +138,7 @@ cmd_exec() {
   local d
   d=$(cmd_distro) || return 3
   [[ -n "$d" ]] || { echo 'exec 仅在经 WSL 桥接时可用' >&2; return 3; }
-  wsl_cmd -d "$d" --cd "$dir" -- "$@"
+  wsl_cmd -d "$d" --cd "$dir" --exec "$@"
 }
 
 main() {

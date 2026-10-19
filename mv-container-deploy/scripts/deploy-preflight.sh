@@ -11,7 +11,7 @@ docker_cli() {
   local wsl_distro
   wsl_distro=$(bash "$HERE/wsl-bridge.sh" distro)
   if [[ -n "$wsl_distro" ]]; then
-    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$wsl_distro" -- docker "$@"
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$wsl_distro" --exec docker "$@"
   else
     docker "$@"
   fi

@@ -11,9 +11,12 @@ from download import install_root
 
 
 def list_installed():
-    """Return dict {node,jdk,maven,gradle} -> list of {version[, feature], path}."""
+    """Return cache entries for every manager-owned portable tool."""
     root = install_root()
-    out = {'node': [], 'jdk': [], 'maven': [], 'gradle': []}
+    out = {
+        'node': [], 'jdk': [], 'maven': [], 'gradle': [], 'crane': [],
+        'python': [], 'uv': [], 'pnpm': [], 'yarn': [],
+    }
 
     node_dir = root / 'node'
     if node_dir.exists():
@@ -45,6 +48,26 @@ def list_installed():
                 v = p.name.replace('gradle-', '')
                 out['gradle'].append({'version': v, 'path': str(p)})
 
+    crane_dir = root / 'crane'
+    if crane_dir.exists():
+        for p in sorted(crane_dir.iterdir()):
+            if p.is_dir():
+                out['crane'].append({'version': p.name.lstrip('vV'), 'path': str(p)})
+
+    python_dir = root / 'python'
+    if python_dir.exists():
+        for p in sorted(python_dir.iterdir()):
+            if p.is_dir():
+                out['python'].append({'version': p.name.lstrip('vV'), 'path': str(p)})
+
+    for tool in ('uv', 'pnpm', 'yarn'):
+        tool_dir = root / tool
+        if not tool_dir.exists():
+            continue
+        for p in sorted(tool_dir.iterdir()):
+            if p.is_dir():
+                out[tool].append({'version': p.name.lstrip('vV'), 'path': str(p)})
+
     return out
 
 
@@ -58,7 +81,8 @@ def find_matching(tool, requirement, installed=None):
     """Find an installed entry satisfying a requirement.
 
     requirement: dict {'constraint': ...} or a raw string.
-    Node -> npm constraint match; JDK -> feature major match; maven/gradle -> exact.
+    Node -> npm constraint match; JDK -> feature major match;
+    maven/gradle/crane/python -> exact or compatible.
     """
     installed = installed if installed is not None else list_installed()
     constraint = _constraint_of(requirement)
@@ -79,7 +103,7 @@ def find_matching(tool, requirement, installed=None):
                 return entry
         return None
 
-    # maven / gradle: exact or compatible
+    # maven / gradle / crane / python / uv / pnpm / yarn: exact or compatible
     for entry in installed[tool]:
         if entry['version'] == constraint:
             return entry
@@ -93,11 +117,31 @@ def find_matching(tool, requirement, installed=None):
 
 def system_version(tool):
     """Probe a tool already on PATH. Returns version string or None."""
+    if tool == 'python':
+        # Python 3 may be exposed as python3, python, or the Windows launcher.
+        for cmd in (['python3', '--version'], ['python', '--version'],
+                    ['py', '-3', '--version']):
+            if not shutil.which(cmd[0]):
+                continue
+            try:
+                proc = subprocess.run(
+                    cmd, capture_output=True, text=True, timeout=15, shell=False)
+            except Exception:
+                continue
+            v = _parse_python_version((proc.stdout or '') + (proc.stderr or ''))
+            if v:
+                return v
+        return None
     cmds = {
         'node': (['node', '--version'], lambda s: s.strip().lstrip('vV')),
         'jdk': (['java', '-version'], _parse_java_version),
         'maven': (['mvn', '--version'], _parse_mvn_version),
         'gradle': (['gradle', '--version'], _parse_gradle_version),
+        'crane': (['crane', 'version'], _parse_crane_version),
+        'npm': (['npm', '--version'], _parse_plain_version),
+        'pnpm': (['pnpm', '--version'], _parse_plain_version),
+        'yarn': (['yarn', '--version'], _parse_plain_version),
+        'uv': (['uv', '--version'], _parse_uv_version),
     }
     if tool not in cmds:
         return None
@@ -152,3 +196,26 @@ def _parse_gradle_version(text):
     # 'Gradle 8.5' -> 8.5
     m = re.search(r'Gradle\s+([\d.]+)', text)
     return m.group(1) if m else None
+
+
+def _parse_crane_version(text):
+    # '0.22.1' -> 0.22.1
+    m = re.search(r'(\d+\.\d+\.\d+)', text)
+    return m.group(1) if m else None
+
+
+def _parse_python_version(text):
+    # 'Python 3.12.15' -> 3.12.15
+    m = re.search(r'Python\s+(\d+\.\d+\.\d+)', text)
+    return m.group(1) if m else None
+
+
+def _parse_plain_version(text):
+    m = re.search(r'\b(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\b', text)
+    return m.group(1) if m else None
+
+
+def _parse_uv_version(text):
+    # 'uv 0.5.12 (abcdef)' -> 0.5.12
+    m = re.search(r'\buv\s+(\d+\.\d+\.\d+)\b', text, re.I)
+    return m.group(1) if m else _parse_plain_version(text)

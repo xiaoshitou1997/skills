@@ -14,6 +14,12 @@ Usage examples:
   python3 scripts/runtime_cli.py detect --project .
   python3 scripts/runtime_cli.py ensure --project .
   python3 scripts/runtime_cli.py ensure --jdk 17 --maven 3.9.6 --gradle 8.5 --node 20
+  python3 scripts/runtime_cli.py ensure --crane          # on demand, latest release
+  python3 scripts/runtime_cli.py ensure --crane 0.22.1   # on demand, exact version
+  python3 scripts/runtime_cli.py ensure --python         # on demand, latest CPython
+  python3 scripts/runtime_cli.py ensure --python 3.12    # latest portable 3.12.x
+  python3 scripts/runtime_cli.py ensure --uv 0.5.12 --node 22
+  python3 scripts/runtime_cli.py ensure --pnpm 9.15.0 --node 22
   python3 scripts/runtime_cli.py activate --print sh
   python3 scripts/runtime_cli.py select node 20.11.0
   python3 scripts/runtime_cli.py purge --tool node
@@ -24,6 +30,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -60,7 +67,8 @@ def cmd_list(args):
     if getattr(args, 'system', False):
         data['system'] = {
             t: installed_mod.system_version(t)
-            for t in ('node', 'jdk', 'maven', 'gradle')
+            for t in ('node', 'jdk', 'maven', 'gradle', 'crane', 'python',
+                      'npm', 'pnpm', 'yarn', 'uv')
         }
     _emit_json(data)
     return data
@@ -73,7 +81,8 @@ def cmd_ensure(args):
 
     if not reqs:
         sys.stderr.write(
-            'No requirements detected. Pass --node/--jdk/--maven/--gradle '
+            'No requirements detected. Pass --node/--jdk/--maven/--gradle/--python/--uv '
+            '--npm/--pnpm/--yarn/--crane '
             'or --project <dir>.\n'
         )
         _emit_json({'error': 'no requirements'})
@@ -90,6 +99,20 @@ def cmd_ensure(args):
         _ensure_maven(reqs['maven'], cache, result)
     if 'gradle' in reqs:
         _ensure_gradle(reqs['gradle'], cache, result)
+    if 'crane' in reqs:
+        _ensure_crane(reqs['crane'], cache, result)
+    if 'python' in reqs:
+        _ensure_python(reqs['python'], cache, result)
+    if 'uv' in reqs:
+        _ensure_uv(reqs['uv'], cache, result)
+    if 'package_manager' in reqs:
+        _ensure_package_manager(reqs['package_manager'], cache, result)
+    if 'npm' in reqs and 'package_manager' not in reqs:
+        _ensure_npm(reqs['npm'], result)
+    if 'pnpm' in reqs:
+        _ensure_package_manager(reqs['pnpm'], cache, result)
+    if 'yarn' in reqs:
+        _ensure_package_manager(reqs['yarn'], cache, result)
 
     # 任一工具失败都抬升为顶层 error:以退出码做门禁的调用方必须看到非零,
     # 不能让"部分成功"伪装成整体成功(已 resolved 的条目仍写入 selection)。
@@ -122,18 +145,32 @@ def _gather_requirements(args):
     reqs = {}
     if args.project:
         det = detect.detect_all(Path(args.project))
-        for tool in ('node', 'jdk', 'maven', 'gradle'):
+        for tool in ('node', 'jdk', 'maven', 'gradle', 'python', 'uv'):
             if det[tool]:
                 reqs[tool] = det[tool]
+        package_manager = det.get('package_manager')
+        if package_manager:
+            reqs['package_manager'] = package_manager
+
     cli = {
         'node': args.node,
         'jdk': args.jdk,
         'maven': args.maven,
         'gradle': args.gradle,
+        'crane': args.crane,
+        'python': args.python,
+        'uv': args.uv,
+        'npm': args.npm,
+        'pnpm': args.pnpm,
+        'yarn': args.yarn,
     }
     for tool, val in cli.items():
-        if val:
-            reqs[tool] = {'source': 'cli', 'constraint': val}
+        if not val:
+            continue
+        request = {'source': 'cli', 'tool': tool, 'constraint': val}
+        if tool in ('pnpm', 'yarn'):
+            reqs.pop('package_manager', None)
+        reqs[tool] = request
     return reqs
 
 
@@ -204,6 +241,13 @@ def _ensure_jdk(req, cache, result):
 
 
 def _ensure_maven(req, cache, result):
+    if req.get('project_managed') and req.get('source') != 'cli':
+        result['actions'].append({
+            'tool': 'maven', 'action': 'project-managed',
+            'version': _constraint(req), 'source': req.get('source'),
+            'message': 'Maven Wrapper pins this project; no portable Maven was installed',
+        })
+        return
     constraint = _constraint(req)
     try:
         exact = sources.resolve_maven(constraint)
@@ -233,6 +277,13 @@ def _ensure_maven(req, cache, result):
 
 
 def _ensure_gradle(req, cache, result):
+    if req.get('project_managed') and req.get('source') != 'cli':
+        result['actions'].append({
+            'tool': 'gradle', 'action': 'project-managed',
+            'version': _constraint(req), 'source': req.get('source'),
+            'message': 'Gradle Wrapper pins this project; no portable Gradle was installed',
+        })
+        return
     constraint = _constraint(req)
     try:
         exact = sources.resolve_gradle(constraint)
@@ -259,6 +310,247 @@ def _ensure_gradle(req, cache, result):
     result['actions'].append(
         {'tool': 'gradle', 'action': 'installed', 'version': exact, 'urls': urls}
     )
+
+
+def _ensure_crane(req, cache, result):
+    constraint = _constraint(req)
+    try:
+        exact = sources.resolve_crane(constraint)
+    except Exception as e:
+        result['actions'].append({'tool': 'crane', 'error': str(e)})
+        return
+    entry = installed_mod.find_matching('crane', {'constraint': exact}, cache)
+    if entry:
+        result['resolved']['crane'] = entry
+        result['actions'].append(
+            {'tool': 'crane', 'action': 'satisfied', 'version': entry['version']}
+        )
+        return
+    urls = sources.crane_urls(exact)
+    target = install_root() / 'crane' / f'v{exact}'
+    try:
+        download.install_portable(urls, target, f'crane {exact}')
+    except Exception as e:
+        result['actions'].append({'tool': 'crane', 'error': f'download failed: {e}',
+                                  'urls': [download.display_url(u) for u in urls]})
+        return
+    entry = {'version': exact, 'path': str(target)}
+    cache['crane'].append(entry)
+    result['resolved']['crane'] = entry
+    result['actions'].append(
+        {'tool': 'crane', 'action': 'installed', 'version': exact,
+         'urls': [download.display_url(u) for u in urls]}
+    )
+
+
+def _ensure_python(req, cache, result):
+    constraint = _constraint(req)
+    try:
+        exact, tag = sources.resolve_python(constraint)
+    except Exception as e:
+        result['actions'].append({'tool': 'python', 'error': str(e)})
+        return
+    entry = installed_mod.find_matching('python', {'constraint': exact}, cache)
+    if entry:
+        result['resolved']['python'] = entry
+        result['actions'].append(
+            {'tool': 'python', 'action': 'satisfied', 'version': entry['version']}
+        )
+        return
+    urls = sources.python_urls(exact, tag)
+    target = install_root() / 'python' / f'v{exact}'
+    try:
+        download.install_portable(urls, target, f'CPython {exact}')
+    except Exception as e:
+        result['actions'].append({'tool': 'python', 'error': f'download failed: {e}',
+                                  'urls': [download.display_url(u) for u in urls]})
+        return
+    entry = {'version': exact, 'path': str(target)}
+    cache['python'].append(entry)
+    result['resolved']['python'] = entry
+    result['actions'].append(
+        {'tool': 'python', 'action': 'installed', 'version': exact,
+         'urls': [download.display_url(u) for u in urls]}
+    )
+
+
+def _ensure_uv(req, cache, result):
+    constraint = _constraint(req)
+    try:
+        exact = sources.resolve_uv(constraint)
+    except Exception as e:
+        result['actions'].append({'tool': 'uv', 'error': str(e)})
+        return
+    entry = installed_mod.find_matching('uv', {'constraint': exact}, cache)
+    if entry:
+        result['resolved']['uv'] = entry
+        result['actions'].append({'tool': 'uv', 'action': 'satisfied', 'version': entry['version']})
+        return
+    urls = sources.uv_urls(exact)
+    target = install_root() / 'uv' / f'v{exact}'
+    try:
+        download.install_portable(urls, target, f'uv {exact}')
+    except Exception as e:
+        result['actions'].append({
+            'tool': 'uv', 'error': f'download failed: {e}',
+            'urls': [download.display_url(u) for u in urls],
+        })
+        return
+    entry = {'version': exact, 'path': str(target)}
+    cache['uv'].append(entry)
+    result['resolved']['uv'] = entry
+    result['actions'].append({
+        'tool': 'uv', 'action': 'installed', 'version': exact,
+        'urls': [download.display_url(u) for u in urls],
+    })
+
+
+def _ensure_npm(req, result):
+    """npm is bundled with Node; validate, never independently download it."""
+    constraint = _constraint(req)
+    node = result['resolved'].get('node')
+    if not node:
+        result['actions'].append({
+            'tool': 'npm',
+            'error': 'npm is bundled with Node.js; also declare/select a Node.js runtime',
+        })
+        return
+    npm = _node_executable(node, 'npm')
+    version = _command_version([str(npm), '--version']) if npm else None
+    if version is None:
+        result['actions'].append({
+            'tool': 'npm',
+            'error': f'Node {node["version"]} does not expose a runnable bundled npm',
+        })
+        return
+    if constraint and not versions.parse_constraint(constraint).matches(version):
+        result['actions'].append({
+            'tool': 'npm',
+            'error': f'Node-bundled npm {version} does not satisfy {constraint!r}',
+        })
+        return
+    entry = {'version': version, 'path': str(npm.parent), 'bundled_with': node['version']}
+    result['resolved']['npm'] = entry
+    result['actions'].append({
+        'tool': 'npm', 'action': 'bundled', 'version': version,
+        'node': node['version'],
+    })
+
+
+def _ensure_package_manager(req, cache, result):
+    tool = req.get('tool')
+    if tool == 'npm':
+        _ensure_npm(req, result)
+        return
+    if tool not in ('pnpm', 'yarn'):
+        result['actions'].append({'tool': 'package-manager', 'error': 'unknown package manager'})
+        return
+    if req.get('error'):
+        result['actions'].append({'tool': tool, 'error': req['error'], 'source': req.get('source')})
+        return
+    if req.get('project_managed'):
+        result['actions'].append({
+            'tool': tool, 'action': 'project-managed', 'source': req.get('source'),
+            'path': req.get('path'),
+            'message': 'checked-in Yarn distribution will be used; no cache copy was installed',
+        })
+        return
+    constraint = _constraint(req)
+    if not versions.is_exact(constraint):
+        result['actions'].append({
+            'tool': tool,
+            'error': f'{tool} needs an exact version; add packageManager or pass --{tool} X.Y.Z',
+            'source': req.get('source'),
+        })
+        return
+    node = result['resolved'].get('node')
+    if not node:
+        result['actions'].append({
+            'tool': tool,
+            'error': f'{tool} requires a Node.js runtime in this ensure request; declare Node or pass --node',
+        })
+        return
+    entry = installed_mod.find_matching(tool, {'constraint': constraint}, cache)
+    if entry:
+        result['resolved'][tool] = entry
+        result['actions'].append({'tool': tool, 'action': 'satisfied', 'version': entry['version']})
+        return
+    try:
+        package = sources.package_manager_package(tool, constraint)
+        resolved = sources.resolve_npm_package(package, constraint)
+    except Exception as e:
+        result['actions'].append({'tool': tool, 'error': str(e)})
+        return
+    target = install_root() / tool / f'v{resolved["version"]}'
+    try:
+        download.install_portable(
+            [resolved['url']], target, f'{tool} {resolved["version"]}',
+            integrity=resolved['integrity'])
+        _write_package_manager_shims(tool, target)
+    except Exception as e:
+        result['actions'].append({
+            'tool': tool, 'error': f'download failed: {e}',
+            'url': download.display_url(resolved['url']),
+        })
+        return
+    entry = {
+        'version': resolved['version'], 'path': str(target),
+        'package': package, 'node': node['version'],
+    }
+    cache[tool].append(entry)
+    result['resolved'][tool] = entry
+    result['actions'].append({
+        'tool': tool, 'action': 'installed', 'version': resolved['version'],
+        'package': package, 'url': download.display_url(resolved['url']),
+    })
+
+
+def _node_executable(entry, name):
+    root = Path(entry['path'])
+    suffix = '.cmd' if os.name == 'nt' else ''
+    direct = root / f'{name}{suffix}'
+    nested = root / 'bin' / name
+    return direct if direct.exists() else nested
+
+
+def _command_version(command):
+    try:
+        proc = subprocess.run(command, capture_output=True, text=True, timeout=15, shell=False)
+    except Exception:
+        return None
+    return installed_mod._parse_plain_version((proc.stdout or '') + (proc.stderr or ''))
+
+
+def _write_package_manager_shims(tool, target):
+    """Create cache-local launchers that use the activated Node runtime.
+
+    The package archive is data only. The wrappers do not modify project files,
+    profile files, Corepack state, or global npm prefixes.
+    """
+    target = Path(target)
+    bin_dir = target / 'bin'
+    bin_dir.mkdir(exist_ok=True)
+    if tool == 'pnpm':
+        js = target / 'bin' / 'pnpm.cjs'
+        candidates = list(target.glob('**/pnpm.cjs'))
+    else:
+        js = target / 'bin' / 'yarn.js'
+        candidates = list(target.glob('**/yarn.js')) + list(target.glob('**/bin/yarn'))
+    if not candidates:
+        raise RuntimeError(f'{tool} package archive contains no supported CLI entry point')
+    source = candidates[0]
+    if source != js:
+        shutil.copyfile(source, js)
+    sh = bin_dir / tool
+    sh.write_text(
+        '#!/bin/sh\nexec node "$(dirname "$0")/' + js.name + '" "$@"\n',
+        encoding='utf-8')
+    try:
+        sh.chmod(0o755)
+    except OSError:
+        pass
+    cmd = bin_dir / f'{tool}.cmd'
+    cmd.write_text('@echo off\r\nnode "%~dp0' + js.name + '" %*\r\n', encoding='ascii')
 
 
 def _constraint(req):
@@ -380,7 +672,8 @@ def cmd_purge(args):
 def build_parser():
     p = argparse.ArgumentParser(
         prog='runtime_cli.py',
-        description='build-toolchain-installer: JDK/Maven/Gradle/Node portable installer',
+        description='build-toolchain-installer: portable JDK/Node/Python, JVM builders, '
+                    'Node package managers, and uv',
     )
     p.add_argument(
         '--mirror', '-m', default=None, dest='mirror',
@@ -412,6 +705,32 @@ def build_parser():
     pe.add_argument('--maven', default=None, help='Apache Maven version (e.g. 3.9.6)')
     pe.add_argument('--gradle', default=None, help='Gradle version (e.g. 8.5)')
     pe.add_argument(
+        '--crane', nargs='?', const='latest', default=None,
+        help='crane version (exact) or latest; installed on demand for the '
+             'mv-image-build crane path',
+    )
+    pe.add_argument(
+        '--python', nargs='?', const='latest', default=None,
+        help='CPython version/constraint (e.g. 3.12, 3.12.15) or latest; '
+             'installed from python-build-standalone',
+    )
+    pe.add_argument(
+        '--uv', nargs='?', const='latest', default=None,
+        help='uv version/constraint or latest; installed from Astral official releases',
+    )
+    pe.add_argument(
+        '--npm', nargs='?', const='latest', default=None,
+        help='require bundled npm version from the selected Node runtime (never downloads npm alone)',
+    )
+    pe.add_argument(
+        '--pnpm', default=None,
+        help='exact pnpm version; installed as a cache-local npm package',
+    )
+    pe.add_argument(
+        '--yarn', default=None,
+        help='exact Yarn version; installed as a cache-local npm package',
+    )
+    pe.add_argument(
         '--print', default='sh',
         choices=['sh', 'ps1', 'cmd', 'auto'],
         help='activation snippet format to append to the result (default: sh)',
@@ -419,7 +738,9 @@ def build_parser():
     pe.set_defaults(func=cmd_ensure)
 
     ps = sub.add_parser('select', help='Switch the selected version of a tool')
-    ps.add_argument('tool', choices=['node', 'jdk', 'maven', 'gradle'])
+    ps.add_argument('tool', choices=[
+        'node', 'jdk', 'maven', 'gradle', 'crane', 'python', 'uv', 'pnpm', 'yarn',
+    ])
     ps.add_argument('version', help='installed version (exact or substring)')
     ps.set_defaults(func=cmd_select)
 
@@ -432,7 +753,11 @@ def build_parser():
     pa.set_defaults(func=cmd_activate)
 
     pp = sub.add_parser('purge', help='Delete cached installs')
-    pp.add_argument('--tool', default=None, choices=['node', 'jdk', 'maven', 'gradle'])
+    pp.add_argument('--tool', default=None,
+                    choices=[
+                        'node', 'jdk', 'maven', 'gradle', 'crane', 'python', 'uv',
+                        'pnpm', 'yarn',
+                    ])
     pp.set_defaults(func=cmd_purge)
 
     return p

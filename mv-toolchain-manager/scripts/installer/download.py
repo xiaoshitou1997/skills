@@ -148,12 +148,24 @@ def download(url, dest, show_progress=True):
 
 
 # --------------------------------------------------------------------------
-# Checksum verification (best-effort fetch of the publisher's checksum file)
+# Checksum verification (publisher checksum files or immutable npm SRI metadata)
 def _checksum_candidates(url):
     """Locations where the publisher typically publishes a checksum for url."""
     cands = [url + '.sha256', url + '.sha512']
-    if 'nodejs.org' in urllib.parse.urlsplit(url).netloc:
+    parts = urllib.parse.urlsplit(url)
+    if 'nodejs.org' in parts.netloc:
         cands.append(url.rsplit('/', 1)[0] + '/SHASUMS256.txt')
+    # go-containerregistry releases publish one checksums.txt per release.
+    if parts.netloc == 'github.com' and '/google/go-containerregistry/releases/download/' in parts.path:
+        cands.append(url.rsplit('/', 1)[0] + '/checksums.txt')
+    # python-build-standalone releases publish one SHA256SUMS per release.
+    if (parts.netloc == 'github.com'
+            and '/astral-sh/python-build-standalone/releases/download/' in parts.path):
+        cands.append(url.rsplit('/', 1)[0] + '/SHA256SUMS')
+    # Astral uv releases publish one sha256sum.txt per release.
+    if (parts.netloc == 'github.com'
+            and '/astral-sh/uv/releases/download/' in parts.path):
+        cands.append(url.rsplit('/', 1)[0] + '/sha256sum.txt')
     return cands
 
 
@@ -164,10 +176,40 @@ def _fetch_checksum_text(url):
         return r.read().decode('utf-8', 'replace')
 
 
+def verify_integrity(archive, integrity):
+    """Verify an npm registry SRI value against an already-downloaded archive.
+
+    The npm registry signs tarball metadata with `dist.integrity`. It is the
+    authoritative immutable digest for the exact package version and is checked
+    before any archive is extracted.
+    """
+    if not integrity or '-' not in integrity:
+        raise ValueError('invalid npm SRI integrity value')
+    algorithm, encoded = integrity.split('-', 1)
+    algorithm = algorithm.lower()
+    if algorithm not in hashlib.algorithms_available:
+        raise ValueError(f'unsupported npm integrity algorithm: {algorithm}')
+    import base64
+    try:
+        expected = base64.b64decode(encoded, validate=True)
+    except Exception as e:
+        raise ValueError('invalid base64 in npm SRI integrity value') from e
+    h = hashlib.new(algorithm)
+    with open(archive, 'rb') as f:
+        for chunk in iter(lambda: f.read(CHUNK), b''):
+            h.update(chunk)
+    if h.digest() != expected:
+        raise ChecksumMismatch(
+            f'npm integrity mismatch for {Path(archive).name}: expected {integrity}')
+    sys.stderr.write(f'  integrity OK ({algorithm})\n')
+
+
 def verify_download(url, archive):
     """Verify archive against the publisher's checksum when one is published.
 
-    Checks <url>.sha256 / <url>.sha512 and (nodejs.org) SHASUMS256.txt.
+    Checks <url>.sha256 / <url>.sha512, (nodejs.org) SHASUMS256.txt and
+    (go-containerregistry releases) checksums.txt and
+    (python-build-standalone releases) SHA256SUMS.
     Hex mismatch raises ChecksumMismatch (fail closed — the caller must not
     fall through to the next candidate URL). Sources publishing no checksum
     only get a warning; the limitation stays honest instead of silent.
@@ -309,8 +351,11 @@ def extract(archive, dest):
         raise ValueError(f"Cannot extract {archive}: unsupported archive type")
 
 
-def install_portable(urls, target, label):
+def install_portable(urls, target, label, integrity=None):
     """Download a portable archive and normalize its single top-level dir to `target`.
+
+    Pass `integrity` only for an exact npm-registry package. In that case the
+    registry's SRI digest is mandatory and checked before extraction.
 
     `urls` may be a single URL string or an iterable of candidate URLs.
 
@@ -381,7 +426,10 @@ def install_portable(urls, target, label):
             sys.stderr.write(f"  downloading {label}\n    {display_url(url)}\n")
             try:
                 download(url, archive)
-                verify_download(url, archive)
+                if integrity:
+                    verify_integrity(archive, integrity)
+                else:
+                    verify_download(url, archive)
                 sys.stderr.write('  extracting...\n')
                 extract(archive, extracted)
             except ChecksumMismatch:

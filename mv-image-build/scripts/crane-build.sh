@@ -22,7 +22,7 @@ usage() {
 [[ "$ENV" =~ ^(dev|prod)$ ]] || usage
 [[ "$APP" =~ ^[a-z][a-z0-9_-]{0,62}$ ]] || { echo 'APP must be lowercase letters/digits/hyphens/underscores' >&2; exit 2; }
 
-command -v crane >/dev/null 2>&1 || { echo '未找到 crane;从 https://github.com/google/go-containerregistry/releases 下载单文件二进制并加入 PATH' >&2; exit 3; }
+command -v crane >/dev/null 2>&1 || { echo '未找到 crane;交 mv-toolchain-manager 按需准备(ensure --crane)并在同一会话激活后重试' >&2; exit 3; }
 
 # Python 按环境选择(python3 / python / py -3),用于解析镜像 tar 与计算摘要。
 pick_python() {
@@ -161,7 +161,7 @@ crane mutate "$BASE" "${MUTATE_ARGS[@]}" -o "$TAR_OUT"
 echo "ARTIFACT=$TAR_OUT"
 
 PY=$(pick_python)
-[[ -n "$PY" ]] || { echo '需要 Python 解析镜像 tar 的 manifest;未找到 python3/python/py' >&2; exit 3; }
+[[ -n "$PY" ]] || { echo '需要 Python 解析镜像 tar 的 manifest;未找到 python3/python/py;由 mv-toolchain-manager 按需准备(ensure --python 3.12);宿主完全没有 Python 时先执行其 scripts/installer/bootstrap-python.sh 3.12,在同一会话中激活后重试' >&2; exit 3; }
 # RepoTags 补写:mutate --output 的 tar 不携带 Tag,补上 IMAGE 使 docker load 后按引用可寻址;
 # 同时返回 Config 文件名;格式异常即失败,不产出损坏镜像。
 CONFIG_FILE=$("$PY" - "$TAR_OUT" "$IMAGE" <<'PYEOF'
@@ -195,8 +195,10 @@ print(hashlib.sha256(data).hexdigest())
 PYEOF
 ) || { echo '无法从镜像 tar 读取镜像配置并计算摘要' >&2; exit 3; }
 # 一致性守卫:manifest Config 文件名即镜像配置摘要,不一致说明产物格式异常,不输出假身份。
-if [[ "${CONFIG_FILE%.json}" != "$ID_HEX" ]]; then
-  echo "镜像 tar 一致性校验失败:manifest Config=${CONFIG_FILE%.json} 与配置摘要=$ID_HEX 不一致;人工核对产物后重试" >&2
+CONFIG_ID=${CONFIG_FILE%.json}
+CONFIG_ID=${CONFIG_ID#sha256:}
+if [[ "$CONFIG_ID" != "$ID_HEX" ]]; then
+  echo "镜像 tar 一致性校验失败:manifest Config=$CONFIG_FILE 与配置摘要=$ID_HEX 不一致;人工核对产物后重试" >&2
   exit 3
 fi
 

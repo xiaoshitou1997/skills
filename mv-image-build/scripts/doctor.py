@@ -68,9 +68,9 @@ def _nio_smoke():
 
 
 def _wsl_resources(distro):
-    # 注意: wsl.exe 不保留参数引号（拼接后交默认 shell），探针命令必须无引号/无 $。
+    # 用 --exec 直接 exec:否则 wsl.exe 把余下参数拼接后交给默认 shell,引号会丢失。
     try:
-        p = subprocess.run(["wsl.exe", "-d", distro, "sh", "-c",
+        p = subprocess.run(["wsl.exe", "-d", distro, "--exec", "sh", "-c",
                             "nproc && grep MemTotal /proc/meminfo"],
                            capture_output=True, timeout=15)
     except (OSError, subprocess.TimeoutExpired):
@@ -96,16 +96,31 @@ def main():
     args = ap.parse_args()
     root = Path(args.project).resolve()
     is_windows = os.name == "nt"
+    command_names = (
+        "git", "docker", "ssh", "gh", "gitleaks", "trivy", "node", "java", "mvn",
+        "gradle", "python", "npm", "pnpm", "yarn", "uv",
+    )
     commands = {key: {"available": shutil.which(key) is not None}
-                for key in ("git", "docker", "ssh", "gh", "gitleaks", "trivy", "node", "java", "mvn")}
-    checks = {"git": version("git", "--version"),
-              "docker": version("docker", "--version"),
-              "docker_compose": version("docker", "compose", "version"),
-              "gh": version("gh", "--version")}
+                for key in command_names}
+    checks = {
+        "git": version("git", "--version"),
+        "docker": version("docker", "--version"),
+        "docker_compose": version("docker", "compose", "version"),
+        "gh": version("gh", "--version"),
+        "node": version("node", "--version"),
+        "java": version("java", "-version"),
+        "maven": version("mvn", "--version"),
+        "gradle": version("gradle", "--version"),
+        "python": version("python", "--version"),
+        "npm": version("npm", "--version"),
+        "pnpm": version("pnpm", "--version"),
+        "yarn": version("yarn", "--version"),
+        "uv": version("uv", "--version"),
+    }
     if is_windows:
         distro = wsl_distro()
         checks["wsl_distro"] = {"ok": bool(distro), "detail": distro or "no distro"}
-        checks["wsl_docker"] = (version("wsl.exe", "-d", distro, "docker", "--version")
+        checks["wsl_docker"] = (version("wsl.exe", "-d", distro, "--exec", "docker", "--version")
                                 if distro else {"ok": False, "detail": "not available"})
         if commands["java"]["available"]:
             checks["host_build_chain"] = _nio_smoke()

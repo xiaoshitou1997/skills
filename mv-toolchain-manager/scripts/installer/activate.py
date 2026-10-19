@@ -82,8 +82,15 @@ def _to_msys(p):
 
 def _bin_for(tool, entry):
     """Bin directory to prepend to PATH for the tool."""
-    if tool == 'node' and os_name() == 'windows':
-        # node.exe lives at the archive root on Windows
+    if tool in ('crane', 'uv'):
+        # Both ship as a bare executable at the archive root.
+        return entry['path']
+    if tool in ('pnpm', 'yarn'):
+        # Archive paths can be emitted for a shell other than the current host
+        # (e.g. Git Bash on Windows), so keep this intermediate path POSIX-like.
+        return str(entry['path']).rstrip('/\\') + '/bin'
+    if tool in ('node', 'python') and os_name() == 'windows':
+        # node.exe / python.exe live at the archive root on Windows
         return entry['path']
     return os.path.join(entry['path'], 'bin')
 
@@ -110,6 +117,18 @@ def emit_sh(sel):
         bd = _bin_for('node', sel['node'])
         bd = _to_msys(bd) if win else bd
         parts.append(f'export PATH="{bd}:$PATH"')
+    if 'crane' in sel:
+        p = _to_msys(sel['crane']['path']) if win else sel['crane']['path']
+        parts.append(f'export PATH="{p}:$PATH"')
+    if 'python' in sel:
+        bd = _bin_for('python', sel['python'])
+        bd = _to_msys(bd) if win else bd
+        parts.append(f'export PATH="{bd}:$PATH"')
+    for tool in ('uv', 'pnpm', 'yarn'):
+        if tool in sel:
+            bd = _bin_for(tool, sel[tool])
+            bd = _to_msys(bd) if win else bd
+            parts.append(f'export PATH="{bd}:$PATH"')
     lines.extend(parts)
     return '\n'.join(lines) + '\n'
 
@@ -132,6 +151,16 @@ def emit_ps1(sel):
     if 'node' in sel:
         p = _to_win(_bin_for('node', sel['node']))
         parts.append(f'$env:PATH = "{p};$env:PATH"')
+    if 'crane' in sel:
+        p = _to_win(sel['crane']['path'])
+        parts.append(f'$env:PATH = "{p};$env:PATH"')
+    if 'python' in sel:
+        p = _to_win(_bin_for('python', sel['python']))
+        parts.append(f'$env:PATH = "{p};$env:PATH"')
+    for tool in ('uv', 'pnpm', 'yarn'):
+        if tool in sel:
+            p = _to_win(_bin_for(tool, sel[tool]))
+            parts.append(f'$env:PATH = "{p};$env:PATH"')
     lines.extend(parts)
     return '\n'.join(lines) + '\n'
 
@@ -154,6 +183,16 @@ def emit_cmd(sel):
     if 'node' in sel:
         p = _to_win(_bin_for('node', sel['node']))
         parts.append(f'set "PATH={p};%PATH%"')
+    if 'crane' in sel:
+        p = _to_win(sel['crane']['path'])
+        parts.append(f'set "PATH={p};%PATH%"')
+    if 'python' in sel:
+        p = _to_win(_bin_for('python', sel['python']))
+        parts.append(f'set "PATH={p};%PATH%"')
+    for tool in ('uv', 'pnpm', 'yarn'):
+        if tool in sel:
+            p = _to_win(_bin_for(tool, sel[tool]))
+            parts.append(f'set "PATH={p};%PATH%"')
     lines.extend(parts)
     lines.append('')  # trailing newline
     return '\n'.join(lines) + '\n'

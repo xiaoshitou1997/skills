@@ -12,7 +12,8 @@ def sniff(project):
     if not project.is_dir():
         raise ValueError('project directory not found')
     found = {}
-    for fn in ('.nvmrc', '.node-version', '.java-version', '.tool-versions', '.mise.toml'):
+    for fn in ('.nvmrc', '.node-version', '.java-version', '.python-version',
+               '.tool-versions', '.mise.toml', '.yarnrc.yml'):
         path = project / fn
         if path.exists():
             found[fn] = path.read_text(encoding='utf-8', errors='replace').strip()[:4000]
@@ -24,6 +25,20 @@ def sniff(project):
             data = None  # 单来源损坏只跳过该来源,不中断其余检测
         if data is not None:
             found['node'] = {'engines': data.get('engines', {}), 'packageManager': data.get('packageManager')}
+    pyproject = project / 'pyproject.toml'
+    if pyproject.exists():
+        text = pyproject.read_text(encoding='utf-8', errors='replace')
+        requires = re.search(r'^\s*requires-python\s*=\s*["\']([^"\']+)', text, re.M)
+        found['python'] = {
+            'requires-python': requires.group(1) if requires else None,
+            'tool.uv': bool(re.search(r'^\s*\[tool\.uv\]', text, re.M)),
+        }
+    if (project / 'uv.lock').exists():
+        found['uv.lock'] = True
+    yarn_releases = project / '.yarn' / 'releases'
+    if yarn_releases.is_dir():
+        found['yarn_release'] = [p.name for p in sorted(yarn_releases.glob('yarn-*.cjs'))]
+
     pom = project / 'pom.xml'
     if pom.exists():
         try:

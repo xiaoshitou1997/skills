@@ -29,7 +29,8 @@ Windows 上镜像构建经 WSL（`scripts/wsl-bridge.sh` 桥接），Docker 路�
 适用与前置：
 
 - 适用 Java（Gradle/Maven）与 Node 项目，任意宿主产物通用；典型场景是 Windows 无 WSL、Linux/macOS 未装 Docker。产物仍由项目按约定在宿主构建，脚本只做分层组装，不做任何编译。
-- 本机安装 crane（[go-containerregistry releases](https://github.com/google/go-containerregistry/releases) 单文件二进制）；能从仓库**拉取**基础镜像（只读即可，`crane mutate --output` 直出本地 tar，不推送任何仓库）。私有仓库认证走标准 docker config（`~/.docker/config.json`）。
+- crane 由 `mv-toolchain-manager` 按需准备（`ensure --crane`，[go-containerregistry releases](https://github.com/google/go-containerregistry/releases) 单文件二进制，会话级激活）；缺失时先走工具链准备，不要求用户手工下载。能从仓库**拉取**基础镜像（只读即可，`crane mutate --output` 直出本地 tar，不推送任何仓库）。私有仓库认证走标准 docker config（`~/.docker/config.json`）。
+- 补写 `RepoTags` 与核对配置摘要需要 Python 3；缺失时同样由 `mv-toolchain-manager` 按需准备（`ensure --python 3.12`），宿主完全没有 Python 时先执行其 `bootstrap-python.sh` 并在同一会话激活。Python 只读写 tar，不参与编译。
 - 栈模式 `FF_STACK=java|web|server`，缺省按项目文件推断；三种模式与瘦模板逐项对齐：
   - `java`：基镜像 `eclipse-temurin:21-jre`，产物为单个 jar（自动检测 `target`/`build/libs` 唯一 boot jar 或 `FF_ARTIFACT`），置于 `/app/app.jar`，`--workdir /app --user 10001 --exposed-ports 8080 --entrypoint java,-jar,/app/app.jar`（`FF_ENTRYPOINT` 可覆盖入口）；
   - `web`：基镜像 `nginx:alpine`，产物目录置于 `/usr/share/nginx/html`，`--exposed-ports 80`；SPA history 路由需要 fallback 配置时自备基镜像（`FF_RUNTIME_IMAGE`），脚本不改基镜像配置；

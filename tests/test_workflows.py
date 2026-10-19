@@ -147,7 +147,7 @@ if [ "$1" = "mutate" ]; then
   d=$(mktemp -d)
   printf 'image-config-bytes' > "$d/c.json"
   hex=$(sha256sum "$d/c.json" | cut -d' ' -f1)
-  if [ -n "$CRANE_BAD_NAME" ]; then nm="deadbeef.json"; else nm="$hex.json"; fi
+  if [ -n "$CRANE_BAD_NAME" ]; then nm="deadbeef.json"; else nm="sha256:$hex"; fi
   mv "$d/c.json" "$d/$nm"
   printf '[{"Config":"%s","Layers":[]}]\n' "$nm" > "$d/manifest.json"
   tar -C "$d" -cf "$out" manifest.json "$nm"
@@ -297,7 +297,7 @@ if [[ "$1" == sh && "$2" == -c ]]; then
   cd "$FAKE_RUNTIME_ROOT" && pwd
   exit
 fi
-[[ "$1" != -- ]] || shift
+[[ "$1" != --exec && "$1" != -e && "$1" != -- ]] || shift
 { printf wsl; printf '\t%s' "$@"; printf '\n'; } >&2
 exec "$@"
 """,

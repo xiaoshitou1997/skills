@@ -17,6 +17,9 @@ def detect_all(project):
         'jdk': detect_jdk(project),
         'maven': detect_maven(project),
         'gradle': detect_gradle(project),
+        'python': detect_python(project),
+        'uv': detect_uv(project),
+        'package_manager': detect_package_manager(project),
     }
 
 
@@ -45,6 +48,9 @@ def detect_node(project):
     tv = _tool_versions(project)
     if tv and 'nodejs' in tv:
         return {'source': '.tool-versions', 'constraint': tv['nodejs'].lstrip('vV')}
+    mise = _mise_tools(project)
+    if 'node' in mise:
+        return {'source': '.mise.toml', 'constraint': mise['node'].lstrip('vV')}
     return None
 
 
@@ -82,6 +88,11 @@ def detect_jdk(project):
         m = re.search(r'(\d+)', tv['java'])
         if m:
             return {'source': '.tool-versions', 'constraint': m.group(1)}
+    mise = _mise_tools(project)
+    if 'java' in mise:
+        m = re.search(r'(\d+)', mise['java'])
+        if m:
+            return {'source': '.mise.toml', 'constraint': m.group(1)}
     return None
 
 
@@ -94,7 +105,11 @@ def detect_maven(project):
         for line in wrap.read_text(encoding='utf-8', errors='ignore').splitlines():
             m = re.search(r'apache-maven-([\d.]+)', line)
             if m:
-                return {'source': 'maven-wrapper.properties', 'constraint': m.group(1)}
+                return {
+                    'source': 'maven-wrapper.properties',
+                    'constraint': m.group(1),
+                    'project_managed': True,
+                }
     pom = project / 'pom.xml'
     if pom.exists():
         v = _parse_pom_maven(pom)
@@ -112,14 +127,100 @@ def detect_gradle(project):
         for line in wrap.read_text(encoding='utf-8', errors='ignore').splitlines():
             m = re.search(r'gradle-([\d.]+)-bin', line)
             if m:
-                return {'source': 'gradle-wrapper.properties', 'constraint': m.group(1)}
+                return {
+                    'source': 'gradle-wrapper.properties',
+                    'constraint': m.group(1),
+                    'project_managed': True,
+                }
+    return None
+
+
+# --------------------------------------------------------------------------
+# Python / uv
+def detect_python(project):
+    project = Path(project)
+    p = project / '.python-version'
+    if p.exists():
+        text = p.read_text(encoding='utf-8', errors='ignore').strip()
+        if text:
+            return {'source': '.python-version', 'constraint': text.split()[0].lstrip('vV')}
+    tv = _tool_versions(project)
+    if tv and 'python' in tv:
+        return {'source': '.tool-versions', 'constraint': tv['python'].lstrip('vV')}
+    mise = _mise_tools(project)
+    if 'python' in mise:
+        return {'source': '.mise.toml', 'constraint': mise['python'].lstrip('vV')}
+    required = _pyproject_value(project / 'pyproject.toml', 'requires-python')
+    if required:
+        return {'source': 'pyproject.toml#project.requires-python', 'constraint': required}
+    return None
+
+
+def detect_uv(project):
+    project = Path(project)
+    tv = _tool_versions(project)
+    if tv and 'uv' in tv:
+        return {'source': '.tool-versions', 'constraint': tv['uv'].lstrip('vV')}
+    mise = _mise_tools(project)
+    if 'uv' in mise:
+        return {'source': '.mise.toml', 'constraint': mise['uv'].lstrip('vV')}
+    pyproject = project / 'pyproject.toml'
+    if pyproject.exists() and re.search(
+            r'^\s*\[tool\.uv\]',
+            pyproject.read_text(encoding='utf-8', errors='ignore'), re.M):
+        return {'source': 'pyproject.toml#tool.uv', 'constraint': 'latest'}
+    if (project / 'uv.lock').exists():
+        return {'source': 'uv.lock', 'constraint': 'latest'}
+    return None
+
+
+# --------------------------------------------------------------------------
+# Node package manager
+def detect_package_manager(project):
+    project = Path(project)
+    # A checked-in Yarn distribution is executable project state. It wins over
+    # packageManager so that `ensure --project` never replaces a repository's
+    # selected Yarn release with a cache-managed copy.
+    yarn_path = _project_yarn_path(project)
+    if yarn_path:
+        return {
+            'source': '.yarnrc.yml/yarnPath',
+            'tool': 'yarn',
+            'constraint': '',
+            'project_managed': True,
+            'path': str(yarn_path),
+        }
+
+    package = project / 'package.json'
+    if package.exists():
+        try:
+            value = (json.loads(package.read_text(encoding='utf-8'))
+                     .get('packageManager'))
+        except Exception:
+            value = None
+        parsed = _parse_package_manager(value)
+        if parsed:
+            parsed['source'] = 'package.json#packageManager'
+            return parsed
+
+    if (project / 'pnpm-lock.yaml').exists():
+        return {'source': 'pnpm-lock.yaml', 'tool': 'pnpm', 'constraint': 'latest'}
+    if (project / 'package-lock.json').exists():
+        return {'source': 'package-lock.json', 'tool': 'npm', 'constraint': ''}
+    if (project / 'yarn.lock').exists():
+        return {
+            'source': 'yarn.lock',
+            'tool': 'yarn',
+            'constraint': '',
+            'error': 'yarn.lock alone does not identify Yarn Classic or modern Yarn; add packageManager or commit yarnPath',
+        }
     return None
 
 
 # --------------------------------------------------------------------------
 # helpers
 def _tool_versions(project):
-    p = project / '.tool-versions'
+    p = Path(project) / '.tool-versions'
     out = {}
     if p.exists():
         for line in p.read_text(encoding='utf-8', errors='ignore').splitlines():
@@ -127,6 +228,71 @@ def _tool_versions(project):
             if len(parts) >= 2:
                 out[parts[0]] = parts[1]
     return out
+
+
+def _mise_tools(project):
+    """Read simple `[tools] name = "version"` declarations without tomllib."""
+    p = Path(project) / '.mise.toml'
+    if not p.exists():
+        return {}
+    section = False
+    out = {}
+    for raw in p.read_text(encoding='utf-8', errors='ignore').splitlines():
+        line = raw.split('#', 1)[0].strip()
+        if line.startswith('[') and line.endswith(']'):
+            section = line == '[tools]'
+            continue
+        if not section:
+            continue
+        m = re.match(r'([A-Za-z0-9_.-]+)\s*=\s*["\']([^"\']+)["\']', line)
+        if m:
+            out[m.group(1)] = m.group(2)
+    return out
+
+
+def _pyproject_value(path, key):
+    """Read a quoted `[project]` scalar without requiring Python 3.11 tomllib."""
+    if not path.exists():
+        return None
+    in_project = False
+    for raw in path.read_text(encoding='utf-8', errors='ignore').splitlines():
+        line = raw.split('#', 1)[0].strip()
+        if line.startswith('[') and line.endswith(']'):
+            in_project = line == '[project]'
+            continue
+        if in_project:
+            m = re.match(rf'{re.escape(key)}\s*=\s*["\']([^"\']+)["\']', line)
+            if m:
+                return m.group(1)
+    return None
+
+
+def _parse_package_manager(value):
+    if not isinstance(value, str):
+        return None
+    m = re.fullmatch(r'\s*(npm|pnpm|yarn)@([^\s]+)\s*', value)
+    if not m:
+        return None
+    return {'tool': m.group(1), 'constraint': m.group(2).lstrip('vV')}
+
+
+def _project_yarn_path(project):
+    config = Path(project) / '.yarnrc.yml'
+    if config.exists():
+        for raw in config.read_text(encoding='utf-8', errors='ignore').splitlines():
+            m = re.match(r'\s*yarnPath\s*:\s*["\']?([^"\'#\s]+)', raw)
+            if not m:
+                continue
+            path = (Path(project) / m.group(1)).resolve()
+            root = Path(project).resolve()
+            if root == path or root in path.parents:
+                return path
+    releases = Path(project) / '.yarn' / 'releases'
+    if releases.is_dir():
+        candidates = sorted(releases.glob('yarn-*.cjs'))
+        if len(candidates) == 1:
+            return candidates[0]
+    return None
 
 
 def _major(v):
@@ -186,8 +352,8 @@ def _parse_gradle_java(g):
         text = g.read_text(encoding='utf-8', errors='ignore')
         patterns = (
             r'languageVersion\s*=\s*JavaLanguageVersion\.of\(\s*(\d+)\s*\)',
-            r'sourceCompatibility\s*=\s*[\'"]?(?:JavaVersion\.VERSION_)?(\d+(?:[._]\d+)?)',
-            r'targetCompatibility\s*=\s*[\'"]?(?:JavaVersion\.VERSION_)?(\d+(?:[._]\d+)?)',
+            r'sourceCompatibility\s*=\s*[\'\"]?(?:JavaVersion\.VERSION_)?(\d+(?:[._]\d+)?)',
+            r'targetCompatibility\s*=\s*[\'\"]?(?:JavaVersion\.VERSION_)?(\d+(?:[._]\d+)?)',
         )
         for pat in patterns:
             m = re.search(pat, text)

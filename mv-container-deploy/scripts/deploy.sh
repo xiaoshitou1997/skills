@@ -116,7 +116,7 @@ ssh_cli() {
 # 统一 docker 入口:桥接模式下在 WSL 内执行,并关闭 MSYS 路径转换,防止 /mnt、镜像、路径参数被改写。
 docker_cli() {
   if [[ -n "$WSL_DISTRO" ]]; then
-    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" -- docker "$@"
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" --exec docker "$@"
   else
     docker "$@"
   fi
@@ -124,7 +124,7 @@ docker_cli() {
 
 # 在 WSL 内执行任意命令(桥接模式专用);调用方保证 WSL_DISTRO 非空。
 wsl_bash() {
-  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" -- "$@"
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" --exec "$@"
 }
 
 case "$ACTION" in
