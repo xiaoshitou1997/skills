@@ -2,7 +2,7 @@
 
 ## 使用场景
 
-Python 是受支持的项目运行时：安装器会依次读取 `.python-version`、`.tool-versions`、`.mise.toml` 与 `pyproject.toml` 的 `[project].requires-python`。它不替代项目已有的解释器、虚拟环境、uv 或 conda；项目现有方案可用时应直接使用。`mv-image-build` 的 crane 路径同样可复用这个便携 Python：`crane-build.sh` 需要它读取并重写镜像 tar 的 `manifest.json`（补 `RepoTags`、校验 Config 摘要）。
+Python 是受支持的项目运行时：安装器会依次读取 `.python-version`、`.tool-versions`、`.mise.toml` 与 `pyproject.toml` 的 `[project].requires-python`。它不替代项目已有的解释器、虚拟环境、uv 或 conda；项目现有方案可用时应直接使用。本 skill 与 `mv-image-build` 的只读诊断脚本（`doctor.py` 等）同样可复用这个便携 Python。
 
 ## 当前版本接口
 

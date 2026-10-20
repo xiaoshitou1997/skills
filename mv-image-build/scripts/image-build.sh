@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Docker engine path: package prebuilt host artifacts into thin runtime images inside WSL.
-# 团队规范:镜像构建默认经 WSL;无 WSL 时走同目录 crane-build.sh(crane 路径,Java/Node 通用);不在宿主安装 Docker。
-# 编译出包在宿主完成(工具链见 mv-toolchain-manager);本脚本只检测产物、打瘦镜像、输出镜像身份。
-# 镜像常驻:构建只新增镜像,任何流程不得 rmi/prune/清理镜像。
+# 非 Java 模块镜像路径:把宿主预构建产物打包进瘦运行时镜像(WSL/本机 Docker)。
+# 团队规范:Java 模块的镜像定义走模块内 Jib 插件,由同目录 jib-build.sh 编排;
+# 本脚本服务 Node 静态前端与自备 Dockerfile.delivery 的项目,不做编译。
+# 编译出包在宿主完成(工具链见 mv-toolchain-manager);镜像常驻,不得 rmi/prune。
 # 与 mv-container-deploy 的接口:输出 IMAGE=<repo>:<tag> 与 IMAGE_ID=...,部署侧只消费该镜像引用。
 set -euo pipefail
 umask 077
@@ -61,9 +61,8 @@ unique_artifact() {
 }
 
 # 产物检测:编译出包由项目在宿主完成,这里只按栈约定定位产物,不做任何编译。
-# Gradle 取 build/libs 唯一 boot jar(排除 -plain/-sources);Maven 取 target 唯一 jar
-# (排除 -sources/-javadoc/original-*);Node 取 dist/ 或 build/。FF_ARTIFACT 显式指定
-# 时优先(文件→app.jar,目录→app/),供多模块或自定义布局使用。
+# 本脚本仅在 Node 静态前端或项目自备 Dockerfile.delivery 时使用;Java 模块走 jib-build.sh。
+# FF_ARTIFACT 显式指定时优先(文件→app.jar,目录→app/),供多模块或自定义布局使用。
 find_artifact() {
   ARTIFACT=''
   ARTIFACT_DIR=''
@@ -72,15 +71,15 @@ find_artifact() {
     if [[ -d "$FF_ARTIFACT" ]]; then ARTIFACT_DIR=$FF_ARTIFACT; else ARTIFACT=$FF_ARTIFACT; fi
     return 0
   fi
-  if [[ -f pom.xml ]]; then
-    CANDS=$(ls -1t target/*.jar 2>/dev/null | grep -vE -- '-(sources|javadoc)\.jar$' | grep -v '/original-' || true)
-    unique_artifact "$CANDS" || { echo '未在 target/ 找到可交付 jar;先在宿主出包(如 mvn -B package,工具链准备见 mv-toolchain-manager),或用 FF_ARTIFACT 指定产物' >&2; exit 3; }
-  elif [[ -f build.gradle || -f build.gradle.kts ]]; then
-    CANDS=$(ls -1t build/libs/*.jar 2>/dev/null | grep -vE -- '-(plain|sources)\.jar$' || true)
-    unique_artifact "$CANDS" || { echo '未在 build/libs/ 找到可交付 boot jar;先在宿主出包(如 ./gradlew bootJar),或用 FF_ARTIFACT 指定产物' >&2; exit 3; }
-  elif [[ -f package.json ]]; then
+  if [[ -f package.json ]]; then
     if [[ -d dist ]]; then ARTIFACT_DIR=dist; elif [[ -d build ]]; then ARTIFACT_DIR=build; fi
     [[ -n "$ARTIFACT_DIR" ]] || { echo '未找到 dist/ 或 build/ 静态产物;先在宿主出包(如 npm run build),或用 FF_ARTIFACT 指定产物目录' >&2; exit 3; }
+  elif [[ -f Dockerfile.delivery && -f pom.xml ]]; then
+    CANDS=$(ls -1t target/*.jar 2>/dev/null | grep -vE -- '-(sources|javadoc)\.jar$' | grep -v '/original-' || true)
+    unique_artifact "$CANDS" || { echo '未在 target/ 找到可交付 jar;先在宿主出包(如 mvn -B package),或用 FF_ARTIFACT 指定产物' >&2; exit 3; }
+  elif [[ -f Dockerfile.delivery ]] && { [[ -f build.gradle ]] || [[ -f build.gradle.kts ]]; }; then
+    CANDS=$(ls -1t build/libs/*.jar 2>/dev/null | grep -vE -- '-(plain|sources)\.jar$' || true)
+    unique_artifact "$CANDS" || { echo '未在 build/libs/ 找到可交付 boot jar;先在宿主出包(如 ./gradlew bootJar),或用 FF_ARTIFACT 指定产物' >&2; exit 3; }
   fi
   [[ -n "$ARTIFACT" || -n "$ARTIFACT_DIR" ]] || { echo '未找到可交付产物;先在宿主出包,并用 FF_ARTIFACT 指定产物文件或目录' >&2; exit 3; }
 }
@@ -113,17 +112,19 @@ wsl_bash() {
 
 case "$ACTION" in
   build)
-    project_checks
-    # 栈检测决定瘦模板;产物必须在宿主已构建完成。
+    # 镜像定义与模块同源:Java 在模块内声明 Jib;本脚本只服务非 Java 模块与自备 Dockerfile.delivery。
     if [[ -f Dockerfile.delivery ]]; then
       TEMPLATE=Dockerfile.delivery
-    elif [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]]; then
-      TEMPLATE="$SKILL_ROOT/templates/Dockerfile.jar"
     elif [[ -f package.json ]]; then
       TEMPLATE="$SKILL_ROOT/templates/Dockerfile.web"
+    elif [[ -f pom.xml || -f build.gradle || -f build.gradle.kts ]]; then
+      echo 'Java 模块镜像由模块内 Jib 插件定义:请在模块目录使用 jib-build.sh;' >&2
+      echo '确需 Docker 路径时在模块内提供 Dockerfile.delivery(只做产物复制,不做编译)' >&2
+      exit 3
     else
       echo 'Unsupported project: build the artifact on the host and provide a thin Dockerfile.delivery' >&2; exit 3
     fi
+    project_checks
     find_artifact
     if [[ -n "$ARTIFACT_DIR" ]]; then check_artifact_directory; fi
     init_runtime

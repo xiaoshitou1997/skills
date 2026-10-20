@@ -19,7 +19,7 @@ if not Path(BASH).exists():
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
 IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
-CRANE_BUILD = (ROOT / 'mv-image-build/scripts/crane-build.sh').as_posix()
+JIB_BUILD = (ROOT / 'mv-image-build/scripts/jib-build.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 
 
@@ -73,6 +73,7 @@ class WorkflowTests(unittest.TestCase):
             d = Path(d)
             (d / '.dockerignore').write_text('.env*\n.git\n')
             (d / 'pom.xml').write_text('<project/>')
+            (d / 'Dockerfile.delivery').write_text('FROM scratch\n')
             target = d / 'target'
             target.mkdir()
             (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
@@ -114,6 +115,7 @@ class WorkflowTests(unittest.TestCase):
             d = Path(d)
             (d / '.dockerignore').write_text('.env*\n.git\n')
             (d / 'pom.xml').write_text('<project/>')
+            (d / 'Dockerfile.delivery').write_text('FROM scratch\n')
             target = d / 'target'
             target.mkdir()
             (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
@@ -122,131 +124,120 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('FF_ARTIFACT', run.stderr)
 
-    def test_build_without_artifact_fails_with_guidance(self):
+    def test_java_module_without_delivery_dockerfile_points_to_jib(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             (d / '.dockerignore').write_text('.env*\n.git\n')
             (d / 'pom.xml').write_text('<project/>')
             run = subprocess.run([BASH, IMAGE_BUILD, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertNotEqual(run.returncode, 0)
-            self.assertIn('mvn -B package', run.stderr)
-            self.assertIn('mv-toolchain-manager', run.stderr)
+            self.assertIn('jib-build.sh', run.stderr)
+            self.assertIn('Dockerfile.delivery', run.stderr)
 
-    # --- crane 路径（无 WSL）:基镜像+产物层组装,镜像身份契约与 Docker 路径同源 ---
+    # --- Jib 路径:Java 模块由模块内插件定义,脚本只编排 tar 产出与载入 ---
 
-    # 假 crane:mutate 时在 -o 指定路径写最小 docker 格式镜像 tar(不含 RepoTags,由脚本补写);
-    # CRANE_BAD_NAME=1 时故意写错 Config 文件名,测一致性守卫。
-    FAKE_CRANE = r"""#!/bin/sh
-printf '%s\n' "$*" >> "$CRANE_LOG"
-if [ "$1" = "mutate" ]; then
-  prev=""
-  for a in "$@"; do
-    [ "$prev" = "-o" ] && out="$a"
-    prev="$a"
-  done
-  d=$(mktemp -d)
-  printf 'image-config-bytes' > "$d/c.json"
-  hex=$(sha256sum "$d/c.json" | cut -d' ' -f1)
-  if [ -n "$CRANE_BAD_NAME" ]; then nm="deadbeef.json"; else nm="sha256:$hex"; fi
-  mv "$d/c.json" "$d/$nm"
-  printf '[{"Config":"%s","Layers":[]}]\n' "$nm" > "$d/manifest.json"
-  tar -C "$d" -cf "$out" manifest.json "$nm"
-  rm -rf "$d"
-fi
+    # 调用记录走 stderr:端点透明加密可能改写脚本写出的日志文件,断言只看进程输出。
+    FAKE_MAVEN = r"""#!/bin/sh
+printf 'MVN %s\n' "$*" >&2
+mkdir -p target
+printf 'fake-jib-tar' > target/jib-image.tar
 """
 
-    def _crane_env(self, d):
+    FAKE_GRADLEW = r"""#!/bin/sh
+printf 'GRADLE %s\n' "$*" >&2
+mkdir -p build
+printf 'fake-jib-tar' > build/jib-image.tar
+"""
+
+    FAKE_DOCKER_JIB = r"""#!/bin/sh
+printf 'DOCKER %s\n' "$*" >&2
+case "$1" in
+  load) cat "$3" >/dev/null ;;
+  image) echo "IMAGE_ID=sha256:jibmocked" ;;
+esac
+"""
+
+    def _jib_env(self, d):
         bin_dir = d / 'bin'
         bin_dir.mkdir(exist_ok=True)
-        fake_crane = bin_dir / 'crane'
-        fake_crane.write_text(self.FAKE_CRANE)
-        fake_crane.chmod(0o755)
+        (bin_dir / 'mvn').write_text(self.FAKE_MAVEN, encoding='utf-8', newline='\n')
+        (bin_dir / 'docker').write_text(self.FAKE_DOCKER_JIB, encoding='utf-8', newline='\n')
+        for name in ('mvn', 'docker'):
+            (bin_dir / name).chmod(0o755)
         env = os.environ.copy()
         env['PATH'] = str(bin_dir) + os.pathsep + env['PATH']
-        env['CRANE_LOG'] = str(d / 'crane.log')
+        # 仅供测试:走 PATH 里的 fake docker,不触真实 WSL。
+        env['FF_WSL_BRIDGE'] = '0'
         return env
 
-    def test_crane_java_build_matches_jar_template(self):
+    def test_jib_build_loads_tar_and_reports_identity(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
-            (d / 'pom.xml').write_text('<project/>')
-            target = d / 'target'
-            target.mkdir()
-            (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
-            (target / 'demo-app-1.0.0-sources.jar').write_bytes(b'not-deliverable')
-            env = self._crane_env(d)
-            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            (d / 'pom.xml').write_text('<project><build><plugins><plugin>jib-maven-plugin</plugin></plugins></build></project>')
+            (d / 'target').mkdir()
+            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
+                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-            # 模板对齐:temurin 21 基镜像 + /app/app.jar + 非 root + 8080 + java -jar 入口
-            self.assertIn('MODE=java BASE=eclipse-temurin:21-jre', run.stdout)
-            self.assertIn('--entrypoint java,-jar,/app/app.jar', run.stdout)
-            self.assertIn('--user 10001', run.stdout)
-            self.assertIn('--exposed-ports 8080', run.stdout)
-            self.assertIn('ARTIFACT=crane-image.tar', run.stdout)
-            # 非 git 目录:Tag 公式记 unversioned 且强制 -dirty,与 Docker 路径同规则
-            self.assertRegex(run.stdout, r'IMAGE=demo:unversioned-dirty-[0-9]{14}')
-            expected_id = hashlib.sha256(b'image-config-bytes').hexdigest()
-            self.assertIn(f'IMAGE_ID=sha256:{expected_id}', run.stdout)
-            # RepoTags 补写:docker load 后按 IMAGE 引用可寻址
-            with tarfile.open(d / 'crane-image.tar') as t:
-                manifest = json.load(t.extractfile('manifest.json'))
-            self.assertEqual(manifest[0]['RepoTags'][0], run.stdout.strip().split('IMAGE=')[1].splitlines()[0])
+            self.assertIn('BUILD_TOOL=maven', run.stdout)
+            self.assertIn('IMAGE=demo:', run.stdout)
+            self.assertIn('IMAGE_ID=sha256:jibmocked', run.stdout)
             self.assertIn('SECURITY_SCAN=skipped', run.stderr)
+            self.assertIn('MVN ', run.stderr)
+            self.assertIn('jib:buildTar', run.stdout)
+            self.assertIn('-Djib.to.image=demo:', run.stdout)
+            self.assertIn('DOCKER load -i target/jib-image.tar', run.stderr)
 
-    def test_crane_web_build_uses_nginx_root(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / 'package.json').write_text('{}')
-            (d / 'dist').mkdir()
-            (d / 'dist' / 'index.html').write_text('<html></html>')
-            env = self._crane_env(d)
-            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
-            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-            self.assertIn('MODE=web BASE=nginx:alpine', run.stdout)
-            self.assertIn('--exposed-ports 80', run.stdout)
-
-    def test_crane_server_requires_entrypoint(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / 'package.json').write_text('{}')
-            payload = d / 'srv'
-            payload.mkdir()
-            (payload / 'server.js').write_text('console.log(1)')
-            env = self._crane_env(d)
-            env['FF_STACK'] = 'server'
-            env['FF_ARTIFACT'] = str(payload)
-            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
-            self.assertNotEqual(run.returncode, 0)
-            self.assertIn('FF_ENTRYPOINT', run.stderr)
-
-    def test_crane_rejects_tar_identity_mismatch(self):
-        # manifest Config 文件名与配置摘要不一致 = 产物格式异常,必须失败而非输出假身份
+    def test_jib_build_requires_module_plugin(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             (d / 'pom.xml').write_text('<project/>')
-            target = d / 'target'
-            target.mkdir()
-            (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
-            env = self._crane_env(d)
-            env['CRANE_BAD_NAME'] = '1'
-            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            (d / 'target').mkdir()
+            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
+                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertNotEqual(run.returncode, 0)
-            self.assertIn('一致性校验失败', run.stderr)
+            self.assertIn('jib-maven-plugin', run.stderr)
+            self.assertIn('build-contract.md', run.stderr)
+            self.assertNotIn('MVN ', run.stderr)
 
-    def test_crane_rejects_payload_with_env_secret(self):
-        # 产物目录守卫与 Docker 路径同源:.env* 不进镜像层
+    def test_jib_build_requires_host_package(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
-            (d / 'package.json').write_text('{}')
-            payload = d / 'dist'
-            payload.mkdir()
-            (payload / '.env.local').write_text('SECRET=1')
-            env = self._crane_env(d)
-            env['FF_ARTIFACT'] = str(payload)
-            run = subprocess.run([BASH, CRANE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            (d / 'pom.xml').write_text('<project><build><plugins><plugin>jib-maven-plugin</plugin></plugins></build></project>')
+            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
+                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
             self.assertNotEqual(run.returncode, 0)
-            self.assertIn('.env', run.stderr)
+            self.assertIn('mvn -B package', run.stderr)
+            self.assertIn('mv-toolchain-manager', run.stderr)
+            self.assertNotIn('MVN ', run.stderr)
 
+    def test_jib_build_fails_when_tar_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / 'pom.xml').write_text('<project><build><plugins><plugin>jib-maven-plugin</plugin></plugins></build></project>')
+            (d / 'target').mkdir()
+            env = self._jib_env(d)
+            (d / 'bin/mvn').write_text('#!/bin/sh\nexit 0\n', encoding='utf-8', newline='\n')
+            (d / 'bin/mvn').chmod(0o755)
+            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env,
+                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn('未产出镜像 tar', run.stderr)
+            self.assertNotIn('IMAGE_ID=', run.stdout)
+
+    def test_jib_gradle_uses_wrapper_and_build_tar(self):
+        with tempfile.TemporaryDirectory() as d:
+            d = Path(d)
+            (d / 'build.gradle').write_text("plugins { id 'com.google.cloud.tools.jib' }\n")
+            (d / 'build/libs').mkdir(parents=True)
+            (d / 'gradlew').write_text(self.FAKE_GRADLEW, encoding='utf-8', newline='\n')
+            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
+                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn('BUILD_TOOL=gradle', run.stdout)
+            self.assertIn('GRADLE ', run.stderr)
+            self.assertIn('jibBuildTar', run.stdout)
+            self.assertIn('-Djib.to.image=demo:', run.stdout)
+            self.assertIn('DOCKER load -i build/jib-image.tar', run.stderr)
 
     def _offline_env(self, d, *, wsl=False):
         """All container/network commands terminate in local stubs, including SSH shell parsing."""
@@ -459,6 +450,7 @@ exec "$@"
                 env = self._offline_env(d, wsl=wsl)
                 env['FF_REQUIRE_SECURITY_SCAN'] = '1'
                 (d / 'pom.xml').write_text('<project/>', encoding='utf-8')
+                (d / 'Dockerfile.delivery').write_text('FROM scratch\n', encoding='utf-8')
                 (d / 'target').mkdir()
                 (d / 'target/app.jar').write_bytes(b'jar')
                 run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')

@@ -8,9 +8,9 @@
 
 | Skill | 范围 |
 | --- | --- |
-| `mv-toolchain-manager` | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发；镜像构建的 crane 路径缺 crane 时按需准备 |
+| `mv-toolchain-manager` | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发 |
 | `mv-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零 WSL、零镜像） |
-| `mv-image-build` | 宿主出包与瘦镜像构建（默认 WSL；无 WSL 走 crane 组装镜像，Java/Node 通用）：只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
+| `mv-image-build` | 宿主出包与瘦镜像构建：Java 模块由模块内 Jib 插件定义，非 Java 模块用 `Dockerfile.delivery`；经 WSL 或本机 Docker 载入。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 镜像包部署 dev/prod 服务器、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
@@ -63,22 +63,23 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## 容器构建与部署
 
-本地"跑一下"默认宿主直启：`java -jar`、`npm run dev` 等在宿主前台可见 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默——归 `mv-local-debug`，纯宿主、零 WSL。Windows 的 WSL 就是一台开发服务器，Linux/macOS 宿主的 Docker 同样是：在 WSL/容器里跑属于部署，归 `mv-container-deploy`（dev 默认目标机是本机容器运行时——Windows 为 WSL、Linux/macOS 为宿主 Docker，验证健康后写收据；prod 需明确授权）。两者之间是 `mv-image-build`：宿主出包后打包只含运行时的瘦镜像（Windows 经 WSL，Linux/macOS 直连宿主 Docker），只构建不运行，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）交接部署侧；晋级 prod 要求同一 Image ID 的 dev 健康收据。宿主没有容器运行时（Windows 无 WSL、Linux/macOS 无 Docker）时走 `mv-image-build` 的 crane 路径：宿主把基镜像与产物层直接组装为 docker load 可用的镜像 tar（Java/Node 通用，只需能拉取基础镜像的仓库），同样零容器编译、不在宿主安装 Docker。项目文档化的开发拓扑就是容器（compose 起全套依赖、宿主无法独立启动）时，"本地跑一下"按项目约定直接走 `mv-container-deploy` 的 dev 交付。自带模板面向 Java 可执行 JAR 和 Node 静态前端；其他产物布局用 `FF_ARTIFACT` 指定或项目自备 `Dockerfile.delivery`。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。经管道向 WSL 分发文件前（Windows 桥接模式），wsl-bridge.sh 校验明文：命中企业终端透明加密的 `%XXXX-Header` 密文头即报错终止，不产出损坏镜像；无此类环境的机器该检查为空操作。详见 [镜像构建契约](mv-image-build/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
+本地"跑一下"默认宿主直启：`java -jar`、`npm run dev` 等在宿主前台可见 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默——归 `mv-local-debug`，纯宿主、零 WSL。Windows 的 WSL 就是一台开发服务器，Linux/macOS 宿主的 Docker 同样是：在 WSL/容器里跑属于部署，归 `mv-container-deploy`（dev 默认目标机是本机容器运行时——Windows 为 WSL、Linux/macOS 为宿主 Docker，验证健康后写收据；prod 需明确授权）。两者之间是 `mv-image-build`：宿主出包后打包只含运行时的瘦镜像（Windows 经 WSL，Linux/macOS 直连宿主 Docker），只构建不运行，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）交接部署侧；晋级 prod 要求同一 Image ID 的 dev 健康收据。镜像定义与模块同源：Java 模块在 `pom.xml` / `build.gradle(.kts)` 声明 Jib，非 Java 模块在模块内自备 `Dockerfile.delivery`（Node 静态前端可用内置模板）；宿主没有容器运行时（Windows 无 WSL、Linux/macOS 无 Docker）时明确失败并给安装指引，不在宿主安装 Docker。项目文档化的开发拓扑就是容器（compose 起全套依赖、宿主无法独立启动）时，"本地跑一下"按项目约定直接走 `mv-container-deploy` 的 dev 交付。其他产物布局用 `FF_ARTIFACT` 指定。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。经管道向 WSL 分发文件前（Windows 桥接模式），wsl-bridge.sh 校验明文：命中企业终端透明加密的 `%XXXX-Header` 密文头即报错终止，不产出损坏镜像；无此类环境的机器该检查为空操作。详见 [镜像构建契约](mv-image-build/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
 
 ```bash
 SKILL_ROOT="/实际绝对路径/mv-image-build"
 # Windows 校验 WSL+Docker；Linux/macOS 校验本机 Docker
 bash "$SKILL_ROOT/scripts/wsl-bridge.sh" require
+# Java 模块：在模块目录调用模块自己的 Jib 插件
+bash "$SKILL_ROOT/scripts/jib-build.sh" build dev myapp
+# 非 Java 模块：产物 + Dockerfile.delivery（或内置 Node 模板）
 bash "$SKILL_ROOT/scripts/image-build.sh" build dev myapp
-# 宿主无容器运行时：crane 路径（Java/Node 通用）
-bash "$SKILL_ROOT/scripts/crane-build.sh" build dev myapp
 
 SKILL_ROOT="/实际绝对路径/mv-container-deploy"
 bash "$SKILL_ROOT/scripts/deploy.sh" deploy dev myapp 'myapp:TAG'
 bash "$SKILL_ROOT/scripts/deploy.sh" status dev myapp
 ```
 
-Docker 路径构建需要 Docker/Compose（Windows 侧装在 WSL 内）；crane 路径的 crane 与解析镜像 tar 的 Python 由 `mv-toolchain-manager` 按需准备（`ensure --crane` / `ensure --python 3.12`；宿主无 Python 时用其 `bootstrap-python.sh`），仅需能拉取基础镜像。远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/image-build/`，仅 Windows 桥接模式，其余宿主用本地临时目录；收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
+Docker 路径构建需要 Docker/Compose（Windows 侧装在 WSL 内）；Java 模块的 Jib 插件随 Maven/Gradle 构建运行，无需额外 CLI。远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在 `~/.mv/` 下（构建暂存 `~/.mv/image-build/`，仅 Windows 桥接模式，其余宿主用本地临时目录；收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
 
 Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装或未正常运行时该 skill 仅在当前上下文内有效）。值守 Hook 机制依赖 Claude Code 的 Hook 事件（UserPromptSubmit/SessionStart/PreToolUse）与 `~/.claude/settings.json`，仅 Claude Code 上可安装；分发到其他 agent 时无法安装 Hook，该 skill 自动降级为仅当前上下文有效的值守模式。
 

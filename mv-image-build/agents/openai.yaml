@@ -1,3 +1,3 @@
 interface:
   display_name: "Image Build"
-  short_description: "宿主出包与瘦镜像构建：默认 WSL，无 WSL 走 crane 组装镜像（Java/Node 通用）；只构建不运行，镜像身份（IMAGE_ID）交部署侧验证晋级。"
+  short_description: "宿主出包与瘦镜像构建：Java 模块用模块内 Jib 插件，非 Java 模块用 Dockerfile.delivery；经 WSL 或本机 Docker 载入。只构建不运行，镜像身份（IMAGE_ID）交部署侧验证晋级。"

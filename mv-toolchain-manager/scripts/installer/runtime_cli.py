@@ -14,8 +14,6 @@ Usage examples:
   python3 scripts/runtime_cli.py detect --project .
   python3 scripts/runtime_cli.py ensure --project .
   python3 scripts/runtime_cli.py ensure --jdk 17 --maven 3.9.6 --gradle 8.5 --node 20
-  python3 scripts/runtime_cli.py ensure --crane          # on demand, latest release
-  python3 scripts/runtime_cli.py ensure --crane 0.22.1   # on demand, exact version
   python3 scripts/runtime_cli.py ensure --python         # on demand, latest CPython
   python3 scripts/runtime_cli.py ensure --python 3.12    # latest portable 3.12.x
   python3 scripts/runtime_cli.py ensure --uv 0.5.12 --node 22
@@ -67,7 +65,7 @@ def cmd_list(args):
     if getattr(args, 'system', False):
         data['system'] = {
             t: installed_mod.system_version(t)
-            for t in ('node', 'jdk', 'maven', 'gradle', 'crane', 'python',
+            for t in ('node', 'jdk', 'maven', 'gradle', 'python',
                       'npm', 'pnpm', 'yarn', 'uv')
         }
     _emit_json(data)
@@ -82,7 +80,7 @@ def cmd_ensure(args):
     if not reqs:
         sys.stderr.write(
             'No requirements detected. Pass --node/--jdk/--maven/--gradle/--python/--uv '
-            '--npm/--pnpm/--yarn/--crane '
+            '--npm/--pnpm/--yarn '
             'or --project <dir>.\n'
         )
         _emit_json({'error': 'no requirements'})
@@ -99,8 +97,6 @@ def cmd_ensure(args):
         _ensure_maven(reqs['maven'], cache, result)
     if 'gradle' in reqs:
         _ensure_gradle(reqs['gradle'], cache, result)
-    if 'crane' in reqs:
-        _ensure_crane(reqs['crane'], cache, result)
     if 'python' in reqs:
         _ensure_python(reqs['python'], cache, result)
     if 'uv' in reqs:
@@ -157,7 +153,6 @@ def _gather_requirements(args):
         'jdk': args.jdk,
         'maven': args.maven,
         'gradle': args.gradle,
-        'crane': args.crane,
         'python': args.python,
         'uv': args.uv,
         'npm': args.npm,
@@ -309,37 +304,6 @@ def _ensure_gradle(req, cache, result):
     result['resolved']['gradle'] = entry
     result['actions'].append(
         {'tool': 'gradle', 'action': 'installed', 'version': exact, 'urls': urls}
-    )
-
-
-def _ensure_crane(req, cache, result):
-    constraint = _constraint(req)
-    try:
-        exact = sources.resolve_crane(constraint)
-    except Exception as e:
-        result['actions'].append({'tool': 'crane', 'error': str(e)})
-        return
-    entry = installed_mod.find_matching('crane', {'constraint': exact}, cache)
-    if entry:
-        result['resolved']['crane'] = entry
-        result['actions'].append(
-            {'tool': 'crane', 'action': 'satisfied', 'version': entry['version']}
-        )
-        return
-    urls = sources.crane_urls(exact)
-    target = install_root() / 'crane' / f'v{exact}'
-    try:
-        download.install_portable(urls, target, f'crane {exact}')
-    except Exception as e:
-        result['actions'].append({'tool': 'crane', 'error': f'download failed: {e}',
-                                  'urls': [download.display_url(u) for u in urls]})
-        return
-    entry = {'version': exact, 'path': str(target)}
-    cache['crane'].append(entry)
-    result['resolved']['crane'] = entry
-    result['actions'].append(
-        {'tool': 'crane', 'action': 'installed', 'version': exact,
-         'urls': [download.display_url(u) for u in urls]}
     )
 
 
@@ -705,11 +669,6 @@ def build_parser():
     pe.add_argument('--maven', default=None, help='Apache Maven version (e.g. 3.9.6)')
     pe.add_argument('--gradle', default=None, help='Gradle version (e.g. 8.5)')
     pe.add_argument(
-        '--crane', nargs='?', const='latest', default=None,
-        help='crane version (exact) or latest; installed on demand for the '
-             'mv-image-build crane path',
-    )
-    pe.add_argument(
         '--python', nargs='?', const='latest', default=None,
         help='CPython version/constraint (e.g. 3.12, 3.12.15) or latest; '
              'installed from python-build-standalone',
@@ -739,7 +698,7 @@ def build_parser():
 
     ps = sub.add_parser('select', help='Switch the selected version of a tool')
     ps.add_argument('tool', choices=[
-        'node', 'jdk', 'maven', 'gradle', 'crane', 'python', 'uv', 'pnpm', 'yarn',
+        'node', 'jdk', 'maven', 'gradle', 'python', 'uv', 'pnpm', 'yarn',
     ])
     ps.add_argument('version', help='installed version (exact or substring)')
     ps.set_defaults(func=cmd_select)
@@ -755,7 +714,7 @@ def build_parser():
     pp = sub.add_parser('purge', help='Delete cached installs')
     pp.add_argument('--tool', default=None,
                     choices=[
-                        'node', 'jdk', 'maven', 'gradle', 'crane', 'python', 'uv',
+                        'node', 'jdk', 'maven', 'gradle', 'python', 'uv',
                         'pnpm', 'yarn',
                     ])
     pp.set_defaults(func=cmd_purge)

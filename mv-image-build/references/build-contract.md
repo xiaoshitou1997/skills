@@ -1,57 +1,103 @@
 # 镜像构建契约
 
-目标：从同一份提交在宿主用语言工具链构建**一个**产物，打包为**一个**瘦运行时镜像。编译出包在宿主完成（工具链由 `mv-toolchain-manager` 准备），本 skill 只检测产物、打瘦镜像、输出镜像身份；**镜像与容器不承担编译**。默认路径先宿主出包再打瘦镜像（Windows 宿主经 WSL 桥接，Linux/macOS 宿主直连本机 Docker）；宿主 Docker 不可用时走 crane 路径，在宿主把**同一份宿主产物**组装为镜像（见下文）。
+目标：从同一份提交在宿主用语言工具链构建**一个**产物，打包为**一个**瘦运行时镜像。**镜像定义与模块同源**：Java 在模块的 `pom.xml` / `build.gradle(.kts)` 里声明 Jib，非 Java 在模块内自备 `Dockerfile.delivery`。编译出包在宿主完成（工具链由 `mv-toolchain-manager` 准备），本 skill 的脚本只编排「调用模块定义 → 载入目标 Docker → 输出镜像身份」，不另写一套镜像配置。
 
-## 项目输入
+## Java 模块：模块内 Jib 配置基线
 
+Java 模块必须自己声明 Jib 插件；`jib-build.sh` 只校验声明是否存在，不注入镜像配置。团队基线（插件版本由 `mv-tech-stack-standards` 统一，项目内显式声明）：
+
+Maven（`pom.xml`）：
+
+```xml
+<plugin>
+  <groupId>com.google.cloud.tools</groupId>
+  <artifactId>jib-maven-plugin</artifactId>
+  <version>3.5.2</version>
+  <configuration>
+    <from><image>eclipse-temurin:21-jre</image></from>
+    <container>
+      <mainClass>com.example.Application</mainClass>
+      <ports><port>8080</port></ports>
+      <user>10001</user>
+      <workingDirectory>/app</workingDirectory>
+    </container>
+  </configuration>
+</plugin>
+```
+
+Gradle（`build.gradle` / `build.gradle.kts`）：
+
+```groovy
+plugins {
+    id 'com.google.cloud.tools.jib' version '3.5.4'
+}
+
+jib {
+    from { image = 'eclipse-temurin:21-jre' }
+    container {
+        mainClass = 'com.example.Application'
+        ports = ['8080']
+        user = '10001'
+        workingDirectory = '/app'
+    }
+}
+```
+
+- 基镜像默认 `eclipse-temurin:21-jre`，非 root 用户 `10001`，端口 `8080`；项目可按自身要求调整，但必须写在模块配置里。
+- 目标镜像引用由脚本以 `-Djib.to.image=...` 传入，模块配置不得写死固定 Tag；基镜像可用 `-Djib.from.image` 覆盖（对应 `FF_RUNTIME_IMAGE`）。
+- Jib 默认 `exploded` 布局：类、依赖与资源分层放入 `/app`，入口由 `mainClass` 生成。需要单 jar 布局的项目自行在模块配置里改用 `containerizingMode=packaged`（此时入口指向实际 jar 名）。
+- 插件版本基线：jib-maven-plugin 3.5.2、jib-gradle-plugin 3.5.4。升级先在项目内验证 `buildTar` 产物可载入、可启动，再回写基线。
+
+## 非 Java 模块：模块内 Dockerfile.delivery
+
+- 模块内提供 `Dockerfile.delivery` 时优先使用；它只做产物复制，不做编译（`COPY` 宿主已出包的产物）。
+- 只有 `package.json` 且无 `Dockerfile.delivery` 时使用内置 `templates/Dockerfile.web`（静态站点）。
+- 其余栈必须自备 `Dockerfile.delivery`，并在其中显式声明基镜像、用户、端口与入口。
 - `.dockerignore` 必须显式排除 `.git` 和 `.env*`，不得通过取反规则重新包含秘密文件。检查全部构建上下文，确保不含私钥。
-- 产物在宿主构建：Gradle `build/libs` 唯一 boot jar、Maven `target` 唯一 jar、Node `dist/` 或 `build/`；检测到多个候选时拒绝并点名，不按时间戳静默猜测；多模块或自定义布局用 `FF_ARTIFACT` 指定。可提供 `Dockerfile.delivery`（只做产物复制，不做编译）覆盖内置 jar/web 瘦模板。选定的产物目录（含显式 `FF_ARTIFACT`）若任意层级包含 `.git` 或 `.env*` 会被拒绝；瘦上下文不依赖项目 `.dockerignore` 过滤目录内容。
+
+## 多模块项目
+
+- 默认**每个模块独立定义、独立出镜像**：Java 模块的镜像定义随其 `pom.xml`/`build.gradle`，非 Java 模块随其 `Dockerfile.delivery`。
+- 在目标模块目录执行对应脚本；`jib-build.sh` 也接受 `FF_JIB_PROJECT=<模块目录>`。
+- 默认不建聚合的 `image-build` 模块。只有确需集中管理多个模块的镜像时，才设聚合目录；聚合目录只承载编排（CI 任务、构建矩阵），镜像定义仍留在各模块内，不得在聚合处复制一份配置。
+- 各模块的 `APP` 名与 `FF_IMAGE_REPO` 必须可区分，避免不同模块打出同名镜像。
+
+## 产物检测（非 Java Docker 路径）
+
+- 产物在宿主构建：Node `dist/` 或 `build/`；`Dockerfile.delivery` 项目的 Maven `target/` 唯一 jar、Gradle `build/libs/` 唯一 boot jar。检测到多个候选时拒绝并点名，不按时间戳静默猜测；多模块或自定义布局用 `FF_ARTIFACT` 指定（文件→`app.jar`，目录→`app/`）。
+- 选定的产物目录（含显式 `FF_ARTIFACT`）若任意层级包含 `.git` 或 `.env*` 会被拒绝；瘦上下文不依赖项目 `.dockerignore` 过滤目录内容。
 - 瘦上下文只含产物与 Dockerfile，源码不出宿主；桥接模式经 git 对象库管道（`hash-object` → `cat-file`，透读通道）或 push 管道进入 WSL，产物不依赖 Windows 盘中间态。
+- Java 模块无 `Dockerfile.delivery` 时，`image-build.sh` 明确指向 `jib-build.sh` 并退出；确需 Docker 路径时必须由模块提供 `Dockerfile.delivery`。
 
 ## 环境变量
 
 | 变量 | 含义 |
 | --- | --- |
-| `FF_ARTIFACT` | 显式指定宿主产物路径（文件→`app.jar`，目录→`app/`）；多模块或自定义布局使用。crane 路径 java 模式收单个 jar，web/server 模式收产物目录 |
-| `FF_IMAGE_REPO` | 镜像仓库前缀，默认应用名（crane 路径下它是产物镜像的证据引用，不要求可写仓库） |
-| `FF_RUNTIME_IMAGE` | 覆盖运行基础镜像；建议固定摘要（Docker 路径作 `RUNTIME_IMAGE` build-arg，crane 路径作 mutate 的基镜像） |
-| `FF_STACK` | crane 路径显式指定栈模式 `java\|web\|server`；缺省按项目文件推断（pom/gradle→java，package.json→web） |
-| `FF_ENTRYPOINT` | crane 路径入口覆盖（逗号分隔）；server 模式必填，java/web 模式可选覆盖模板缺省 |
-| `FF_IMAGE_TAR` | crane 路径产物 tar 输出路径，默认 `crane-image.tar` |
-| `FF_REQUIRE_SECURITY_SCAN` | 设置为 1 时，构建镜像必须经 Trivy 扫描（Docker 路径扫镜像引用，crane 路径扫镜像 tar）；源码另用 Gitleaks 扫描 |
+| `FF_JIB_PROJECT` | `jib-build.sh` 使用的模块目录，默认当前目录；多模块项目指定目标模块 |
+| `FF_GRADLEW` | `jib-build.sh` 在模块无 `gradlew` 时使用的 Gradle 可执行文件路径 |
+| `FF_IMAGE_TAR` | Jib 产出的镜像 tar 路径；默认 Maven `target/jib-image.tar`、Gradle `build/jib-image.tar`，模块配置了 `outputPaths.tar` 时按实际路径指定 |
+| `FF_ARTIFACT` | 非 Java Docker 路径显式指定宿主产物路径（文件→`app.jar`，目录→`app/`） |
+| `FF_IMAGE_REPO` | 镜像仓库前缀，默认应用名 |
+| `FF_RUNTIME_IMAGE` | 覆盖基镜像；Jib 路径作 `-Djib.from.image`，Docker 路径作 `RUNTIME_IMAGE` build-arg。建议固定摘要 |
+| `FF_REQUIRE_SECURITY_SCAN` | 设置为 1 时，构建镜像必须经 Trivy 扫描；源码另用 Gitleaks 扫描 |
 | `FF_WSL_DISTRO` | （仅 Windows 桥接生效）指定 WSL 发行版；默认取第一个可用发行版。其余宿主忽略 |
 | `FF_WSL_BRIDGE` | （仅 Windows 桥接生效）设为 `0` 绕过 WSL 桥接走宿主 Docker；仅供测试/CI，Windows 生产使用违反团队规范。其余宿主忽略 |
 
-Windows 上镜像构建经 WSL（`scripts/wsl-bridge.sh` 桥接），Docker 路径基础镜像由 `--pull` 在 WSL 内拉取并常驻，任何流程不得 `rmi`/`prune`，Windows 无 WSL 时明确报错并给安装指引，不得改用 Windows 侧 Docker；Linux/macOS 宿主由 `wsl-bridge.sh` 判定后直连本机 Docker，行为与语义同桥接模式（构建暂存用本地临时目录而非 `~/.mv/image-build/`）。宿主 Docker 不可用时改走 [crane 构建路径](#crane-构建路径宿主无-docker-时)，Windows 宿主不得以安装 Docker 代替。
+## 运行目标与镜像载入
 
-## crane 构建路径（宿主无 Docker 时）
-
-适用与前置：
-
-- 适用 Java（Gradle/Maven）与 Node 项目，任意宿主产物通用；典型场景是 Windows 无 WSL、Linux/macOS 未装 Docker。产物仍由项目按约定在宿主构建，脚本只做分层组装，不做任何编译。
-- crane 由 `mv-toolchain-manager` 按需准备（`ensure --crane`，[go-containerregistry releases](https://github.com/google/go-containerregistry/releases) 单文件二进制，会话级激活）；缺失时先走工具链准备，不要求用户手工下载。能从仓库**拉取**基础镜像（只读即可，`crane mutate --output` 直出本地 tar，不推送任何仓库）。私有仓库认证走标准 docker config（`~/.docker/config.json`）。
-- 补写 `RepoTags` 与核对配置摘要需要 Python 3；缺失时同样由 `mv-toolchain-manager` 按需准备（`ensure --python 3.12`），宿主完全没有 Python 时先执行其 `bootstrap-python.sh` 并在同一会话激活。Python 只读写 tar，不参与编译。
-- 栈模式 `FF_STACK=java|web|server`，缺省按项目文件推断；三种模式与瘦模板逐项对齐：
-  - `java`：基镜像 `eclipse-temurin:21-jre`，产物为单个 jar（自动检测 `target`/`build/libs` 唯一 boot jar 或 `FF_ARTIFACT`），置于 `/app/app.jar`，`--workdir /app --user 10001 --exposed-ports 8080 --entrypoint java,-jar,/app/app.jar`（`FF_ENTRYPOINT` 可覆盖入口）；
-  - `web`：基镜像 `nginx:alpine`，产物目录置于 `/usr/share/nginx/html`，`--exposed-ports 80`；SPA history 路由需要 fallback 配置时自备基镜像（`FF_RUNTIME_IMAGE`），脚本不改基镜像配置；
-  - `server`：基镜像 `node:24-alpine`，产物目录置于 `/app`，`--workdir /app`，`FF_ENTRYPOINT` 必填（如 `node,dist/server.js`）。
-
-驱动与产物：
-
-- `scripts/crane-build.sh build dev|prod APP`：一条 `crane mutate <基镜像> --append <产物层> [运行时配置] -o <tar>` 完成组装；产物层在临时 staging 目录组装（java→`/app/app.jar`，web→nginx 根，server→`/app`），`.git` 与 `.env*` 不进层（与 Docker 路径同源守卫），过程文件用完即清。
-- 产物为 docker load 可用的镜像 tar（默认 `crane-image.tar`，`FF_IMAGE_TAR` 指定）；tar 内 `RepoTags` 由脚本补写为 `IMAGE`，`docker load` 后按引用可寻址。
-- `IMAGE_ID` 由 tar 内镜像配置的 SHA-256 纯宿主计算（不需要任何 Docker 守护进程），并与 manifest 的 Config 文件名核对一致，不一致即失败——不输出未经校验的镜像身份。Tag 公式、`-dirty` 规则与 `IMAGE=`/`IMAGE_ID=` 两行证据输出与 Docker 路径完全一致。
-- 安全：`FF_REQUIRE_SECURITY_SCAN=1` 时以 `security-scan.sh image-tar <tar>`（`trivy image --input`）扫描，不需要守护进程。
-
-边界：crane 路径交付物是镜像 tar，不在任何 Docker daemon 内（该路径本来就没有守护进程）；镜像进入部署前需先在目标 Docker `docker load` 载入，载入后 Image ID 必须与构建证据一致。`mv-container-deploy` 当前流程以「镜像已在目标 Docker」为前提，crane tar 载入这一步的自动化在部署侧另行演进。crane 路径不做镜像层优化（依赖/类分层），交付语义与瘦模板一致为准。
+- Windows 上容器路径经 WSL（`scripts/wsl-bridge.sh` 桥接）：Jib tar 经 `push-bin` 管道写入 WSL 后 `docker load -i`；Docker 路径的构建上下文同样只经管道进入 WSL。基础镜像由 `--pull` 在 WSL 内拉取并常驻，任何流程不得 `rmi`/`prune`。Windows 无 WSL 时明确报错并给安装指引，不得改用 Windows 侧 Docker。
+- Linux/macOS 宿主由 `wsl-bridge.sh` 判定后直连本机 Docker：Jib tar 直接 `docker load -i`；Docker 路径构建暂存用本地临时目录而非 `~/.mv/image-build/`。
+- `docker load` 完成后必须按引用确认镜像可寻址，再输出 `IMAGE_ID`；载入失败或 Image ID 缺失即构建失败，不输出未经校验的镜像身份。
 
 ## 镜像身份契约（与 mv-container-deploy 的接口）
 
-- Tag 公式：`<git sha 前 12 位>[-dirty]-<UTC 时间戳 YYYYMMDDHHMMSS>`；非 Git 目录记 `unversioned` 且强制 `-dirty`。
+- Tag 公式：`<git sha 前 12 位>[-dirty]-<UTC 时间戳 YYYYMMDDHHMMSS>`；非 Git 目录记 `unversioned` 且强制 `-dirty`。两条路径共用同一公式。
 - 构建输出两行证据：`IMAGE=<repo>:<tag>` 与 `IMAGE_ID=sha256:...`；完整镜像 Tag 与 Image ID 必须如实转记进构建/调测记录。
 - `mv-container-deploy` 只消费该镜像引用；`-dirty` 镜像会被部署侧拒绝晋级 prod，需干净工作区重新出包。
 - 构建不可重复生成同一 Tag（时间戳参与）；跨环境一致性由**同一 Image ID 晋级**保证，不靠重新构建。
 
 ## 限制
 
-内置模板针对常规 Spring Boot uber-jar（`templates/Dockerfile.jar`）和 Node 静态前端（`templates/Dockerfile.web`）。多模块 Maven/Gradle、Next.js SSR、原生扩展、ARM/AMD64 混用，请用 `FF_ARTIFACT` 指定产物并编写项目专用 `Dockerfile.delivery`，并先单独验证。默认镜像在本地目标架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行。
+- Java 镜像的能力边界由模块内的 Jib 配置决定：需要 `RUN apt-get install` 之类构建期安装时，Jib 无法表达，应在模块内评估预装基镜像或改用项目内 CI/CD，而不是在本 skill 里另写 Dockerfile。
+- 内置模板只覆盖 Node 静态前端（`templates/Dockerfile.web`）；多模块 Maven/Gradle、Next.js SSR、原生扩展、ARM/AMD64 混用，请在模块内提供 `Dockerfile.delivery` 并用 `FF_ARTIFACT` 指定产物，先单独验证。
+- 默认镜像在本地目标架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行。

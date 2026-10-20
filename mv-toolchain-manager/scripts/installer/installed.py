@@ -14,7 +14,7 @@ def list_installed():
     """Return cache entries for every manager-owned portable tool."""
     root = install_root()
     out = {
-        'node': [], 'jdk': [], 'maven': [], 'gradle': [], 'crane': [],
+        'node': [], 'jdk': [], 'maven': [], 'gradle': [],
         'python': [], 'uv': [], 'pnpm': [], 'yarn': [],
     }
 
@@ -48,12 +48,6 @@ def list_installed():
                 v = p.name.replace('gradle-', '')
                 out['gradle'].append({'version': v, 'path': str(p)})
 
-    crane_dir = root / 'crane'
-    if crane_dir.exists():
-        for p in sorted(crane_dir.iterdir()):
-            if p.is_dir():
-                out['crane'].append({'version': p.name.lstrip('vV'), 'path': str(p)})
-
     python_dir = root / 'python'
     if python_dir.exists():
         for p in sorted(python_dir.iterdir()):
@@ -82,7 +76,7 @@ def find_matching(tool, requirement, installed=None):
 
     requirement: dict {'constraint': ...} or a raw string.
     Node -> npm constraint match; JDK -> feature major match;
-    maven/gradle/crane/python -> exact or compatible.
+    maven/gradle/python -> exact or compatible.
     """
     installed = installed if installed is not None else list_installed()
     constraint = _constraint_of(requirement)
@@ -103,7 +97,7 @@ def find_matching(tool, requirement, installed=None):
                 return entry
         return None
 
-    # maven / gradle / crane / python / uv / pnpm / yarn: exact or compatible
+    # maven / gradle / python / uv / pnpm / yarn: exact or compatible
     for entry in installed[tool]:
         if entry['version'] == constraint:
             return entry
@@ -137,7 +131,6 @@ def system_version(tool):
         'jdk': (['java', '-version'], _parse_java_version),
         'maven': (['mvn', '--version'], _parse_mvn_version),
         'gradle': (['gradle', '--version'], _parse_gradle_version),
-        'crane': (['crane', 'version'], _parse_crane_version),
         'npm': (['npm', '--version'], _parse_plain_version),
         'pnpm': (['pnpm', '--version'], _parse_plain_version),
         'yarn': (['yarn', '--version'], _parse_plain_version),
@@ -195,12 +188,6 @@ def _parse_mvn_version(text):
 def _parse_gradle_version(text):
     # 'Gradle 8.5' -> 8.5
     m = re.search(r'Gradle\s+([\d.]+)', text)
-    return m.group(1) if m else None
-
-
-def _parse_crane_version(text):
-    # '0.22.1' -> 0.22.1
-    m = re.search(r'(\d+\.\d+\.\d+)', text)
     return m.group(1) if m else None
 
 

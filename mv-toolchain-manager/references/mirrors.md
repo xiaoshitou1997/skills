@@ -26,7 +26,7 @@ python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" --mirror none ensure --
 
 这些是第三方托管的上游镜像，不应称为官方源。可用性与同步时效需自行验证；下载后会按上游校验和核对（镜像提供同名校验和文件时），但镜像可同时篡改文件与校验和，完整性的最终保证仍以官方源为准。配置见 `scripts/installer/mirrors.py`，新增镜像应先审查来源与发行文件校验机制。
 
-crane、CPython 与 uv 不提供镜像源：`crane_urls()` 固定返回 go-containerregistry 官方 release 归档，`python_urls()` 固定返回 python-build-standalone 官方 release 归档，`uv_urls()` 固定返回 Astral 官方 release 归档，启用 `FF_MIRROR` 也不改变其候选列表。pnpm 和非项目内 Yarn 通过 npm registry 的精确版本元数据解析 tarball，并以 `dist.integrity` 的 SRI 摘要校验；这不是可由 `FF_MIRROR` 改写的归档镜像路径。
+CPython 与 uv 不提供镜像源：`python_urls()` 固定返回 python-build-standalone 官方 release 归档，`uv_urls()` 固定返回 Astral 官方 release 归档，启用 `FF_MIRROR` 也不改变其候选列表。pnpm 和非项目内 Yarn 通过 npm registry 的精确版本元数据解析 tarball，并以 `dist.integrity` 的 SRI 摘要校验；这不是可由 `FF_MIRROR` 改写的归档镜像路径。
 
 ## 候选顺序
 
@@ -38,7 +38,6 @@ crane、CPython 与 uv 不提供镜像源：`crane_urls()` 固定返回 go-conta
 | JDK | `[tuna Adoptium, 官方 assets API 解析出的真实归档链接]` |
 | Maven | `[tuna apache, dlcdn.apache.org, archive.apache.org]` |
 | Gradle | `[tencent gradle, services.gradle.org]` |
-| crane | `[go-containerregistry 官方 release]`（不提供镜像） |
 | Python | `[python-build-standalone 官方 release]`（不提供镜像） |
 | uv | `[Astral 官方 release]`（不提供镜像） |
 | pnpm / Yarn | `[npm registry 精确版本 tarball]`（不提供镜像，使用 SRI 校验） |

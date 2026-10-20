@@ -5,7 +5,6 @@ Sources (official only):
   - JDK (Temurin): api.adoptium.net
   - Maven: dlcdn.apache.org  (older -> archive.apache.org)
   - Gradle: services.gradle.org/distributions  (+ /versions/current JSON)
-  - crane: github.com/google/go-containerregistry releases (on demand, no mirror)
 
 When `FF_MIRROR` (or `--mirror`) is active, mirror URLs are prepended to the
 candidate list returned by the plural URL builders (node_urls / jdk_urls /
@@ -39,11 +38,6 @@ MAVEN_DIR = 'https://dlcdn.apache.org/maven/maven-3/'
 GRADLE_DIST = 'https://services.gradle.org/distributions/gradle-{ver}-bin.zip'
 GRADLE_CURRENT = 'https://services.gradle.org/versions/current'
 GRADLE_DISTRIBUTIONS = 'https://services.gradle.org/distributions/'
-CRANE_RELEASES_LATEST = 'https://github.com/google/go-containerregistry/releases/latest'
-CRANE_DIST = (
-    'https://github.com/google/go-containerregistry/releases/download/'
-    'v{ver}/go-containerregistry_{os}_{arch}.tar.gz'
-)
 
 _TIMEOUT = 60
 _CTX = ssl.create_default_context()
@@ -268,40 +262,7 @@ def gradle_urls(ver):
 
 
 # --------------------------------------------------------------------------
-# crane (go-containerregistry) — on-demand image assembler, not project-detected
-def resolve_crane(constraint):
-    """Resolve a crane version. Exact passes through; otherwise resolve latest
-    through the GitHub release redirect (avoids the unauthenticated API limit)."""
-    c = (constraint or '').strip().lstrip('vV')
-    if c and versions.is_exact(c):
-        return c
-    final = _final_url(CRANE_RELEASES_LATEST)
-    m = re.search(r'/tag/v?(\d+\.\d+\.\d+)$', final)
-    if not m:
-        raise RuntimeError(f'cannot resolve latest crane release from {final}')
-    latest = m.group(1)
-    if not c or c in ('*', 'latest'):
-        return latest
-    if versions.parse_constraint(c).matches(latest):
-        return latest
-    raise RuntimeError(
-        f'no crane version matches {constraint!r}; pass an exact version '
-        f'(latest is {latest})')
-
-
-def crane_urls(ver):
-    """Official crane release archive for this host. No mirror: go-containerregistry
-    releases ship from GitHub only."""
-    os_ = {'windows': 'Windows', 'mac': 'Darwin', 'linux': 'Linux'}[download.os_name()]
-    arch = {'x64': 'x86_64', 'arm64': 'arm64'}.get(download.arch())
-    if not arch:
-        raise RuntimeError(
-            f'unsupported CPU architecture for crane: {download.arch()}')
-    return [CRANE_DIST.format(ver=ver, os=os_, arch=arch)]
-
-
-# --------------------------------------------------------------------------
-# CPython (python-build-standalone) — on demand for the mv-image-build crane path
+# CPython (python-build-standalone) — on demand (skill scripts / project runtimes)
 PYBS_RELEASES_LATEST = (
     'https://github.com/astral-sh/python-build-standalone/releases/latest'
 )

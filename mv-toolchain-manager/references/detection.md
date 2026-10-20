@@ -49,7 +49,7 @@ JDK 一律按**主版本（feature version）**匹配，安装时取该主版本
 | uv | 2 | `pyproject.toml` 的 `[tool.uv]` | 使用最新稳定 uv |
 | uv | 3 | `uv.lock` | 使用最新稳定 uv |
 
-Python 是项目运行时的一部分，也继续可为 `mv-image-build` 的 crane 路径提供解析能力。其便携来源、布局和启动约束见 [python](python.md)。
+Python 是项目运行时的一部分，也用于运行本 skill 与 `mv-image-build` 的辅助脚本。其便携来源、布局和启动约束见 [python](python.md)。
 
 ## npm、pnpm 与 Yarn
 
@@ -67,10 +67,6 @@ pnpm 与非项目内的 Yarn 必须为精确 `X.Y.Z`。Yarn 2+ 使用 `@yarnpkg/
 
 `detect_all` 对每个工具独立返回第一个命中的来源；CLI `ensure` 会优先采纳命令行显式参数，其次采纳项目扫描结果。wrapper 和项目内 Yarn 不会被显式版本参数以外的缓存副本替代。
 
-## crane
-
-crane 不参与项目文件探测：项目声明里没有它的版本约定。仅在 `mv-image-build` 的 crane 路径报告缺失时，由 CLI 显式 `--crane`（缺省取最新 release，或指定精确版本）按需安装。
-
 ## 探测系统已装版本
 
-`installed --system` 会额外调用 PATH 上的 `java`、`mvn`、`gradle`、`node`、`npm`、`pnpm`、`yarn`、`uv`、`crane` 与 Python 命令解析版本字符串，用于判断“是否其实不用装”。注意：`ensure` 不会自动复用系统版本（避免与项目要求冲突），仅 `list --system` 提供信息供决策。
+`installed --system` 会额外调用 PATH 上的 `java`、`mvn`、`gradle`、`node`、`npm`、`pnpm`、`yarn`、`uv` 与 Python 命令解析版本字符串，用于判断“是否其实不用装”。注意：`ensure` 不会自动复用系统版本（避免与项目要求冲突），仅 `list --system` 提供信息供决策。

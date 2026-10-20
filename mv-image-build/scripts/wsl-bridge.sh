@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Windows 宿主与 WSL Docker 之间的桥:可用性硬门禁、发行版探测、单文件推送。
+# Windows 宿主与 WSL Docker 之间的桥:可用性硬门禁、发行版探测、文件推送。
 # 团队规范:容器路径(镜像构建、容器调测)一律经 WSL,没有 WSL 就失败,不回退宿主;
 # 启动类意图默认宿主直启(前台可见,见 SKILL.md)。镜像常驻:任何流程不得 rmi/prune/清理镜像。
 # 环境变量:FF_WSL_DISTRO 指定发行版(默认取第一个);FF_WSL_BRIDGE=0 仅供测试/CI 绕过。
@@ -12,6 +12,7 @@ usage() {
   echo '       wsl-bridge.sh topath WINDOWS_PATH' >&2
   echo '       wsl-bridge.sh home' >&2
   echo '       wsl-bridge.sh push LOCAL_FILE WSL_DEST_PATH' >&2
+  echo '       wsl-bridge.sh push-bin LOCAL_FILE WSL_DEST_PATH' >&2
   echo '       wsl-bridge.sh exec WSL_DIR -- COMMAND...' >&2
   exit 2
 }
@@ -129,6 +130,23 @@ cmd_push() {
   wsl_cmd -d "$d" --exec bash -c 'test -s "$1"' _ "$t" || { echo "推送后文件为空: $t" >&2; return 3; }
 }
 
+# 二进制文件(镜像 tar)不能做全文密文扫描:二进制内容可能偶然命中密文正则,
+# 而 docker load 对损坏 tar 本身会失败。这里只拒绝明确的密文头,其余交给消费方校验。
+cmd_push_bin() {
+  [[ $# -eq 2 ]] || usage
+  local f=$1 t=$2 d magic
+  [[ -f "$f" ]] || { echo "Missing file: $f" >&2; return 3; }
+  magic=$(head -c 8 -- "$f" 2>/dev/null || true)
+  if [[ "$magic" == '%TSD-Hea' ]]; then
+    echo "文件已被端点透明加密(%XXXX-Header 密文头),无法使用: $f" >&2
+    return 3
+  fi
+  d=$(cmd_distro) || return 3
+  [[ -n "$d" ]] || { echo 'push-bin 仅在经 WSL 桥接时可用' >&2; return 3; }
+  wsl_cmd -d "$d" --exec bash -c 'mkdir -p "$(dirname "$1")" && cat > "$1"' _ "$t" < "$f"
+  wsl_cmd -d "$d" --exec bash -c 'test -s "$1"' _ "$t" || { echo "推送后文件为空: $t" >&2; return 3; }
+}
+
 cmd_exec() {
   [[ $# -ge 3 ]] || usage
   local dir=$1
@@ -158,6 +176,7 @@ main() {
     topath)  cmd_topath "$@" ;;
     home)    cmd_home "$@" ;;
     push)    cmd_push "$@" ;;
+    push-bin) cmd_push_bin "$@" ;;
     exec)    cmd_exec "$@" ;;
     *) usage ;;
   esac

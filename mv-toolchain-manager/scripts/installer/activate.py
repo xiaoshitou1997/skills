@@ -82,8 +82,8 @@ def _to_msys(p):
 
 def _bin_for(tool, entry):
     """Bin directory to prepend to PATH for the tool."""
-    if tool in ('crane', 'uv'):
-        # Both ship as a bare executable at the archive root.
+    if tool == 'uv':
+        # uv ships as a bare executable at the archive root.
         return entry['path']
     if tool in ('pnpm', 'yarn'):
         # Archive paths can be emitted for a shell other than the current host
@@ -117,9 +117,6 @@ def emit_sh(sel):
         bd = _bin_for('node', sel['node'])
         bd = _to_msys(bd) if win else bd
         parts.append(f'export PATH="{bd}:$PATH"')
-    if 'crane' in sel:
-        p = _to_msys(sel['crane']['path']) if win else sel['crane']['path']
-        parts.append(f'export PATH="{p}:$PATH"')
     if 'python' in sel:
         bd = _bin_for('python', sel['python'])
         bd = _to_msys(bd) if win else bd
@@ -151,9 +148,6 @@ def emit_ps1(sel):
     if 'node' in sel:
         p = _to_win(_bin_for('node', sel['node']))
         parts.append(f'$env:PATH = "{p};$env:PATH"')
-    if 'crane' in sel:
-        p = _to_win(sel['crane']['path'])
-        parts.append(f'$env:PATH = "{p};$env:PATH"')
     if 'python' in sel:
         p = _to_win(_bin_for('python', sel['python']))
         parts.append(f'$env:PATH = "{p};$env:PATH"')
@@ -182,9 +176,6 @@ def emit_cmd(sel):
         parts.append('set "PATH=%GRADLE_HOME%\\bin;%PATH%"')
     if 'node' in sel:
         p = _to_win(_bin_for('node', sel['node']))
-        parts.append(f'set "PATH={p};%PATH%"')
-    if 'crane' in sel:
-        p = _to_win(sel['crane']['path'])
         parts.append(f'set "PATH={p};%PATH%"')
     if 'python' in sel:
         p = _to_win(_bin_for('python', sel['python']))
