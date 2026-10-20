@@ -2,6 +2,18 @@
 
 目标：从同一份提交在宿主用语言工具链构建**一个**产物，打包为**一个**瘦运行时镜像。**镜像定义与模块同源**：Java 在模块的 `pom.xml` / `build.gradle(.kts)` 里声明 Jib，非 Java 在模块内自备 `Dockerfile.delivery`。编译出包在宿主完成（工具链由 `mv-toolchain-manager` 准备），本 skill 的脚本只编排「调用模块定义 → 载入目标 Docker → 输出镜像身份」，不另写一套镜像配置。
 
+## 目录
+
+- Java 模块：模块内 Jib 配置基线
+- 非 Java 模块：模块内 Dockerfile.delivery
+- 多模块项目
+- 产物检测（非 Java Docker 路径）
+- 环境变量
+- 运行目标与镜像载入
+- 镜像身份契约（与 mv-container-deploy 的接口）
+- 限制
+
+
 ## Java 模块：模块内 Jib 配置基线
 
 Java 模块必须自己声明 Jib 插件；`jib-build.sh` 只校验声明是否存在，不注入镜像配置。团队基线（插件版本由 `mv-tech-stack-standards` 统一，项目内显式声明）：
