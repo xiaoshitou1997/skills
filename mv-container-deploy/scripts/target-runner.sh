@@ -20,7 +20,12 @@ DOCKER=(docker compose --env-file ".env.$ENV" -f compose.yml -p "$APP")
 
 check_service() {
   local candidate=$1
-  local attempt id health status all_ok probe_ok=0 missing_health=0
+  local attempt id health status all_ok missing_health=0
+  # prod 门禁只认 readiness:必须显式提供 FF_HEALTH_URL;HEALTHCHECK 属 liveness 观测位,不构成门禁。
+  if [[ "$ENV" == prod && -z "$HEALTH_URL" ]]; then
+    echo 'Production requires FF_HEALTH_URL pointing at the readiness endpoint' >&2
+    return 1
+  fi
   # 就绪轮询上限默认 50 秒(25 次 × 2 秒),覆盖常规 Spring Boot/静态前端的启动窗口;
   # 慢启动大应用用 FF_READY_TIMEOUT(秒)放大,由 deploy.sh 透传到目标机。
   local attempts=$(( READY_SECS / 2 ))
@@ -39,26 +44,22 @@ check_service() {
         starting) all_ok=0 ;;
         none)
           missing_health=1
-          if [[ -z "$HEALTH_URL" && "$ENV" == prod ]]; then
-            echo 'Production requires a Docker healthcheck or FF_HEALTH_URL' >&2; return 1
-          fi
           ;;
         *) echo "Container health: $health" >&2; return 1 ;;
       esac
     done
+    # 收据门禁只认 readiness(FF_HEALTH_URL 指向的 HTTP 端点);
+    # Docker HEALTHCHECK 属 liveness 观测位,单独通过不产生可晋级收据。
     if [[ -n "$HEALTH_URL" ]]; then
       command -v curl >/dev/null 2>&1 || { echo 'curl required for HTTP probe' >&2; return 1; }
       if curl --fail --silent --show-error --max-time 4 "$HEALTH_URL" >/dev/null 2>&1; then
-        probe_ok=1
-      else
-        probe_ok=0
-      fi
-    else
-      probe_ok=1
-    fi
-    if [[ "$all_ok" == 1 && "$probe_ok" == 1 ]]; then
-      if [[ -n "$HEALTH_URL" || "$missing_health" == 0 ]]; then
         VERIFIED_HEALTH=strong
+        return 0
+      fi
+    elif [[ "$all_ok" == 1 ]]; then
+      if [[ "$missing_health" == 0 ]]; then
+        VERIFIED_HEALTH=liveness-only
+        echo 'NOTE: liveness (Docker HEALTHCHECK) only; set FF_HEALTH_URL to the readiness endpoint for a promotable receipt' >&2
       else
         VERIFIED_HEALTH=running-only
         echo 'NOTE: dev running without a health probe; cannot promote this deployment to prod' >&2

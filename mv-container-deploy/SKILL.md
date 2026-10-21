@@ -42,8 +42,8 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod
 ## 交付流程
 
 1. 交付前检查：镜像已在本地（`docker image inspect`，由 `mv-image-build` 产出）、`compose.delivery.yml` 或 `templates/compose.delivery.yml`、`.env.<env>`（未跟踪、`APP_ENV` 匹配）、`.dockerignore`；脚本内 `project_checks`/`env_checks` 与 `deploy-preflight.sh` 会先做只读预检。
-2. `deploy dev`：默认本机容器（Windows 即 WSL，Linux/macOS 即宿主 Docker），设置 `FF_DEV_SSH` 后为开发服务器。远端用 `docker save/load` 传输镜像并核对传输前后 Image ID 一致；随后启动 Compose、轮询健康（Docker HEALTHCHECK 或 `FF_HEALTH_URL`）。
-3. dev 健康验证通过（`VERIFIED_HEALTH=strong`）后在 `~/.mv/container-deploy/receipts/<app>/<IMAGE_ID>` 写 dev 收据；仅 `running` 不产生可晋级收据。
+2. `deploy dev`：默认本机容器（Windows 即 WSL，Linux/macOS 即宿主 Docker），设置 `FF_DEV_SSH` 后为开发服务器。远端用 `docker save/load` 传输镜像并核对传输前后 Image ID 一致；随后启动 Compose、轮询 readiness（`FF_HEALTH_URL` 指向 readiness 端点；Docker HEALTHCHECK 属 liveness 观测位）。
+3. dev 健康验证通过（`VERIFIED_HEALTH=strong`）后在 `~/.mv/container-deploy/receipts/<app>/<IMAGE_ID>` 写 dev 收据；仅 `running-only`、`liveness-only` 不产生可晋级收据。
 4. `deploy prod`：要求用户明确授权、`FF_PROD_SSH` 目标、同一 Image ID 的 dev 收据（`FF_REQUIRE_DEV_PROOF=0` 仅限风险评估后的显式应急）。生产必须有真实健康信号，仅 `running` 不算健康。
 5. 部署成功后在目标机 `~/.mv/container-deploy/<app>/releases.tsv` 追加发布记录，并保存当前与上一个成功镜像；验证失败时脚本自动尝试恢复上一个已验证镜像（应用级回滚）。
 6. `rollback prod` 加载可用的上一个镜像并验证记录结果；**不回滚外部状态和数据库**。
@@ -59,7 +59,7 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod
 ## 常见故障
 
 - `Image missing locally`：部署侧不构建，先回 `mv-image-build` 出镜像（或确认镜像名/Tag 拼写与构建输出一致）。
-- dev 部署成功但提示 `No promotable dev receipt`：容器无 Docker HEALTHCHECK 且未设 `FF_HEALTH_URL`，补齐后重新部署才能取得可晋级收据。
+- dev 部署成功但提示 `No promotable dev receipt`：未设 `FF_HEALTH_URL`（须指向 readiness 端点），仅靠 Docker HEALTHCHECK 只记 `liveness-only` 档；补设后重新部署才能取得可晋级收据。
 - `Transferred image ID mismatch`：save/load 传输前后不一致即终止，检查目标机磁盘空间与 Docker 存储驱动，不跳过校验。
 - 远端启动失败但脚本已回滚：`releases.tsv` 与 `previous-image` 是事实源，用 `status` 核对当前镜像后再决定重试或人工介入。
 - 宿主侧连不上本机容器端口：确认 compose `ports` 已发布、目标端口未被占用。Windows 的 Mirrored 网络模式与宿主进程共享端口，排查方法见 [宿主端口占用](../mv-local-debug/references/troubleshooting.md#端口占用wsl-mirrored-共享端口层)；Linux/macOS 宿主用 `ss -ltnp` 或 `lsof -i :<端口>` 查占用并核对防火墙。未安装 `mv-local-debug` 时，按上述命令直接检查端口占用及 Compose 映射。

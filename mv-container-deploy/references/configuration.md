@@ -8,7 +8,7 @@
 | `FF_PROD_SSH` | prod 目标 SSH；生产部署必填 |
 | `FF_DEV_SSH_KEY` / `FF_PROD_SSH_KEY` | 对应环境的 SSH 私钥绝对路径，可留空使用 SSH Agent |
 | `FF_COMPOSE_FILE` | 项目自定义的 Compose 文件名 |
-| `FF_HEALTH_URL` | 可选目标机本地 HTTP 健康检查 URL，例如 `http://127.0.0.1:8080/actuator/health`；必须能**从目标机访问**，不要求客户端能够访问 |
+| `FF_HEALTH_URL` | dev 收据与 prod 门禁的唯一健康探活依据（readiness 端点，如 `http://127.0.0.1:8080/actuator/health/readiness`）；必须能**从目标机访问**，不要求客户端能够访问。未设置时部署最多记 `liveness-only`（HEALTHCHECK 通过）或 `running-only`，均不产生可晋级收据 |
 | `FF_REQUIRE_DEV_PROOF` | 默认 `1`：生产晋级要求同一 Image ID 的 dev 健康验证收据；置 `0` 仅限风险评估后的显式应急，详见 [交付契约](deployment-contract.md) |
 | `FF_READY_TIMEOUT` | 目标机就绪轮询上限秒数，默认 `50`；慢启动应用可调大，经 deploy.sh 透传到目标机 |
 | `FF_WSL_DISTRO` | （仅 Windows 桥接生效）指定 WSL 发行版；默认取第一个可用发行版。其余宿主忽略 |

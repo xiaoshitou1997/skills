@@ -145,9 +145,42 @@ esac
             (target/'.env.prod').write_text('APP_ENV=prod\n')
             prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','',cwd=d,env=env)
             self.assertNotEqual(prod.returncode,0)
-            self.assertIn('requires a Docker healthcheck', prod.stderr)
+            self.assertIn('requires FF_HEALTH_URL', prod.stderr)
             if not sealed(target/'current-image'):
                 self.assertEqual((target/'current-image').read_text(encoding='utf-8').strip(), 'api:one')
+
+    def test_healthcheck_only_dev_records_liveness_and_is_not_promotable(self):
+        with tempfile.TemporaryDirectory() as d:
+            base=Path(d)
+            target=base/'.mv/container-deploy/api'
+            target.mkdir(parents=True)
+            (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
+            (target/'.env.dev').write_text('APP_ENV=dev\n')
+            binary=base/'bin';binary.mkdir()
+            docker=binary/'docker'
+            docker.write_text('''#!/bin/sh
+case "$1" in
+  image) echo sha256:fake;;
+  inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; esac;;
+  compose) case "$*" in *'ps -q'*) echo mock;; esac;;
+esac
+''')
+            docker.chmod(0o755)
+            env=os.environ.copy();env.update(HOME=d,PATH=str(binary)+os.pathsep+env['PATH'])
+            run=exec_run(BASH,RUNNER,'deploy','dev','api','api:one','',cwd=d,env=env)
+            self.assertEqual(run.returncode,0,run.stderr)
+            # 收据门禁只认 readiness(FF_HEALTH_URL):HEALTHCHECK 属 liveness 观测位。
+            self.assertIn('VERIFIED_HEALTH=liveness-only',run.stdout)
+            self.assertNotIn('DEV_RECEIPT',run.stdout)
+            if sealed(target/'releases.tsv'):
+                self.skipTest('Security agent sealed the receipt files; state assertion needs a clean machine')
+            self.assertEqual((target/'releases.tsv').read_text(encoding='utf-8').strip().split('\t')[-1], 'liveness-only')
+            receipts=target.parent/'receipts'/'api'
+            self.assertFalse(receipts.exists() and any(receipts.iterdir()))
+            (target/'.env.prod').write_text('APP_ENV=prod\n')
+            prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','',cwd=d,env=env)
+            self.assertNotEqual(prod.returncode,0)
+            self.assertIn('requires FF_HEALTH_URL', prod.stderr)
 
     def test_failing_compose_start_attempts_to_restore_previous(self):
         with tempfile.TemporaryDirectory() as d:

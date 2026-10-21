@@ -193,7 +193,7 @@ case "$ACTION" in
       fi
       echo "DEV_RECEIPT=$LOCAL_ID"
     elif [[ "$ENV" == dev ]]; then
-      echo 'No promotable dev receipt: configure Docker HEALTHCHECK or FF_HEALTH_URL and redeploy' >&2
+      echo 'No promotable dev receipt: set FF_HEALTH_URL to the readiness endpoint and redeploy' >&2
     fi
     ;;
   status|rollback)
