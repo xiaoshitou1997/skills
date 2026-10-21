@@ -21,13 +21,51 @@
 
 ## 包与模块分层
 
-在已有项目约定不冲突时，可选择以下布局：
+在已有项目约定不冲突时，模块命名与分层按本节规则。
+
+### 模块命名
+
+模块名 = `<项目>-[切片词]-<后缀>`，后缀取自固定闭集，不造集合外后缀：
+
+| 后缀 | 语义 | 形态与拆分判据 |
+|---|---|---|
+| `-common` | 通用异常、常量、工具 | 库 |
+| `-api` | 跨项目契约：服务接口 + DTO | 库；有外部集成方才拆 |
+| `-sdk` | 客户端封装（重试、鉴权、序列化） | 库；对外发布才拆 |
+| `-spring-boot-starter` | 技术组件自动装配 | 库；按 Spring 官方惯例命名 |
+| `-domain` | 实体、仓储、业务用例 | 库；业务逻辑出现第二个可运行消费者才拆 |
+| `-service` | 可运行后端入口，唯一含 main | 应用 |
+| `-web` / `-mp` / `-mobile` | 浏览器前端 / 小程序 / App | 前端工程，不进后端聚合 pom |
+
+切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切。
+
+### 三种布局
+
+单入口——两端共用一个可运行服务，不需要独立伸缩、独立网络边界或独立发布节奏时优先：
 
 ```text
-module-common/        通用异常、常量、工具
-module-api/           DTO/契约、服务接口（需要跨模块调用时）
-module-service/       Controller、Service、Repository/Mapper
-module-task/          消息消费/任务（存在时）
+shop-service/            唯一入口：controller/admin/（管理端）与 controller/uc/（用户端）分包
+shop-domain/             共享业务核心（出现第二个可运行消费者前可并入 service 内分包）
+shop-common/
+```
+
+两端共用进程时以路径前缀分段（如 `/admin/**`、`/uc/**`），安全配置按路径独立，权限点按 RBAC 集中在入口层校验。
+
+按端切——两端需要独立伸缩、独立网络边界或独立发布节奏：
+
+```text
+shop-user-service/       用户端入口
+shop-admin-service/      管理端入口
+shop-task-service/       定时任务与消息消费进程
+shop-domain/  shop-common/
+```
+
+按域切——微服务化，每域一个可运行服务：
+
+```text
+shop-order-service/  shop-member-service/  shop-product-service/
+shop-order-domain/       跨服务共享实现的域才拆；跨项目契约拆 shop-order-api
+shop-common/
 ```
 
 单模块常见目录：`controller/`、`service/`、`mapper/` 或 `repository/`、`model/entity/`、`model/dto/`、`model/vo/`、`model/query/`、`config/`、`handler/`。
