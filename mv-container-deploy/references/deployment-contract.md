@@ -9,7 +9,8 @@
 - 用户明确说明依赖关系（如数据库使用现成实例）时，部署范围按声明缩减，并在发布记录注明范围与豁免项；仅单服务且无基础设施依赖时使用单服务模板（`templates/compose.delivery.yml`，引用 `FF_IMAGE`、没有 `build:` 段）。Node 静态前端在 env 文件中设置 `CONTAINER_PORT=80`。
 - **部署身份按独立生命周期划定**：独立升级、独立回滚、独立数据卷、独立端口与环境配置的一组组件是一个部署身份，对应一个 APP 名与一条完整交付链（各自的 `.env.<env>`、`compose.delivery.yml`、`releases.tsv`、收据与晋级记录）。同一系统需要多份完全独立部署（如 `order` 与 `order-sandbox`）时按多个部署身份交付，各自携带自己的基础设施容器；共享某项基础设施即不再独立，按上一条声明依赖。同一部署的横向扩容不是新身份：在同一个 Compose 项目内用 replicas 扩容，不另起部署身份；接入 swarm/k8s 后对应不同 stack 名或不同 namespace。
 - **目标机不执行构建**，只加载并运行不可变镜像；`docker compose` 一律 `--no-build --pull never`。
-- 建议应用带 Docker HEALTHCHECK；无 HEALTHCHECK 时用 `FF_HEALTH_URL` 提供目标机可达的探活地址，否则 dev 不会产生可晋级收据、prod 直接拒绝部署。
+- **双探针**：可运行服务暴露 readiness 与 liveness 两个健康端点（Spring Boot 服务经 Actuator 健康组实现，条款见 `mv-java-backend-standards` 的 spring-guide「健康探测」）。liveness 只反映进程内状态、不聚合外部依赖；readiness 反映可接流状态并聚合关键依赖，是部署验证与晋级门禁的探活依据。`FF_HEALTH_URL` 指向 readiness 端点；未配置时 dev 不产生可晋级收据、prod 直接拒绝部署。
+- 编排映射：Compose 基线只有容器级 HEALTHCHECK（liveness 语义），且仅标记 unhealthy 状态、不自动重启；Jib 镜像无法携带 HEALTHCHECK 指令，Java 服务一律以 `FF_HEALTH_URL`（readiness）作门禁探活。`Dockerfile.delivery` 路径可在镜像内定义 HEALTHCHECK（指向 liveness 端点，`start_period` 覆盖启动期）。swarm/k8s 接入后按 `livenessProbe`/`readinessProbe` 原生分列（失败重启/摘流），替换上述映射。
 
 ## 环境变量
 

@@ -21,6 +21,13 @@
 - 含连字符的 key 在该转换中丢失词界（`expire-minutes` → `EXPIREMINUTES`），环境变量名与 key 分段不再对应：此类配置项在配置文件中用属性占位符显式声明环境变量与默认值（`expire-minutes: ${APP_JWT_EXPIRE_MINUTES:30}`）。属性占位符是独立于宽松绑定的核心 Spring 机制，默认值随占位符定义在配置文件，不进代码。
 - 禁止 `@Value` 注入配置；代码（字段初始化、构造器默认参）不定义配置默认值。
 
+## 健康探测
+
+- 可运行服务暴露 readiness 与 liveness 双探针端点：`application.yml` 显式设置 `management.endpoint.health.probes.enabled: true`（部署到 k8s 时自动启用，Compose 等环境必须显式开启），端点为 `/actuator/health/readiness` 与 `/actuator/health/liveness`；`management.endpoints.web.exposure.include` 最小化放开（health 必开，其余按需）。
+- 两个端点检查内容分离：liveness 只反映进程内状态（死锁、关键线程停摆），不聚合任何外部依赖——基础设施抖动若进入 liveness 会放大成容器重启风暴；readiness 反映可接流状态，聚合关键依赖（连接池等）检查，失败时摘除流量、恢复后自动回归，不重启进程。
+- 自定义 `HealthIndicator` 只做组件可用性判定，不在健康检查里跑慢查询或重逻辑；镜像 HEALTHCHECK 用 `start_period` 覆盖启动期，防止启动中被判死。
+- readiness 端点同时是交付门禁探活地址：容器部署 `FF_HEALTH_URL` 指向它，语义与编排映射见 `mv-container-deploy` 交付契约「双探针」。
+
 ## 框架扩展点与运行时集成
 
 - 修改拦截器、结果转换、重试器或自动配置时，检查当前依赖版本的实际执行链。确认结果转换影响的是最终类型绑定，而不只是响应对象的某个访问器。
