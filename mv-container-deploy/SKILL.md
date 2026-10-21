@@ -15,6 +15,8 @@ description: 把已构建的容器镜像包部署到各环境与服务器（本�
 ## 硬性规范（无例外）
 
 - **容器运行时门禁**：Windows 上容器部署、状态查询一律经 WSL；WSL、发行版或 WSL 内 Docker 不可用时明确报错并给出安装指引，不得改用 Windows 侧 Docker。Linux/macOS 宿主由 `wsl-bridge.sh` 自动判定后直连本机 Docker，Docker 缺失时明确报错。
+- **编排运行**：容器创建与启动一律经编排器声明——当前基线 Docker Compose（swarm/k8s 等按交付契约扩展）；禁止用裸 `docker run`、`docker create` 起服务，排障用 `docker exec` 只读检查不受此限。
+- **全量交付默认**：部署默认携带系统完整组件集——全部业务服务（如 a、b）、其依赖的基础设施（MySQL、Redis 等按项目声明）及配套部署脚本与配置文件；「只部署部分组件、其余依赖视为已存在」须用户明确说明依赖关系后才成立，并在发布记录注明本次部署范围与豁免项。
 - **镜像常驻**：部署只新增/替换容器，任何流程不得 `docker rmi`、`docker system prune` 等清理动作；目标机保存当前与上一个成功镜像用于回滚。
 - **晋级门禁**：prod 只能晋级已有 dev 收据的**同一** Image ID，不能仅凭相同 Git SHA 推断镜像一致；`--approve-prod` 只是脚本保护，不能代替用户对真实生产操作的授权。
 - **-dirty 拦截是命名约定**：脚本按 Tag 含 `-dirty` 拒绝向 prod 交付；标记由 mv-image-build 构建时自动携带，在构建流程外手工重打干净 Tag 可绕过检测——属流程违规而非技术边界，交付镜像必须出自 mv-image-build 构建。
