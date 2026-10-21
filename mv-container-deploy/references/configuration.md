@@ -25,7 +25,7 @@ CONTAINER_PORT=8080
 SPRING_PROFILES_ACTIVE=dev
 ```
 
-对生产可在本地受控环境使用 `FF_PROD_SSH` + SSH Agent，私钥权限必须适当；不要把真实地址凭证写进 Skill 或自动生成配置。
+对生产可在本地受控环境使用 `FF_PROD_SSH` + SSH Agent，私钥文件权限收紧至仅当前用户可读（如 `chmod 600`）；不要把真实地址凭证写进 Skill 或自动生成配置。
 
 ## 项目可覆盖的模板
 

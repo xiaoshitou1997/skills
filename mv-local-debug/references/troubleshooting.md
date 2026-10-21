@@ -1,6 +1,6 @@
 # 宿主调测常见故障
 
-本文件收录 mv-local-debug 宿主链路（直启与宿主构建）的高频故障与判定方法；调测卡住时先按症状对照本表，再用 `doctor.py` 复核环境。只覆盖宿主范围；镜像构建链路故障见 `mv-image-build`，部署与容器运行故障见 `mv-container-deploy`。
+本文件收录 mv-local-debug 宿主链路（直启与宿主构建）的高频故障与判定方法；调测停滞时先按症状对照本表，再用 `doctor.py` 复核环境。只覆盖宿主范围；镜像构建链路故障见 `mv-image-build`，部署与容器运行故障见 `mv-container-deploy`。
 
 ## 端口占用（WSL Mirrored 共享端口层）
 

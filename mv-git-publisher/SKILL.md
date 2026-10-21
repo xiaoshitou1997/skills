@@ -17,7 +17,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 
 ## 不可违反的原则
 
-**一次提交 = 一个逻辑完整、语义独立且尽量可单独 revert 的 change set。** 相同 `feat` 类型不代表同一个 Feature；同一 Feature 的 Controller、Service、DAO、测试、文档可以归为一个提交。
+**一次提交 = 一个逻辑完整、语义独立且可单独 revert 的 change set。** 相同 `feat` 类型不代表同一个 Feature；同一 Feature 的 Controller、Service、DAO、测试、文档可以归为一个提交。
 
 1. 禁止 `git add .`、`git add -A`、`git commit -am` 扫荡所有修改。
 2. 不擅自清空或重置已有暂存区。

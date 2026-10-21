@@ -37,7 +37,7 @@ module-task/          消息消费/任务（存在时）
 - Controller `UserController`; Service `UserService`; Mapper `UserMapper`; DTO `CreateUserRequest` 或遵循项目既有 `CreateUserDTO`; VO `UserVO`。
 - 参数数量过多时封装对象；避免含混的 `deal`, `handleData` 与不必要缩写；注释解释为何而非复述代码。
 - 命名按英文习惯表达语义，不做中文大白话直译：先定语义再选词，不以中文语序拼英文；布尔判断用 is/has/can + 形容词（如 `isNormal`），不写 `judgeIfNormal`、`checkIsNormal` 这类逐字翻译。
-- 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不顺手重写。
+- 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不随本次变更重写。
 - Java 代码缩进一般 4 空格，行宽参考项目 Checkstyle/Spotless，不强制与既有格式化配置冲突；避免注释掉的旧实现。
 - DTO/Entity/VO 转换优先显式代码或项目既有 MapStruct；避免未受控的反射拷贝造成字段漏填/泄露。
 - JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 等配置遵循项目既有约定。

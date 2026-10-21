@@ -59,7 +59,7 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod
 ## 常见故障
 
 - `Image missing locally`：部署侧不构建，先回 `mv-image-build` 出镜像（或确认镜像名/Tag 拼写与构建输出一致）。
-- dev 部署成功但提示 `No promotable dev receipt`：容器无 Docker HEALTHCHECK 且未设 `FF_HEALTH_URL`，补齐后重新部署才能拿到可晋级收据。
+- dev 部署成功但提示 `No promotable dev receipt`：容器无 Docker HEALTHCHECK 且未设 `FF_HEALTH_URL`，补齐后重新部署才能取得可晋级收据。
 - `Transferred image ID mismatch`：save/load 传输前后不一致即终止，检查目标机磁盘空间与 Docker 存储驱动，不跳过校验。
 - 远端启动失败但脚本已回滚：`releases.tsv` 与 `previous-image` 是事实源，用 `status` 核对当前镜像后再决定重试或人工介入。
 - 宿主侧连不上本机容器端口：确认 compose `ports` 已发布、目标端口未被占用。Windows 的 Mirrored 网络模式与宿主进程共享端口，排查方法见 [宿主端口占用](../mv-local-debug/references/troubleshooting.md#端口占用wsl-mirrored-共享端口层)；Linux/macOS 宿主用 `ss -ltnp` 或 `lsof -i :<端口>` 查占用并核对防火墙。未安装 `mv-local-debug` 时，按上述命令直接检查端口占用及 Compose 映射。

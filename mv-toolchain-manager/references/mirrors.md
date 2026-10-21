@@ -94,4 +94,4 @@ python3 "${SKILL_ROOT}/scripts/installer/runtime_cli.py" --mirror cn ensure --jd
 |------|-----------------------------|----------------------|
 | mirror 404 | 浪费一次完整 GET（可能等几十秒到 200MB）才发现 404 | probe 阶段秒级判定，从未对 mirror 发 GET |
 | mirror 网络不可达 | GET 阻塞到 timeout 才切换 | probe 30s timeout 内判定 |
-| mirror 中途断流 | 失败后再切回官方，前半段流量浪费 | probe 已通过 → 这次 GET 失败 → 切换到下一个已 validated 的 URL（合理） |
+| mirror 中途断流 | 失败后再切回官方，前半段流量浪费 | probe 已通过 → 这次 GET 失败 → 切换到下一个已 validated 的 URL（符合预期） |

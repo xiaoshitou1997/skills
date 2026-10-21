@@ -110,6 +110,6 @@ jib {
 
 ## 限制
 
-- Java 镜像的能力边界由模块内的 Jib 配置决定：需要 `RUN apt-get install` 之类构建期安装时，Jib 无法表达，应在模块内评估预装基镜像或改用项目内 CI/CD，而不是在本 skill 里另写 Dockerfile。
+- Java 镜像的能力边界由模块内的 Jib 配置决定：需要 `RUN apt-get install` 等构建期安装时，Jib 无法表达，应在模块内评估预装基镜像或改用项目内 CI/CD，而不是在本 skill 里另写 Dockerfile。
 - 内置模板只覆盖 Node 静态前端（`templates/Dockerfile.web`）；多模块 Maven/Gradle、Next.js SSR、原生扩展、ARM/AMD64 混用，请在模块内提供 `Dockerfile.delivery` 并用 `FF_ARTIFACT` 指定产物，先单独验证。
 - 默认镜像在本地目标架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行。
