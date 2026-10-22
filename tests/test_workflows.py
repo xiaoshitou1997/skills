@@ -1,4 +1,9 @@
-"""Safe unit/smoke tests with sandbox git repos and a fake docker binary."""
+"""Safe unit/smoke tests with sandbox git repos and a fake docker binary.
+
+用例彼此完全隔离(独立临时目录/环境/沙箱仓库),直接运行时默认并行执行;
+瓶颈是子进程 spawn 的逐进程安全软件开销而非 CPU,并行可显著缩短总时长。
+支持 -k 子串筛选(可多次,按改动精准跑)与 --serial 串行回退。
+"""
 import hashlib
 import json
 import os
@@ -8,11 +13,15 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 # PATH 里排在前的可能是 System32 的 WSL bash,必须显式使用 Git Bash;
 # 且 bash 不接受 Windows 反斜杠路径(msys 会吞掉反斜杠),统一转为正斜杠。
+# 必须用 bin/bash.exe(trampoline):它负责初始化 MSYS 运行时环境;
+# 从 Windows 父进程直启 usr/bin/bash.exe 真身后,`exec env VAR=… cmd` 链路
+# 会静默断裂(目标命令不执行且无报错),wsl 桥接用例的 env 中转全部失效。
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
     BASH = shutil.which('bash') or 'bash'
@@ -341,8 +350,10 @@ exec "$@"
         return env
 
     def _workflow(self, script, d, env, *args):
+        # 并行执行时多个用例同时 spawn,安全软件逐进程挂钩会拉长单次耗时;
+        # Windows 上限放宽到 600s 防止争用误杀,正常完成远低于此。
         return subprocess.run([BASH, script, *args], cwd=d, env=env,
-                              capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=120 if os.name == 'nt' else 30)
+                              capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=600 if os.name == 'nt' else 30)
 
     def _static_artifact(self, directory):
         directory.mkdir(parents=True)
@@ -362,17 +373,22 @@ exec "$@"
             blob = b'blob ' + str(len(content)).encode() + b'\0' + content
             self.assertIn(f'{label}_BLOB={hashlib.sha1(blob).hexdigest()}', log)
 
-    def test_native_build_packages_static_directory(self):
-        for name in ('dist', 'build'):
-            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory:
-                d = Path(directory)
-                env = self._offline_env(d)
-                (d / 'package.json').write_text('{}', encoding='utf-8')
-                self._static_artifact(d / name)
-                run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
-                self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-                self.assertIn(f'ARTIFACT_DIR={name}', run.stdout)
-                self._assert_static_context(run.stderr)
+    def _run_native_static(self, name):
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d)
+            (d / 'package.json').write_text('{}', encoding='utf-8')
+            self._static_artifact(d / name)
+            run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn(f'ARTIFACT_DIR={name}', run.stdout)
+            self._assert_static_context(run.stderr)
+
+    def test_native_build_packages_dist_directory(self):
+        self._run_native_static('dist')
+
+    def test_native_build_packages_build_directory(self):
+        self._run_native_static('build')
 
     def test_static_build_missing_artifact_has_guidance(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -397,94 +413,195 @@ exec "$@"
             self.assertNotIn('unbound variable', run.stderr)
             self.assertFalse((d / 'docker.log').exists())
 
-    def test_wsl_build_archives_ignored_directories_and_normalizes_paths(self):
-        for name in ('dist', 'build', './static output/../static output/', 'absolute', 'external'):
-            with self.subTest(name=name), tempfile.TemporaryDirectory() as directory, \
-                    tempfile.TemporaryDirectory() as external:
-                d = Path(directory)
-                env = self._offline_env(d, wsl=True)
-                (d / 'package.json').write_text('{}', encoding='utf-8')
-                (d / '.gitignore').write_text('dist/\nbuild/\nstatic output/\n', encoding='utf-8')
-                if name == 'external':
-                    artifact = Path(external) / 'external output'
-                    env['FF_ARTIFACT'] = artifact.as_posix() + '/'
-                elif name == 'absolute':
-                    artifact = d / 'static output'
-                    env['FF_ARTIFACT'] = artifact.as_posix() + '/'
-                elif name.startswith('./'):
-                    artifact = d / 'static output'
-                    env['FF_ARTIFACT'] = name
-                else:
-                    artifact = d / name
-                self._static_artifact(artifact)
-                (d / 'unrelated.txt').write_text('staged content\n', encoding='utf-8')
-                subprocess.run(['git', '-C', str(d), 'add', 'unrelated.txt'], check=True)
-                before = subprocess.check_output(['git', '-C', str(d), 'ls-files', '--stage'])
-                run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
+    def _run_wsl_variant(self, name):
+        with tempfile.TemporaryDirectory() as directory, \
+                tempfile.TemporaryDirectory() as external:
+            d = Path(directory)
+            env = self._offline_env(d, wsl=True)
+            (d / 'package.json').write_text('{}', encoding='utf-8')
+            (d / '.gitignore').write_text('dist/\nbuild/\nstatic output/\n', encoding='utf-8')
+            if name == 'external':
+                artifact = Path(external) / 'external output'
+                env['FF_ARTIFACT'] = artifact.as_posix() + '/'
+            elif name == 'absolute':
+                artifact = d / 'static output'
+                env['FF_ARTIFACT'] = artifact.as_posix() + '/'
+            elif name.startswith('./'):
+                artifact = d / 'static output'
+                env['FF_ARTIFACT'] = name
+            else:
+                artifact = d / name
+            self._static_artifact(artifact)
+            (d / 'unrelated.txt').write_text('staged content\n', encoding='utf-8')
+            subprocess.run(['git', '-C', str(d), 'add', 'unrelated.txt'], check=True)
+            before = subprocess.check_output(['git', '-C', str(d), 'ls-files', '--stage'])
+            run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self._assert_static_context(run.stderr)
+            self.assertEqual(subprocess.check_output(['git', '-C', str(d), 'ls-files', '--stage']), before)
+            log = run.stderr
+            self.assertIn('/.mv/image-build/build/demo', log)
+            self.assertNotIn('/.mv/local-debug/', log)
+
+    def test_wsl_build_discovers_gitignored_dist(self):
+        self._run_wsl_variant('dist')
+
+    def test_wsl_build_discovers_gitignored_build(self):
+        self._run_wsl_variant('build')
+
+    def test_wsl_build_normalizes_relative_artifact_path(self):
+        self._run_wsl_variant('./static output/../static output/')
+
+    def test_wsl_build_accepts_in_tree_absolute_path(self):
+        self._run_wsl_variant('absolute')
+
+    def test_wsl_build_accepts_external_directory(self):
+        self._run_wsl_variant('external')
+
+    def _run_directory_artifact_guard(self, artifact, secret):
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d)
+            (d / 'package.json').write_text('{}', encoding='utf-8')
+            env['FF_ARTIFACT'] = artifact
+            if artifact != '.':
+                self._static_artifact(d / artifact)
+                (d / artifact / secret).write_text('secret', encoding='utf-8')
+            run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
+            self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
+            self.assertIn('产物目录包含 .git 或 .env*', run.stderr)
+            self.assertNotIn('docker\tbuild', run.stderr)
+
+    def test_directory_artifact_rejects_repository_root(self):
+        self._run_directory_artifact_guard('.', '.git')
+
+    def test_directory_artifact_rejects_nested_env_file(self):
+        self._run_directory_artifact_guard('dist', 'assets/.env.dev')
+
+    def _run_strict_scan_gate(self, wsl):
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d, wsl=wsl)
+            env['FF_REQUIRE_SECURITY_SCAN'] = '1'
+            (d / 'pom.xml').write_text('<project/>', encoding='utf-8')
+            (d / 'Dockerfile.delivery').write_text('FROM scratch\n', encoding='utf-8')
+            (d / 'target').mkdir()
+            (d / 'target/app.jar').write_bytes(b'jar')
+            run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
+            self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
+            self.assertIn('Trivy unavailable; image security gate not satisfied', run.stderr)
+            self.assertNotIn('SKIP:', run.stdout + run.stderr)
+            self.assertNotIn('IMAGE_ID=', run.stdout)
+            if wsl:
+                self.assertIn('env\tFF_REQUIRE_SECURITY_SCAN=1\tbash\t-s\t--\timage\tdemo:',
+                              run.stderr)
+
+    def test_strict_scan_fails_when_trivy_missing_native(self):
+        self._run_strict_scan_gate(False)
+
+    def test_strict_scan_fails_when_trivy_missing_wsl(self):
+        self._run_strict_scan_gate(True)
+
+    def _run_ssh_runner_arguments(self, health, ready):
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d)
+            env.update(FF_DEV_SSH='tester@fakehost', FF_HEALTH_URL=health, FF_READY_TIMEOUT=ready)
+            # An HTTP probe must also stay offline.
+            curl = d / 'bin/curl'
+            curl.write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
+            curl.chmod(0o755)
+            output = ''
+            for action in ('deploy', 'status', 'rollback'):
+                args = [action, 'dev', 'demo'] + (['demo:release'] if action == 'deploy' else [])
+                run = self._workflow(DEPLOY, d, env, *args)
                 self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-                self._assert_static_context(run.stderr)
-                self.assertEqual(subprocess.check_output(['git', '-C', str(d), 'ls-files', '--stage']), before)
-                log = run.stderr
-                self.assertIn('/.mv/image-build/build/demo', log)
-                self.assertNotIn('/.mv/local-debug/', log)
+                output += run.stderr
+            lines = [line for line in output.splitlines() if line.startswith('runner\t')]
+            self.assertEqual(lines, [
+                '\t'.join(['runner', '-s', '--', action, 'dev', 'demo', image, health, ready])
+                for action, image in [('deploy', 'demo:release'), ('status', ''), ('rollback', '')]])
+            self.assertIn('docker\timage\tinspect\t--format\t{{.Id}}\tdemo:release\n',
+                          output)
 
-    def test_directory_artifact_rejects_repository_and_nested_env(self):
-        for artifact, secret in (('.', '.git'), ('dist', 'assets/.env.dev')):
-            with self.subTest(artifact=artifact), tempfile.TemporaryDirectory() as directory:
-                d = Path(directory)
-                env = self._offline_env(d)
-                (d / 'package.json').write_text('{}', encoding='utf-8')
-                env['FF_ARTIFACT'] = artifact
-                if artifact != '.':
-                    self._static_artifact(d / artifact)
-                    (d / artifact / secret).write_text('secret', encoding='utf-8')
-                run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
-                self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
-                self.assertIn('产物目录包含 .git 或 .env*', run.stderr)
-                self.assertNotIn('docker\tbuild', run.stderr)
+    def test_ssh_runner_preserves_empty_arguments(self):
+        self._run_ssh_runner_arguments('', '')
 
-    def test_build_strict_scan_fails_when_trivy_missing_native_and_wsl(self):
-        for wsl in (False, True):
-            with self.subTest(wsl=wsl), tempfile.TemporaryDirectory() as directory:
-                d = Path(directory)
-                env = self._offline_env(d, wsl=wsl)
-                env['FF_REQUIRE_SECURITY_SCAN'] = '1'
-                (d / 'pom.xml').write_text('<project/>', encoding='utf-8')
-                (d / 'Dockerfile.delivery').write_text('FROM scratch\n', encoding='utf-8')
-                (d / 'target').mkdir()
-                (d / 'target/app.jar').write_bytes(b'jar')
-                run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
-                self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
-                self.assertIn('Trivy unavailable; image security gate not satisfied', run.stderr)
-                self.assertNotIn('SKIP:', run.stdout + run.stderr)
-                self.assertNotIn('IMAGE_ID=', run.stdout)
-                if wsl:
-                    self.assertIn('env\tFF_REQUIRE_SECURITY_SCAN=1\tbash\t-s\t--\timage\tdemo:',
-                                  run.stderr)
+    def test_ssh_runner_preserves_empty_health_with_ready_timeout(self):
+        self._run_ssh_runner_arguments('', '2')
 
-    def test_ssh_runner_preserves_empty_arguments_and_inspect_template(self):
-        for health, ready in (('', ''), ('', '2'), ('http://127.0.0.1:8080/health', '2')):
-            with self.subTest(health=health, ready=ready), tempfile.TemporaryDirectory() as directory:
-                d = Path(directory)
-                env = self._offline_env(d)
-                env.update(FF_DEV_SSH='tester@fakehost', FF_HEALTH_URL=health, FF_READY_TIMEOUT=ready)
-                # An HTTP probe must also stay offline.
-                curl = d / 'bin/curl'
-                curl.write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
-                curl.chmod(0o755)
-                output = ''
-                for action in ('deploy', 'status', 'rollback'):
-                    args = [action, 'dev', 'demo'] + (['demo:release'] if action == 'deploy' else [])
-                    run = self._workflow(DEPLOY, d, env, *args)
-                    self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-                    output += run.stderr
-                lines = [line for line in output.splitlines() if line.startswith('runner\t')]
-                self.assertEqual(lines, [
-                    '\t'.join(['runner', '-s', '--', action, 'dev', 'demo', image, health, ready])
-                    for action, image in [('deploy', 'demo:release'), ('status', ''), ('rollback', '')]])
-                self.assertIn('docker\timage\tinspect\t--format\t{{.Id}}\tdemo:release\n',
-                              output)
+    def test_ssh_runner_forwards_health_url_and_ready_timeout(self):
+        self._run_ssh_runner_arguments('http://127.0.0.1:8080/health', '2')
+
+
+def _flatten(suite):
+    cases = []
+    for item in suite:
+        if isinstance(item, unittest.TestSuite):
+            cases.extend(_flatten(item))
+        else:
+            cases.append(item)
+    return cases
+
+
+def main():
+    # 每个用例都是独立临时目录/独立环境的子进程沙箱,无共享可变状态;
+    # 瓶颈是 spawn 等待(安全软件逐进程挂钩)而非 CPU,线程池即可绕开串行税。
+    # --serial 回退串行(与 unittest.main 等价),便于二分定位失败。
+    if '--serial' in sys.argv:
+        unittest.main(verbosity=1, argv=[a for a in sys.argv if a != '--serial'])
+        return
+    cases = _flatten(unittest.defaultTestLoader.loadTestsFromModule(sys.modules[__name__]))
+    # -k 子串筛选(可多次,任一命中即选,大小写不敏感,对完整用例名匹配):
+    # 日常按改动精准跑,如 python3 tests/test_workflows.py -k wsl_build -k ssh_runner;
+    # --serial 模式下 -k 由 unittest 原生支持,语义一致。
+    patterns = [v for flag, v in zip(sys.argv, sys.argv[1:] + ['']) if flag == '-k' and v]
+    if patterns:
+        cases = [c for c in cases if any(p.lower() in c.id().lower() for p in patterns)]
+    if not cases:
+        print('no tests found')
+        sys.exit(2)
+    # 最长作业优先:重用例先占满工人、轻用例填空隙,否则字母序会让
+    # 最重的 ssh 部署链最后才开跑,拖长关键路径。权重来自实测耗时档位。
+    weight = {'test_ssh_runner': 420, 'test_wsl_build': 64, 'test_strict_scan_fails_when_trivy_missing_wsl': 80}
+    cases.sort(key=lambda c: next((w for p, w in weight.items() if c.id().split('.')[-1].startswith(p)), 0),
+               reverse=True)
+    # 4 是实测平衡点:6 路并发时安全软件逐进程挂钩争用加剧,
+    # ssh 部署链单次耗时会冲到超时量级;4 路下吞吐仍明显优于串行。
+    workers = min(4, len(cases))
+    results = [None] * len(cases)
+
+    def run_one(index, case):
+        result = unittest.TestResult()
+        begin = time.monotonic()
+        case.run(result)
+        results[index] = (case, result, time.monotonic() - begin)
+
+    started = time.monotonic()
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(lambda pair: run_one(*pair), enumerate(cases)))
+    elapsed = time.monotonic() - started
+
+    ran = failures = errors = skipped = 0
+    for case, result, _ in results:
+        ran += result.testsRun
+        failures += len(result.failures)
+        errors += len(result.errors)
+        skipped += len(result.skipped)
+        for kind, bucket in (('FAIL', result.failures), ('ERROR', result.errors)):
+            for test, trace in bucket:
+                print(f'{kind}: {test.id()}\n{trace}')
+    print(f'Ran {ran} tests in {elapsed:.1f}s (parallel x{workers}; --serial for sequential)')
+    # 耗时归因:逐用例实测分布,优化与超时调参以这里为准,不拿串行数字外推。
+    print('耗时分布(降序):')
+    for case, _, seconds in sorted(results, key=lambda item: item[2], reverse=True):
+        print(f'  {seconds:7.1f}s  {case.id().rsplit(".", 1)[-1]}')
+    if failures or errors:
+        print(f'FAILED (failures={failures}, errors={errors}, skipped={skipped})')
+        sys.exit(1)
+    print(f'OK (skipped={skipped})')
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()
