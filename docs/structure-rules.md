@@ -61,6 +61,12 @@
 - 各 skill 的落点在本 skill 文档中写明，与脚本常量同源；WSL、本机 native（非 Windows 宿主）与远端目标机侧写入同一 `~/.mv/<name>` 路径。
 - `~/.claude` 与 XDG 目录不是本仓库 skills 的状态落点；宿主自身的配置文件（如 `~/.claude/settings.json`）不受此条约束。
 
+## Git 仓库初始化
+
+- 新建 git 仓库（`git init`）时，首次提交不携带任何资料，仅作仓库初始化；README、.gitignore、代码等内容从第二个提交开始进入。
+- 首次提交用空提交落地：`git commit --allow-empty`，提交消息按仓库惯例书写，但不得夹带文件。
+- fork 或接管既有仓库不涉及本约定。
+
 ## 校验与同步点
 
 改动后必须全部过一遍：
