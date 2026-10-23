@@ -231,4 +231,19 @@ CASES = [
     {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '项目 README 规定开发时必须用 Compose 起全套，宿主无法独立运行，按这个方式在本地跑一下'},
 
+    # --- mv-ui-style：家族界面风格（全家族一套 tokens），不管工程图绘制、技术选型与前端编码 ---
+    {'skill': 'mv-ui-style', 'kind': 'positive',
+     'query': '新的桌面应用开工，帮我把界面风格定下来：配色、字号、间距、圆角、暗色模式出成一套 tokens，要有我们自己的设计感，别照抄别家'},
+    {'skill': 'mv-ui-style', 'kind': 'positive',
+     'query': '把我们所有应用的界面风格统一成一套，像腾讯阿里全家桶那样：一个主色一套规范全部共用，应用不许各配各的'},
+    {'skill': 'mv-ui-style', 'kind': 'positive',
+     'query': '这两个应用的界面放一起不像一家出的，按设计语言把配色和圆角统一掉'},
+    {'skill': 'mv-ui-style', 'kind': 'positive',
+     'query': '评审一下这个应用的界面，间距、字号、焦点态有没有偏离我们的 UI 风格'},
+    {'skill': 'mv-ui-style', 'kind': 'negative', 'instead': 'mv-diagram-drafter',
+     'query': '画一张这个应用的页面示意图，标出主要区域和交互入口'},
+    {'skill': 'mv-ui-style', 'kind': 'negative', 'instead': 'mv-tech-stack-standards',
+     'query': '新前端项目选 Next.js 还是 Vite 加 React？帮我定一下技术栈'},
+    {'skill': 'mv-ui-style', 'kind': 'negative',
+     'query': '帮我实现这个 React 组件的键盘导航逻辑'},
 ]

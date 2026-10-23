@@ -17,6 +17,7 @@ SKILLS = {
     'mv-git-publisher',
     'mv-java-backend-standards',
     'mv-tech-stack-standards',
+    'mv-ui-style',
     'mv-engineering-doc-writer',
     'mv-doc-figure-placement',
     'mv-diagram-drafter',

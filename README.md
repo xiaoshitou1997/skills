@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、非功能性需求采集、编码规范、技术栈约定、工程文档写作、工程制图与文档插图、离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、非功能性需求采集、编码规范、技术栈约定、界面风格设计语言、工程文档写作、工程制图与文档插图、离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 十二个 skills
+## 十三个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -16,6 +16,7 @@
 | `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
+| `mv-ui-style` | 家族界面风格：全家族一套 tokens（结构+配色固定，对齐大厂公司级设计系统做法），建档推导并校验对比度与原创性 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `mv-doc-figure-placement` | 为 Markdown、Word、PPT 插入/替换配图并核验成品；图源与成品图由 mv-diagram-drafter 制备 |
 | `mv-diagram-drafter` | 绘制架构图、组网图与时序/流程等结构图：可编辑图源加本地渲染成品，图本身即交付物 |
@@ -86,6 +87,6 @@ Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称�
 
 ## 验证
 
-分发前运行 `python3 tests/validate_bundle.py`，检查十二个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
+分发前运行 `python3 tests/validate_bundle.py`，检查十三个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
 
 description 路由用 `python3 tests/run_trigger_evals.py [skill]` 在临时 HOME/配置与仅含候选工作区 skills 的隔离环境评测，记录候选内容 SHA-256；不加载用户已安装 skills、Hook、MCP，仅允许 Skill 工具。合理的多 skill 协作按职责与用例判定，不因多个 skill 同时触发而告警。CLI 或隔离所需凭据缺失时明确 SKIP，人工核对不等于真实路由通过；详见 [触发契约评测](docs/structure-rules.md#触发契约评测)。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。

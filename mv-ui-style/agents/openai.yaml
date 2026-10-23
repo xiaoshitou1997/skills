@@ -1,0 +1,3 @@
+interface:
+  display_name: "UI Style"
+  short_description: "统一维护家族界面设计 tokens（全家一套），建档推导并校验对比度与原创性。"
