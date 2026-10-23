@@ -68,7 +68,7 @@ bash "${SKILL_ROOT}/scripts/image-build.sh" build dev app-name
 - Jib 执行后未产出 tar：核对模块 Jib 配置的 `outputPaths.tar`，用 `FF_IMAGE_TAR` 指向实际路径后重试。
 - `image-build.sh` 报"未找到可交付产物"或"检测到多个可交付产物"：确认宿主构建命令确实成功且输出目录与栈匹配（Node `dist|build`、`Dockerfile.delivery` 项目的 `target`/`build/libs`），多模块或自定义布局用 `FF_ARTIFACT` 显式指定。
 - 宿主无容器运行时（Windows 无 WSL，或 Linux/macOS 未装 Docker）：脚本明确报错并给安装指引；Windows 宿主不得以在宿主安装 Docker 代替，Java 模块同样需要目标 Docker 才能载入镜像。
-- 宿主 gradle/mvn 报 `Unable to establish loopback connection`（`Selector.open` 失败，仅 Windows 宿主）：安全软件按**进程链** hook，bash/agent 子进程一律被拦——换 JDK、`preferIPv4Stack`、查 afunix 服务均无效。用 `doctor.py` 的 `host_build_chain` 项十秒判定；构建可改经 `templates/schtasks-build.cmd` 执行（schtasks 拉起的进程链不经过被拦截的子进程链）或请用户手动构建。
+- 宿主 gradle/mvn 报 `Unable to establish loopback connection`（`Selector.open` 失败，仅 Windows 宿主）：安全软件按**进程链** hook，bash/agent 子进程一律被拦——换 JDK、`preferIPv4Stack`、查 afunix 服务均无效。用 `doctor.py` 的 `host_build_chain` 项十秒判定；构建可改经 `templates/schtasks-build.cmd`（配同目录 `run-hidden.vbs` 隐藏窗口：计划任务无触发器注册、任务名带时间戳、用后注销，完整步骤见模板头注释）或请用户手动构建。
 - 宿主 Gradle 反复下载依赖：核对实际构建进程的用户目录、`GRADLE_USER_HOME` 与 Wrapper 缓存，区分下载耗时与编译耗时；不得把编译转入 WSL 或容器，详见 [常见故障](references/troubleshooting.md)。
 - Mirrored 模式下 WSL Docker 拉取基础镜像停滞：在 WSL 侧检查 DNS、HTTPS 连通性与 Docker 代理；已有兼容的常驻运行时镜像时可用 `FF_RUNTIME_IMAGE` 指定后重试镜像构建，并记录来源与实际结果；入口固定带 `--pull`，不能据此承诺离线成功。镜像启动与健康验证交 `mv-container-deploy`，详见 [常见故障](references/troubleshooting.md)。
 

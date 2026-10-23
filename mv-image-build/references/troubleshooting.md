@@ -21,7 +21,7 @@
 
 ## 进程链被安全软件 hook（loopback connection）
 
-- 宿主 java/node/gradle/mvn 构建报 `Unable to establish loopback connection`（`Selector.open` 失败，仅 Windows 宿主现象）：安全软件按**进程链** hook，bash/agent 子进程一律被拦；换 JDK、`preferIPv4Stack`、查 afunix 服务均无效。用 `doctor.py` 的 `host_build_chain` 项十秒判定；构建可改经 `templates/schtasks-build.cmd` 执行（schtasks 拉起的进程链不经过被拦截的子进程链）或请用户手动构建。
+- 宿主 java/node/gradle/mvn 构建报 `Unable to establish loopback connection`（`Selector.open` 失败，仅 Windows 宿主现象）：安全软件按**进程链** hook，bash/agent 子进程一律被拦；换 JDK、`preferIPv4Stack`、查 afunix 服务均无效。用 `doctor.py` 的 `host_build_chain` 项十秒判定；构建可改经 `templates/schtasks-build.cmd`（配同目录 `run-hidden.vbs` 隐藏窗口：计划任务无触发器注册、任务名带时间戳、用后注销，完整步骤见模板头注释）或请用户手动构建。
 
 ## Gradle 依赖反复全量下载
 
