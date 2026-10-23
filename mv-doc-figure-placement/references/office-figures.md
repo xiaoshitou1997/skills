@@ -1,6 +1,6 @@
 # Word 与 PowerPoint 配图
 
-适用于在 DOCX/PPTX 正文制作途中插入图片，或给已有文档准确换图。图源与渲染见 [渲染指南](rendering.md)；本指南只处理 Office 配图，不负责全文与整套幻灯片的写作和排版。
+适用于在 DOCX/PPTX 正文制作途中插入图片，或给已有文档准确换图。成品图制备见 mv-diagram-drafter，文档侧嵌入判定见 [渲染指南](rendering.md)；本指南只处理 Office 配图，不负责全文与整套幻灯片的写作和排版。
 
 ## 使用前
 
@@ -9,7 +9,7 @@
 `SKILL_ROOT` 需显式赋值为本次加载的 skill 安装目录，并保持当前工作目录为用户文档项目。以下示例中的输入与输出路径必须不同，且输出路径不得已存在；检查成品后再决定是否将旧文件归档或替换。需要多个图时，每次以前一次输出为下一次输入，最终只交付验证过的文件。
 
 ```bash
-SKILL_ROOT="/实际绝对路径/mv-document-figure-production"
+SKILL_ROOT="/实际绝对路径/mv-doc-figure-placement"
 python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 ```
 

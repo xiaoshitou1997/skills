@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from validate_bundle import agent_manifest_errors, local_link_errors, metadata_errors
+from validate_bundle import agent_manifest_errors, cross_reference_errors, local_link_errors, metadata_errors
 
 
 class BundleValidationTests(unittest.TestCase):
@@ -54,6 +54,18 @@ class BundleValidationTests(unittest.TestCase):
             self.assertTrue(local_link_errors(reference, '[失效](missing.md)', root))
             self.assertTrue(local_link_errors(reference, '[越界](../../outside.md)', root))
             self.assertEqual(local_link_errors(reference, '```markdown\n[示例](missing.md)\n```\n', root), [])
+
+    def test_prose_mentions_must_resolve_to_skills(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'mv-real' / 'references').mkdir(parents=True)
+            (root / 'mv-real' / 'SKILL.md').write_text('边界：插图归 mv-real。', encoding='utf-8')
+            (root / 'mv-real' / 'references' / 'guide.md').write_text('见 mv-real 与 mv-Y 抽象占位。', encoding='utf-8')
+            (root / 'README.md').write_text('- mv-real\n- 约定 mv- 前缀\n', encoding='utf-8')
+            self.assertEqual(cross_reference_errors(root, {'mv-real'}), [])
+            (root / 'README.md').write_text('- mv-real 的绘图归 mv-stale\n', encoding='utf-8')
+            self.assertEqual(cross_reference_errors(root, {'mv-real'}),
+                             ['README.md: mention of unknown skill: mv-stale'])
 
 
 if __name__ == '__main__':

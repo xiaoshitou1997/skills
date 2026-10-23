@@ -51,7 +51,7 @@ npx -y skills@latest add "$SRC" -s '*' -g -y "${agent_args[@]}"
 
 # 旧版本清理名单:避免重复触发,仅用于安装维护;不得包含仓库当前 skill 名称。
 # 空 STALE 在 bash 3.2(macOS 自带) + set -u 下按 "${STALE[@]}" 展开会报 unbound variable,用 ${STALE[@]+...} 写法兼容。
-STALE=(mv-container-delivery)
+STALE=(mv-container-delivery mv-document-figure-production mv-diagram-production mv-engineering-document-writer mv-document-figure-placement)
 for name in ${STALE[@]+"${STALE[@]}"}; do
   # 清旧不带 -a:remove 省略 agent 参数才清理全部 agent 链接(带 -a 只清指定 agent,universal 链接会残留)。
   # 未安装时 remove 幂等返回成功;npx 在 Windows 上退出前可能崩溃,退出码不可靠,以清单复核为准。

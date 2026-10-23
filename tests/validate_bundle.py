@@ -18,7 +18,8 @@ SKILLS = {
     'mv-java-backend-standards',
     'mv-tech-stack-standards',
     'mv-engineering-doc-writer',
-    'mv-document-figure-production',
+    'mv-doc-figure-placement',
+    'mv-diagram-drafter',
     'mv-unattended-watch',
     'mv-nfr-intake',
 }
@@ -150,6 +151,33 @@ def local_link_errors(path, data, root):
     return errors
 
 
+def cross_reference_errors(root, skills):
+    """Resolve plain-text mv-* mentions against shipped skills.
+
+    Boundary sentences such as 「X 归 mv-diagram-drafter」 are prose, not
+    Markdown links, so the link check never sees them; checking them here
+    surfaces rename drift at validate time. docs/ stays out of scope: the
+    conventions document holds abstract placeholders such as mv-Y.
+    """
+    errors = []
+    pattern = re.compile(r'\bmv-[a-z0-9]+(?:-[a-z0-9]+)*\b')
+    targets = [root / 'README.md']
+    for name in sorted(skills):
+        skill = root / name
+        targets.append(skill / 'SKILL.md')
+        references = skill / 'references'
+        if references.is_dir():
+            targets.extend(sorted(references.glob('*.md')))
+    for path in targets:
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        for token in sorted(set(pattern.findall(path.read_text(encoding='utf-8')))):
+            if token not in skills:
+                errors.append(f'{relative}: mention of unknown skill: {token}')
+    return errors
+
+
 def validate():
     errors = []
     def error(msg): errors.append(msg)
@@ -183,6 +211,9 @@ def validate():
         for message in local_link_errors(path, path.read_text(encoding='utf-8'), ROOT):
             error(f'{path.relative_to(ROOT)}: {message}')
 
+    for message in cross_reference_errors(ROOT, SKILLS):
+        error(message)
+
     for group in DUPLICATE_GROUPS:
         if not all((ROOT / f).is_file() for f in group):
             error(f'Duplicate group incomplete: {group}')
@@ -213,7 +244,7 @@ def validate():
     for message in errors:
         print('FAIL:', message)
     if not errors:
-        print(f'PASS: {len(SKILLS)} skills; metadata limits; local links; scripts; duplicates; agent manifests; Python + shell syntax')
+        print(f'PASS: {len(SKILLS)} skills; metadata limits; local links; cross-skill mentions; scripts; duplicates; agent manifests; Python + shell syntax')
     return int(bool(errors))
 
 

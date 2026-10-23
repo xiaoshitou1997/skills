@@ -6,7 +6,7 @@
 
 按顺序执行；本节只定操作顺序，细则见对应章节。
 
-1. 定职责、按两步法命名，候选名过三条检查（「命名先例」）。
+1. 定职责、按两步法命名，候选名过四条检查（「命名先例」）。
 2. 写 frontmatter：`name`、`description`（触发场景、表述关键词、负向边界）、可选 `allowed-tools` 只读预授权（「Frontmatter」）。
 3. 写正文：定位语、SKILL_ROOT 段、任务步骤、硬约束、输出（「正文（SKILL.md）」与「章节骨架与句式」）。
 4. 超出正文的细节下沉 references，单主题一文件（「正文（SKILL.md）」）。
@@ -71,7 +71,7 @@
 
 改动后必须全部过一遍：
 
-1. `python3 tests/validate_bundle.py`：skill 集合；frontmatter 标量子集结构、字段唯一、必填元数据、名称格式/限长及目录一致；description 非空/限长；SKILL.md 正文行数（不含 frontmatter）；所有 Markdown 的显式本地链接目标存在性（不验证锚点）；正文脚本/模板路径与 SKILL_ROOT 声明；复制脚本一致性；`agents/openai.yaml` 存在时 `display_name` 与 `short_description` 非空引号字符串且短描述 ≤200 字符（弱校验，不比对与 description 的措辞一致，SKILL.md description 为准）；Bash/Python 语法。
+1. `python3 tests/validate_bundle.py`：skill 集合；frontmatter 标量子集结构、字段唯一、必填元数据、名称格式/限长及目录一致；description 非空/限长；SKILL.md 正文行数（不含 frontmatter）；所有 Markdown 的显式本地链接目标存在性（不验证锚点）；skill 正文与 README 纯文本提及的 `mv-*` 名称解析到已发布 skill（改名漂移兜底，docs/ 的抽象占位不在扫描范围）；正文脚本/模板路径与 SKILL_ROOT 声明；复制脚本一致性；`agents/openai.yaml` 存在时 `display_name` 与 `short_description` 非空引号字符串且短描述 ≤200 字符（弱校验，不比对与 description 的措辞一致，SKILL.md description 为准）；Bash/Python 语法。
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格、相关引用及同步脚本的 STALE 清单。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`、`tests/test_wsl_bridge.py`，必要时补离线用例（假 docker/假 wsl.exe stub 风格）；`test_workflows.py` 直接运行默认并行，支持 `-k <子串>` 筛选（可多次、任一命中），日常按改动精准跑对应用例，全套留给发布前。
 4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 在隔离环境评测该 skill 正反例；CLI 或凭据缺失时明确记为未执行，并按 `tests/trigger_cases.py` 人工核对，不能把人工核对写成真实路由通过。
@@ -84,15 +84,17 @@
 - 本集合统一采用 `mv-` + 对象 + 职责词，如 `mv-toolchain-manager`、`mv-image-build`、`mv-java-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
 - 命名按顺序走两步：
   1. 定职责：回答「删掉这个 skill，团队缺的哪一种产出或能力」——这就是主体职责，压缩成一个中文名词（如「管理」「交付」「规范」「写作」）。说不出一个、或说出几个并列的，说明 skill 该先拆分，命名放到拆分之后。
-  2. 定名字：职责词取该中文名词对应的英文名词，对象取 skill 作用的英文名词，合成 `mv-<对象>-<职责词>`。
-- 候选名字过三条检查，任一不过就回到第 1 步：
+  2. 定名字：职责词与对象词取领域既定术语——所选词在对应工程或行业领域有独立于本仓库的既定含义与用法（形态可以是职位名、工序名、工具命令名或标准术语），并能给出仓外用法证据；中文口语词的字典直译与仓内临时生造的搭配不作选词来源。合成 `mv-<对象>-<职责词>`。
+- 候选名字过四条检查，术语来源不过回第 2 步换词，其余不过回第 1 步重定职责：
   1. 代入检验——「负责 <对象> 的 <职责>」是对主体职责的准确概括，语义不变形。
   2. 自解释——职责词单独出现即能传达职责；`handler`、`processor`、`helper` 这类与任何对象都能搭配的万能词不合格。
-  3. 一词一义——检索仓库现有 skill，同一职责只用一个词；`publisher` 在位就不另造 `pusher`。
+  3. 一词一义——检索仓库现有 skill，同一职责只用一个词，同一对象概念的缩略形与全称形也不同时在位；`publisher` 在位就不另造 `pusher`。
+  4. 术语来源——证据两种形态，任一即可：仓外既定用法（该词作为职位名、工序名、命令名或标准术语的真实用例），或体系内受控扩展（普通词的隐喻引申为精确技术含义，仅在仓外确无既定术语可借时允许，且须定义一处、全文一致、隐喻直观、有文档锚点）。给不出任一证据的不合格；词义与仓内既有语义冲突的不合格。证据形态说明仅界定判定方式，不构成可用词或禁用词清单，也不针对具体候选预设结论。
 - 具体任务模式（编写、修订、评审、合并、拆分等）是到达职责的路径，写入 description，不进名字。
 - 名称明确主体能力、对象与必要的范围限定，与 description 和正文一致；不要求名字列出每个辅助步骤。
 - 避免模糊名（helper、utils）、过宽名（documents、data、files）与保留词（anthropic、claude）。
 - 改名须说明现名的具体歧义或覆盖缺口、候选名如何改善；依据区分官方规则、团队约定与维护者判断。实施时走「校验与同步点」完整清单。
+- 既有名字的消歧或豁免结论不自动延续：新增同类词、该 skill 职责变化或词汇规则修订时，必须按现行检查复核，不再合格即改名。
 - 文档只描述当前有效规则和用法，不记录名称迁移、曾用名或讨论演变；旧版本清理名称仅维护在同步脚本的 STALE 清单。
 
 ## 外部依据

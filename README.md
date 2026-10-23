@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、非功能性需求采集、编码规范、技术栈约定、工程文档写作、文档配图和离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、非功能性需求采集、编码规范、技术栈约定、工程文档写作、工程制图与文档插图、离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 十一个 skills
+## 十二个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -17,10 +17,11 @@
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
-| `mv-document-figure-production` | 给 Markdown、Word、PPT 制图并保留图源，渲染与插入/替换文档中的图片 |
+| `mv-doc-figure-placement` | 为 Markdown、Word、PPT 插入/替换配图并核验成品；图源与成品图由 mv-diagram-drafter 制备 |
+| `mv-diagram-drafter` | 绘制架构图、组网图与时序/流程等结构图：可编辑图源加本地渲染成品，图本身即交付物 |
 | `mv-unattended-watch` | 离场且全权委托时激活、回归或取消时解除；Claude Code 值守 Hook、保守决策与日志，其他 agent 降级为当前上下文模式 |
 
-命名规范：统一采用 `mv-` + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关），对象与职责词的选定走两步法与三条检查。职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](docs/structure-rules.md)。
+命名规范：统一采用 `mv-` + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关），对象与职责词的选定走两步法与四条检查。职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](docs/structure-rules.md)。
 
 把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 
@@ -85,6 +86,6 @@ Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称�
 
 ## 验证
 
-分发前运行 `python3 tests/validate_bundle.py`，检查十一个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
+分发前运行 `python3 tests/validate_bundle.py`，检查十二个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
 
 description 路由用 `python3 tests/run_trigger_evals.py [skill]` 在临时 HOME/配置与仅含候选工作区 skills 的隔离环境评测，记录候选内容 SHA-256；不加载用户已安装 skills、Hook、MCP，仅允许 Skill 工具。合理的多 skill 协作按职责与用例判定，不因多个 skill 同时触发而告警。CLI 或隔离所需凭据缺失时明确 SKIP，人工核对不等于真实路由通过；详见 [触发契约评测](docs/structure-rules.md#触发契约评测)。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。

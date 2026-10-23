@@ -1,3 +1,0 @@
-interface:
-  display_name: "Document Figure Production"
-  short_description: "为 Markdown、Word 与 PPT 制图、渲染，并插入或替换配图。"
