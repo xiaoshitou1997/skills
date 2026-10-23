@@ -1,0 +1,29 @@
+{
+  "title": "逻辑组网图：安全域与流量路径（示例）",
+  "rows": [
+    {"style": "office", "role": "办公终端", "band": true, "label": "办公终端区 · 10.0.10.0/24", "nodes": [
+      {"id": "pc", "name": "办公 PC", "sub": "内部终端"},
+      {"id": "ap", "name": "无线接入点", "sub": "Wi-Fi 接入"}]},
+    {"style": "isp", "role": "边界防护", "band": true, "label": "边界防护区", "nodes": [
+      {"id": "fw", "name": "出口防火墙", "sub": "边界防护 / NAT"},
+      {"id": "vpn", "name": "VPN 网关", "sub": "远程接入"}]},
+    {"style": "acc", "role": "DMZ 前置", "band": true, "label": "DMZ 区 · 10.0.20.0/24", "nodes": [
+      {"id": "proxy", "name": "Web 反向代理", "sub": "对外发布"},
+      {"id": "bastion", "name": "堡垒机", "sub": "运维入口"}]},
+    {"style": "srv", "role": "核心业务", "band": true, "label": "服务器区 · 10.0.30.0/24", "nodes": [
+      {"id": "app", "name": "应用集群", "sub": "业务应用"},
+      {"id": "db", "name": "数据库集群", "sub": "数据存储", "shape": "db"},
+      {"id": "backup", "name": "备份存储", "sub": "离线备份", "shape": "db"}]}
+  ],
+  "link-tones": {"互联网": "green", "运维网": "blue", "业务网": "purple"},
+  "links": [
+    {"from": "pc", "to": "fw", "kind": "straight", "label": "上网流量", "tone": "互联网"},
+    {"from": "ap", "to": "vpn", "kind": "straight", "label": "远程接入", "tone": "互联网"},
+    {"from": "fw", "to": "proxy", "kind": "straight", "label": "对外发布", "tone": "互联网"},
+    {"from": "vpn", "to": "bastion", "kind": "straight", "label": "运维通道", "tone": "运维网"},
+    {"from": "proxy", "to": "app", "kind": "L", "label": "业务请求", "tone": "业务网"},
+    {"from": "bastion", "to": "app", "kind": "L", "label": "运维", "tone": "运维网"},
+    {"from": "app", "to": "db", "kind": "L", "label": "读写", "tone": "业务网"},
+    {"from": "db", "to": "backup", "kind": "L", "label": "备份", "tone": "业务网"}
+  ]
+}

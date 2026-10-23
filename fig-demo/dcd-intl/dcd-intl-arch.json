@@ -1,0 +1,35 @@
+{
+  "title": "懂车帝国际版应用架构图（示例 · 假设待确认）",
+  "line-legend": {"solid": "实线 = 同步调用"},
+  "rows": [
+    {"style": "office", "role": "客户端", "band": true, "label": "客户端层", "nodes": [
+      {"id": "app", "name": "移动 App", "sub": "iOS / Android"},
+      {"id": "web", "name": "Web 站点", "sub": "多语言站点"}]},
+    {"style": "acc", "role": "接入", "band": true, "label": "接入层", "nodes": [
+      {"id": "cdn", "name": "海外 CDN", "sub": "边缘加速", "shape": "cloud"},
+      {"id": "gw", "name": "API 网关", "sub": "鉴权 / 限流 / 路由"}]},
+    {"style": "core", "role": "业务服务", "band": true, "label": "业务服务层", "nodes": [
+      {"id": "vehicle", "name": "车型库服务", "sub": "车型 / 参数配置"},
+      {"id": "content", "name": "内容服务", "sub": "图文 / 视频"},
+      {"id": "search", "name": "搜索推荐", "sub": "检索 / 个性化"},
+      {"id": "community", "name": "社区服务", "sub": "发帖 / 评论"}]},
+    {"style": "srv", "role": "数据与中间件", "band": true, "label": "数据与中间件层", "nodes": [
+      {"id": "mysql", "name": "MySQL 集群", "sub": "业务库", "shape": "db"},
+      {"id": "oss", "name": "对象存储", "sub": "图片 / 视频", "shape": "db"},
+      {"id": "es", "name": "搜索集群", "sub": "索引 / 检索", "shape": "db"},
+      {"id": "redis", "name": "缓存集群", "sub": "热点数据", "shape": "db"}]}
+  ],
+  "links": [
+    {"from": "app", "to": "cdn", "kind": "L"},
+    {"from": "web", "to": "cdn", "kind": "L"},
+    {"from": "cdn", "to": "gw", "kind": "L", "label": "回源"},
+    {"from": "gw", "to": "vehicle", "kind": "L"},
+    {"from": "gw", "to": "content", "kind": "L"},
+    {"from": "gw", "to": "search", "kind": "L"},
+    {"from": "gw", "to": "community", "kind": "L"},
+    {"from": "vehicle", "to": "mysql", "kind": "straight", "label": "车型数据"},
+    {"from": "search", "to": "es", "kind": "straight", "label": "检索索引"},
+    {"from": "community", "to": "redis", "kind": "straight", "label": "热帖缓存"},
+    {"from": "content", "to": "oss", "kind": "L", "label": "媒资存储"}
+  ]
+}

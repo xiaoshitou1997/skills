@@ -1,0 +1,37 @@
+{
+  "title": "懂车帝国际版物理组网图（示例 · 假设待确认）",
+  "line-legend": {"solid": "实线 = 物理链路", "dash": "虚线 = HA 心跳"},
+  "rows": [
+    {"style": "isp", "role": "公网接入", "band": true, "label": "公网 / CDN（外部服务）", "nodes": [
+      {"id": "cdn", "name": "CDN 边缘节点", "sub": "外部加速", "shape": "cloud"}]},
+    {"style": "isp", "role": "互联网出口", "band": true, "label": "互联网出口设备", "nodes": [
+      {"id": "rtr-a", "name": "出口路由器 A", "sub": "运营商上联 1"},
+      {"id": "rtr-b", "name": "出口路由器 B", "sub": "运营商上联 2"}]},
+    {"style": "fw", "role": "安全边界", "band": true, "label": "安全边界设备", "nodes": [
+      {"id": "fw-a", "name": "防火墙 A", "sub": "HA 主"},
+      {"id": "fw-b", "name": "防火墙 B", "sub": "HA 备"}]},
+    {"style": "core", "role": "核心层", "band": true, "label": "核心交换层", "nodes": [
+      {"id": "core-a", "name": "核心交换 A", "sub": "HA 主"},
+      {"id": "core-b", "name": "核心交换 B", "sub": "HA 备"}]},
+    {"style": "acc", "role": "接入层", "band": true, "label": "接入交换层", "nodes": [
+      {"id": "acc-a", "name": "接入交换 A", "sub": "机架列 A"},
+      {"id": "acc-b", "name": "接入交换 B", "sub": "机架列 B"}]},
+    {"style": "srv", "role": "服务器与存储", "band": true, "label": "服务器与存储区", "nodes": [
+      {"id": "rack-app", "name": "应用机架", "sub": "应用服务器"},
+      {"id": "rack-data", "name": "数据机架", "sub": "数据库 / 搜索 / 存储阵列"}]}
+  ],
+  "links": [
+    {"from": "cdn", "to": "rtr-a", "kind": "L", "label": "回源", "bus": false},
+    {"from": "cdn", "to": "rtr-b", "kind": "L", "bus": false},
+    {"from": "fw-a", "to": "fw-b", "kind": "dashh"},
+    {"from": "rtr-a", "to": "fw-a", "kind": "straight"},
+    {"from": "rtr-b", "to": "fw-b", "kind": "straight"},
+    {"from": "core-a", "to": "core-b", "kind": "dashh"},
+    {"from": "fw-a", "to": "core-a", "kind": "straight"},
+    {"from": "fw-b", "to": "core-b", "kind": "straight"},
+    {"from": "core-a", "to": "acc-a", "kind": "straight"},
+    {"from": "core-b", "to": "acc-b", "kind": "straight"},
+    {"from": "acc-a", "to": "rack-app", "kind": "straight"},
+    {"from": "acc-b", "to": "rack-data", "kind": "straight"}
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "title": "生产环境物理组网图（示例拓扑）",
+  "rows": [
+    {"style": "isp", "nodes": [
+      {"id": "isp-a", "name": "联通互联网出口", "sub": "ISP-A"},
+      {"id": "isp-b", "name": "电信互联网出口", "sub": "ISP-B"}]},
+    {"style": "fw", "nodes": [
+      {"id": "fw-1", "name": "出口防火墙 1", "sub": "FW-01 · HA 主"},
+      {"id": "fw-2", "name": "出口防火墙 2", "sub": "FW-02 · HA 备"}]},
+    {"style": "core", "nodes": [
+      {"id": "core-1", "name": "核心交换机 1", "sub": "CORE-SW-01"},
+      {"id": "core-2", "name": "核心交换机 2", "sub": "CORE-SW-02"}]},
+    {"style": "acc", "nodes": [
+      {"id": "acc-1", "name": "接入交换机 1", "sub": "ACC-SW-01"},
+      {"id": "acc-2", "name": "接入交换机 2", "sub": "ACC-SW-02"},
+      {"id": "acc-3", "name": "接入交换机 3", "sub": "ACC-SW-03"},
+      {"id": "acc-4", "name": "接入交换机 4", "sub": "ACC-SW-04"}]}
+  ],
+  "zones": [
+    {"name": "服务器区", "members": [
+      {"id": "srv-app", "align": "acc-1", "style": "srv", "name": "应用服务器", "sub": "应用服务"},
+      {"id": "srv-db", "align": "acc-2", "style": "srv", "name": "数据库服务器", "sub": "数据服务"}]},
+    {"name": "办公区", "members": [
+      {"id": "office", "align": "acc-3", "style": "office", "name": "办公终端", "sub": "终端接入", "w": 400}]}
+  ],
+  "links": [
+    {"from": "isp-a", "to": "fw-1", "kind": "straight"},
+    {"from": "isp-b", "to": "fw-2", "kind": "straight"},
+    {"from": "fw-1", "to": "fw-2", "kind": "dashh", "label": "HA 心跳"},
+    {"from": "fw-1", "to": "core-1", "kind": "straight"},
+    {"from": "fw-2", "to": "core-2", "kind": "straight"},
+    {"from": "fw-1", "to": "core-2", "kind": "cross"},
+    {"from": "fw-2", "to": "core-1", "kind": "cross"},
+    {"from": "core-1", "to": "core-2", "kind": "dashh", "label": "堆叠互联"},
+    {"from": "core-1", "to": "acc-1", "kind": "L"},
+    {"from": "core-1", "to": "acc-2", "kind": "straight"},
+    {"from": "core-2", "to": "acc-3", "kind": "straight"},
+    {"from": "core-2", "to": "acc-4", "kind": "L"},
+    {"from": "acc-1", "to": "srv-app", "kind": "straight"},
+    {"from": "acc-2", "to": "srv-db", "kind": "straight"},
+    {"from": "acc-3", "to": "office", "kind": "straight"},
+    {"from": "acc-4", "to": "office", "kind": "straight"}
+  ]
+}

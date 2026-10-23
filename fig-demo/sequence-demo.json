@@ -1,0 +1,24 @@
+{
+  "template": "sequence",
+  "title": "下单支付时序（示例）",
+  "lanes": [
+    {"id": "c", "name": "客户端"},
+    {"id": "g", "name": "API 网关"},
+    {"id": "o", "name": "订单服务"},
+    {"id": "k", "name": "库存服务"},
+    {"id": "p", "name": "支付服务"},
+    {"id": "q", "name": "消息队列"}
+  ],
+  "messages": [
+    {"from": "c", "to": "g", "text": "提交订单"},
+    {"from": "g", "to": "o", "text": "创建订单"},
+    {"from": "o", "to": "k", "text": "锁定库存"},
+    {"from": "k", "to": "o", "text": "锁定结果", "dash": true},
+    {"from": "o", "to": "p", "text": "发起支付"},
+    {"from": "p", "to": "o", "text": "支付结果", "dash": true},
+    {"from": "o", "to": "q", "text": "订单事件"},
+    {"from": "q", "to": "o", "text": "ACK", "dash": true},
+    {"from": "o", "to": "g", "text": "下单结果", "dash": true},
+    {"from": "g", "to": "c", "text": "响应", "dash": true}
+  ]
+}

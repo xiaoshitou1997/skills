@@ -1,0 +1,31 @@
+{
+  "title": "懂车帝国际版双站点容灾示意图（示例 · 假设待确认）",
+  "styles": {"standby": ["#DCFCE7", "#15803D", "备用站点（整站镜像）"]},
+  "link-tones": {"互联网": "green", "业务网": "purple", "跨站同步": "orange"},
+  "rows": [
+    {"style": "isp", "role": "全局调度", "band": true, "label": "全局流量调度", "nodes": [
+      {"id": "gslb", "name": "GSLB 全局负载均衡", "sub": "流量调度 / 容灾切换"}]}
+  ],
+  "region": {
+    "name": "生产大区（示例 · 双站点镜像，自建机房假设）",
+    "sites": [
+      {"name": "主用站点（示例）", "domains": [
+        {"name": "接入与应用域", "members": [
+          {"id": "lb", "name": "四层负载均衡", "sub": "入口分发", "style": "acc", "w": 132},
+          {"id": "waf", "name": "WAF / 反向代理", "sub": "七层过滤", "style": "acc", "w": 132},
+          {"id": "app", "name": "应用集群", "sub": "业务应用", "style": "acc", "w": 132}]},
+        {"name": "数据域", "members": [
+          {"id": "db", "name": "数据库集群", "sub": "数据存储", "style": "srv", "shape": "db", "w": 132},
+          {"id": "oss", "name": "对象存储", "sub": "媒资文件", "style": "srv", "shape": "db", "w": 132}]}]},
+      {"name": "备用站点（示例）", "style": "standby", "ghost": true}
+    ]
+  },
+  "links": [
+    {"from": "gslb", "to": "lb", "kind": "L", "label": "公网入口", "tone": "互联网"},
+    {"from": "lb", "to": "waf", "kind": "L", "tone": "业务网"},
+    {"from": "waf", "to": "app", "kind": "L", "tone": "业务网", "label": "业务请求"},
+    {"from": "app", "to": "db", "kind": "L", "tone": "业务网", "label": "读写"},
+    {"from": "app", "to": "oss", "kind": "L", "tone": "业务网"},
+    {"from": "db", "to": "db-b", "kind": "L", "label": "异步复制（假设）", "tone": "跨站同步"}
+  ]
+}

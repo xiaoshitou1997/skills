@@ -1,0 +1,33 @@
+{
+  "title": "懂车帝国际版逻辑组网图（示例 · 假设待确认）",
+  "link-tones": {"互联网": "green", "业务网": "purple"},
+  "rows": [
+    {"style": "isp", "role": "海外接入", "band": true, "label": "海外用户接入 · 公网", "nodes": [
+      {"id": "cdn", "name": "CDN 边缘节点", "sub": "外部加速服务", "shape": "cloud"},
+      {"id": "user", "name": "海外用户", "sub": "多区域终端", "shape": "cloud"}]},
+    {"style": "acc", "role": "DMZ", "band": true, "label": "DMZ · 安全接入", "nodes": [
+      {"id": "lb", "name": "四层负载均衡", "sub": "入口分发"},
+      {"id": "waf", "name": "WAF / 反向代理", "sub": "七层过滤"}]},
+    {"style": "core", "role": "生产域", "band": true, "label": "生产域 · 应用服务", "nodes": [
+      {"id": "app", "name": "应用集群", "sub": "业务应用"},
+      {"id": "mq", "name": "消息队列", "sub": "异步 / 削峰"},
+      {"id": "cache", "name": "缓存集群", "sub": "热点数据"}]},
+    {"style": "srv", "role": "数据域", "band": true, "label": "数据域 · 数据存储", "nodes": [
+      {"id": "db", "name": "数据库集群", "sub": "数据存储", "shape": "db"},
+      {"id": "backup", "name": "备份存储", "sub": "离线备份", "shape": "db"},
+      {"id": "es", "name": "搜索集群", "sub": "检索索引", "shape": "db"},
+      {"id": "oss", "name": "对象存储", "sub": "媒资文件", "shape": "db"}]}
+  ],
+  "links": [
+    {"from": "user", "to": "cdn", "kind": "L", "label": "公网接入", "tone": "互联网"},
+    {"from": "cdn", "to": "lb", "kind": "straight", "label": "回源", "tone": "互联网"},
+    {"from": "lb", "to": "waf", "kind": "L", "label": "四层转发", "tone": "互联网"},
+    {"from": "waf", "to": "app", "kind": "L", "label": "业务请求", "tone": "业务网"},
+    {"from": "app", "to": "cache", "kind": "L", "label": "热点缓存", "tone": "业务网"},
+    {"from": "app", "to": "mq", "kind": "L", "label": "事件投递", "tone": "业务网"},
+    {"from": "app", "to": "db", "kind": "L", "label": "读写", "tone": "业务网"},
+    {"from": "app", "to": "es", "kind": "L", "label": "检索", "tone": "业务网"},
+    {"from": "app", "to": "oss", "kind": "L", "label": "媒资读写", "tone": "业务网"},
+    {"from": "db", "to": "backup", "kind": "L", "label": "备份", "tone": "业务网"}
+  ]
+}

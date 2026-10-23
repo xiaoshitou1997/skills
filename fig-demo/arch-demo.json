@@ -1,0 +1,37 @@
+{
+  "title": "电商平台应用架构图（示例）",
+  "line-legend": {"solid": "实线 = 同步调用"},
+  "rows": [
+    {"style": "office", "role": "客户端", "band": true, "label": "客户端层", "nodes": [
+      {"id": "app", "name": "移动 App", "sub": "iOS / Android"},
+      {"id": "web", "name": "Web 站点", "sub": "PC 浏览器"},
+      {"id": "mp", "name": "小程序", "sub": "微信 / 支付宝"}]},
+    {"style": "acc", "role": "接入", "band": true, "label": "接入层", "nodes": [
+      {"id": "lb", "name": "负载均衡", "sub": "四层 SLB"},
+      {"id": "gw", "name": "API 网关", "sub": "鉴权 / 限流 / 路由"}]},
+    {"style": "core", "role": "业务服务", "band": true, "label": "业务服务层", "nodes": [
+      {"id": "user", "name": "用户服务", "sub": "账户 / 会话"},
+      {"id": "prod", "name": "商品服务", "sub": "商品 / 价格"},
+      {"id": "order", "name": "订单服务", "sub": "下单 / 履约"},
+      {"id": "pay", "name": "支付服务", "sub": "收单 / 对账"}]},
+    {"style": "srv", "role": "数据与中间件", "band": true, "label": "数据与中间件层", "nodes": [
+      {"id": "mysql", "name": "MySQL 集群", "sub": "业务库", "shape": "db"},
+      {"id": "redis", "name": "Redis 集群", "sub": "热点缓存", "shape": "db"},
+      {"id": "mq", "name": "消息队列", "sub": "异步 / 削峰"},
+      {"id": "oss", "name": "对象存储", "sub": "图片 / 附件"}]}
+  ],
+  "links": [
+    {"from": "app", "to": "lb", "kind": "L"},
+    {"from": "web", "to": "lb", "kind": "L"},
+    {"from": "mp", "to": "lb", "kind": "L"},
+    {"from": "lb", "to": "gw", "kind": "L"},
+    {"from": "gw", "to": "user", "kind": "L"},
+    {"from": "gw", "to": "prod", "kind": "L"},
+    {"from": "gw", "to": "order", "kind": "L"},
+    {"from": "gw", "to": "pay", "kind": "L"},
+    {"from": "user", "to": "mysql", "kind": "straight", "label": "账户库"},
+    {"from": "prod", "to": "redis", "kind": "straight", "label": "热点缓存"},
+    {"from": "order", "to": "mq", "kind": "straight", "label": "事件投递"},
+    {"from": "pay", "to": "oss", "kind": "straight", "label": "凭证归档"}
+  ]
+}
