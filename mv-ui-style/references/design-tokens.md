@@ -10,8 +10,8 @@
 
 ```css
 /* mv-ui-style 家族 tokens
-   家族参数: hue=250 · 档位=标准 C0.13 · 圆角=圆润 8/14/20 · 动效=140/240/400ms cubic-bezier(0.32,0.72,0,1) · 材质=毛玻璃 · 密度=标准（2026-10-23 苹果风定档）
-   定档记录: 2026-10-23 苹果风全参数定档，风格锚=苹果平台语言逐项取 CSS 可落地等价（配色仍走家族推导+原创性红线）；修订家族风格时更新此注释并同步各应用
+   家族参数: hue=250 · 色阶骨架 C0.13 · accent 主档 L0.60/C0.16 · 圆角=圆润 8/14/20 · 动效=140/240/400ms cubic-bezier(0.32,0.72,0,1) · 材质=毛玻璃 · 密度=标准（2026-10-23 苹果风定档；2026-10-24 accent 苹果向修订）
+   定档记录: 2026-10-23 苹果风全参数定档；2026-10-24 accent 苹果向修订（accent L0.60/C0.16，按钮白字门槛 3.0 部件级）
    偏离记录: <无；或逐条：偏离家族哪一条、理由> */
 :root {
   /* —— 家族固定项 —— */
@@ -35,12 +35,13 @@
   --ui-radius-md: 14px; /* 按钮、卡片 */
   --ui-radius-lg: 20px; /* 弹窗、面板 */
   /* —— 推导项：按 color-derivation.md 步骤从种子参数生成 —— */
-  --ui-hue: 250;     /* 种子：家族主色色相（2026-10-23 定档） */
-  --ui-seed-c: 0.13; /* 种子：档位主档 C——标准 0.13（2026-10-23 定档）/ 灰调 0.07–0.10 / 深调 0.08–0.12 */
-  --ui-color-accent: oklch(0.58 var(--ui-seed-c) var(--ui-hue));
-  --ui-color-accent-strong: oklch(0.44 var(--ui-seed-c) var(--ui-hue));
-  --ui-color-accent-soft: oklch(0.95 calc(var(--ui-seed-c) * 0.23) var(--ui-hue));
-  --ui-color-on-accent: <校验通过的白或近白>;
+  --ui-hue: 250;      /* 种子：家族主色色相（2026-10-23 定档） */
+  --ui-seed-c: 0.13;  /* 种子：色阶骨架 C（2026-10-23 定档标准 0.13）；灰调/深调为修订候选，取值见 color-derivation */
+  --ui-accent-c: 0.16; /* accent 主档 C：苹果向校准（2026-10-24 定档，hue250 色域上限 0.170 内收安全边）；灰调 0.07–0.10 / 深调 0.08–0.12 */
+  --ui-color-accent: oklch(0.60 var(--ui-accent-c) var(--ui-hue));
+  --ui-color-accent-strong: oklch(0.44 calc(var(--ui-accent-c) * 0.75) var(--ui-hue));
+  --ui-color-accent-soft: oklch(0.95 calc(var(--ui-accent-c) * 0.15) var(--ui-hue));
+  --ui-color-on-accent: <校验通过的白或近白，部件级门槛 ≥3.0；正文小字与链接文字改用 accent-strong 过 4.5>;
   --ui-color-bg: oklch(0.985 0.004 var(--ui-hue));
   --ui-color-surface: oklch(1 0 var(--ui-hue));
   --ui-color-border: oklch(0.9 0.006 var(--ui-hue));
@@ -66,9 +67,9 @@
   --ui-color-border: oklch(0.32 0.012 var(--ui-hue));
   --ui-color-text: oklch(0.93 0.006 var(--ui-hue));
   --ui-color-text-muted: oklch(0.72 0.012 var(--ui-hue));
-  --ui-color-accent: oklch(0.76 calc(var(--ui-seed-c) * 0.85) var(--ui-hue));
-  --ui-color-accent-strong: oklch(0.85 calc(var(--ui-seed-c) * 0.69) var(--ui-hue));
-  --ui-color-accent-soft: oklch(0.28 calc(var(--ui-seed-c) * 0.38) var(--ui-hue));
+  --ui-color-accent: oklch(0.76 calc(var(--ui-accent-c) * 0.78) var(--ui-hue));
+  --ui-color-accent-strong: oklch(0.85 calc(var(--ui-accent-c) * 0.47) var(--ui-hue));
+  --ui-color-accent-soft: oklch(0.28 calc(var(--ui-accent-c) * 0.375) var(--ui-hue));
   --ui-color-on-accent: <校验通过的深或近黑>;
   --ui-color-success: oklch(0.72 0.12 145);
   --ui-color-warning: oklch(0.78 0.12 85);
@@ -78,7 +79,7 @@
 }
 ```
 
-`--ui-hue` 与 `--ui-seed-c` 是两个种子参数：主色 hue（2026-10-23 定档 250）与档位主档 C（2026-10-23 定档标准 0.13；灰调/深调为修订候选，取值与 L 带见 color-derivation），在 `:root` 内声明一次，全部推导色引用它们——修订家族风格只改这一处，改完同步各应用副本。master 文件（`~/.mv/ui-style/tokens.css`）头部注释记家族参数与定档记录，应用副本头部注释改记 master 来源与同步日期，两者都不省略偏离记录。跟随系统的明暗切换在应用入口按 `prefers-color-scheme` 设 `data-theme`，不在 tokens 内做双份取值。
+`--ui-hue`、`--ui-seed-c` 与 `--ui-accent-c` 是三个种子参数：主色 hue（2026-10-23 定档 250）、色阶骨架 C（2026-10-23 定档标准 0.13，管 10 档全谱色阶的彩度基带）、accent 主档 C（2026-10-24 accent 苹果向修订定档 0.16，管强调三档与暗色强调组；hue250 亮端色阶已被 sRGB 色域上限钉住，accent 提彩度不牵动色阶，故独立成参）。三个参数在 `:root` 内声明一次，全部推导色引用它们——修订家族风格只改这几处，改完同步各应用副本。master 文件（`~/.mv/ui-style/tokens.css`）头部注释记家族参数与定档记录，应用副本头部注释改记 master 来源与同步日期，两者都不省略偏离记录。跟随系统的明暗切换在应用入口按 `prefers-color-scheme` 设 `data-theme`，不在 tokens 内做双份取值。
 
 ## Tailwind 4 映射
 

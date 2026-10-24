@@ -9,9 +9,10 @@
   color-scheme: light;
   --ui-hue: 250;
   --ui-seed-c: 0.13;
-  --ui-color-accent: oklch(0.58 var(--ui-seed-c) var(--ui-hue));
-  --ui-color-accent-strong: oklch(0.44 var(--ui-seed-c) var(--ui-hue));
-  --ui-color-accent-soft: oklch(0.95 calc(var(--ui-seed-c) * 0.23) var(--ui-hue));
+  --ui-accent-c: 0.16;
+  --ui-color-accent: oklch(0.60 var(--ui-accent-c) var(--ui-hue));
+  --ui-color-accent-strong: oklch(0.44 calc(var(--ui-accent-c) * 0.75) var(--ui-hue));
+  --ui-color-accent-soft: oklch(0.95 calc(var(--ui-accent-c) * 0.15) var(--ui-hue));
   --ui-color-bg: oklch(0.985 0.004 var(--ui-hue));
   --ui-color-surface: oklch(1 0 var(--ui-hue));
   --ui-color-subtle: oklch(0.965 0.008 var(--ui-hue));
@@ -84,7 +85,7 @@ h1 { margin: 0; max-width: 700px; font-size: clamp(28px, 3.5vw, 42px); line-heig
 .space-sample i:nth-child(1) { width: 4px; opacity:.45 }.space-sample i:nth-child(2) { width:8px; opacity:.6 }.space-sample i:nth-child(3) { width:12px; opacity:.75 }.space-sample i:nth-child(4) { width:16px }.space-sample i:nth-child(5) { width:24px; opacity:.85 }
 .radius-sample { display:flex; align-items:center; gap:7px; height:25px; }
 .radius-sample i { display:block; width:26px; height:21px; border:1px solid var(--ui-color-accent); background:var(--ui-color-accent-soft); }
-.radius-sample i:nth-child(1){border-radius:4px}.radius-sample i:nth-child(2){border-radius:8px}.radius-sample i:nth-child(3){border-radius:16px}
+.radius-sample i:nth-child(1){border-radius:8px}.radius-sample i:nth-child(2){border-radius:14px}.radius-sample i:nth-child(3){border-radius:20px}
 .workbench { display:grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 545px; border:1px solid var(--ui-color-border); border-radius:var(--ui-radius-lg); overflow:hidden; background:var(--ui-color-surface); box-shadow:var(--ui-shadow); }
 .rail { background:var(--ui-color-subtle); border-right:1px solid var(--ui-color-border); padding:20px 12px; display:flex; flex-direction:column; }
 .rail-caption { padding:0 10px 12px; color:var(--ui-color-muted); font-size:11px; }
@@ -153,7 +154,7 @@ h1 { margin: 0; max-width: 700px; font-size: clamp(28px, 3.5vw, 42px); line-heig
 <div class="shell">
   <header class="masthead">
     <div class="brand"><span class="brand-mark">m</span><span>家族配色规范</span></div>
-    <div class="edition">设计系统试装板　/　草案 0.2</div>
+    <div class="edition">设计系统试装板　/　定档 2026-10-24</div>
   </header>
   <section class="intro">
     <h1>换主题色，<br>换的是一整套色板。</h1>
@@ -175,7 +176,7 @@ h1 { margin: 0; max-width: 700px; font-size: clamp(28px, 3.5vw, 42px); line-heig
   <section class="system-strip" aria-label="家族设计 tokens">
     <div class="token-cell"><div class="token-label">文字 / 六档比例</div><div class="type-sample"><b>Aa 20</b><span>正文 14　辅助 12</span></div></div>
     <div class="token-cell"><div class="token-label">间距 / 4px 基数</div><div class="space-sample"><i></i><i></i><i></i><i></i><i></i><span class="swatch-name" style="color:var(--ui-color-muted);font-size:11px;margin-left:5px">4 · 8 · 12 · 16 · 24</span></div></div>
-    <div class="token-cell"><div class="token-label">圆角 / 语义三档</div><div class="radius-sample"><i></i><i></i><i></i><span class="swatch-name" style="color:var(--ui-color-muted);font-size:11px;margin-left:5px">4 · 8 · 16</span></div></div>
+    <div class="token-cell"><div class="token-label">圆角 / 语义三档</div><div class="radius-sample"><i></i><i></i><i></i><span class="swatch-name" style="color:var(--ui-color-muted);font-size:11px;margin-left:5px">8 · 14 · 20</span></div></div>
   </section>
   <main class="workbench">
     <aside class="rail">
@@ -217,8 +218,8 @@ h1 { margin: 0; max-width: 700px; font-size: clamp(28px, 3.5vw, 42px); line-heig
 <script>
 const RAMP = [[50,.96,.025],[100,.92,.05],[200,.87,.07],[300,.80,.09],[400,.72,.115],[500,.65,.13],[600,.58,.13],[700,.50,.125],[800,.44,.12],[900,.36,.1]];
 const ROLES = {
-  light: { bg:[.985,.004], surface:[1,0], border:[.9,.006], muted:[.42,.015], text:[.25,.01], accent:[.58,.13], strong:[.44,.12], soft:[.96,.025] },
-  dark:  { bg:[.17,.008], surface:[.22,.01], border:[.32,.012], muted:[.72,.012], text:[.93,.006], accent:[.76,.11], strong:[.85,.09], soft:[.28,.05] }
+  light: { bg:[.985,.004], surface:[1,0], border:[.9,.006], muted:[.42,.015], text:[.25,.01], accent:[.60,.16], strong:[.44,.12], soft:[.96,.025] },
+  dark:  { bg:[.17,.008], surface:[.22,.01], border:[.32,.012], muted:[.72,.012], text:[.93,.006], accent:[.76,.125], strong:[.85,.075], soft:[.28,.06] }
 };
 const SEM = {
   light: { success:[.55,.12,145], warning:[.65,.13,85], danger:[.55,.16,27], info:[.58,.11,250] },
@@ -253,17 +254,19 @@ function chip(token, hue, label) {
   return `<span class="chip" style="background:${oklch(l, c, h)};color:${ink}">${label}</span>`;
 }
 function render(hue, cSeed) {
-  const seed = cSeed === undefined ? 0.13 : cSeed;
-  const k = seed / 0.13;
-  const scale = token => [token[0], Math.round(token[1] * k * 10000) / 10000, ...token.slice(2)];
+  const accC = cSeed === undefined ? 0.16 : cSeed;
+  const k = accC / 0.16;
+  const ACCENT_ROLES = new Set(['accent', 'strong', 'soft']);
+  const scale = (name, token) => ACCENT_ROLES.has(name) ? [token[0], Math.round(token[1] * k * 10000) / 10000, ...token.slice(2)] : token;
   document.documentElement.style.setProperty('--ui-hue', hue);
-  document.documentElement.style.setProperty('--ui-seed-c', seed);
-  const btnC = Math.round(ROLES.light.accent[1] * k * 10000) / 10000;
+  document.documentElement.style.setProperty('--ui-seed-c', 0.13);
+  document.documentElement.style.setProperty('--ui-accent-c', accC);
+  const btnC = accC;
   let deepL = ROLES.light.accent[0];
-  while (deepL > 0.3 && pairRatio('white', [deepL, btnC], hue) < 4.5) deepL = Math.round((deepL - 0.04) * 100) / 100;
+  while (deepL > 0.3 && pairRatio('white', [deepL, btnC], hue) < 3.0) deepL = Math.round((deepL - 0.04) * 100) / 100;
   document.documentElement.style.setProperty('--ui-accent-deep', oklch(deepL, btnC, hue));
   for (const theme of ['light', 'dark']) {
-    const r = Object.fromEntries(Object.entries(ROLES[theme]).map(([name, token]) => [name, scale(token)])), s = SEM[theme];
+    const r = Object.fromEntries(Object.entries(ROLES[theme]).map(([name, token]) => [name, scale(name, token)])), s = SEM[theme];
     const panel = document.querySelector('#palette-' + theme);
     panel.style.background = oklch(r.bg[0], r.bg[1], hue);
     panel.style.color = oklch(r.text[0], r.text[1], hue);
@@ -280,8 +283,8 @@ function render(hue, cSeed) {
     const infoNote = Math.abs(hue - 250) <= 15 ? '<span class="badge-note">info 与主色同域，按规则以彩度差区分</span>' : '';
     html += '<div class="roleset">' + Object.entries(s).map(([k, v]) => chip(v, hue, k)).join('') + infoNote + '</div>';
     const pairs = theme === 'light'
-      ? [[r.text, r.bg, '正文/底', 4.5], [r.muted, r.bg, '辅助/底', 4.5], ['white', [deepL, btnC], '按钮字/按钮底', 4.5], [r.strong, r.bg, '强调字/底', 4.5], [r.accent, r.bg, '焦点环/底', 3]]
-      : [[r.text, r.bg, '正文/底', 4.5], [r.muted, r.bg, '辅助/底', 4.5], [r.accent, r.bg, '强调字/底', 4.5]];
+      ? [[r.text, r.bg, '正文/底', 4.5], [r.muted, r.bg, '辅助/底', 4.5], ['white', [deepL, btnC], '按钮字/按钮底', 3.0], [r.strong, r.bg, '强调字/底', 4.5], [r.accent, r.bg, '焦点环/底', 3]]
+      : [[r.text, r.bg, '正文/底', 4.5], [r.muted, r.bg, '辅助/底', 4.5], [r.accent, r.bg, '强调字/底', 4.5], [[.17,.01], r.accent, '按钮深字/按钮底', 4.5]];
     html += '<div class="badges">' + pairs.map(([fg, bg, label, min]) => {
       const v = pairRatio(fg, bg, hue);
       return `<span class="badge ${v >= min ? 'ok' : 'bad'}">${label} ${v.toFixed(1)}:1</span>`;
@@ -303,12 +306,12 @@ for (const choice of choices) {
   });
 }
 const CHOICES = [
-  { label: '标准彩度', items: [['蓝 250', 250, .13], ['青绿 170', 170, .13], ['暖橙 55', 55, .13], ['紫 290', 290, .12]] },
+  { label: '标准彩度', items: [['蓝 250', 250, .16], ['青绿 170', 170, .16], ['暖橙 55', 55, .16], ['紫 290', 290, .15]] },
   { label: '灰调·低饱和', items: [['雾蓝 230', 230, .08], ['墨绿 175', 175, .075], ['酒红 12', 12, .09], ['焦糖 65', 65, .085]] }
 ];
 document.querySelector('#hue-switch').innerHTML = CHOICES.map(g =>
   '<div class="hue-row"><span class="hue-group-label">' + g.label + '</span><div class="hue-group">'
-  + g.items.map(([label, hue, c]) => `<button class="hue-choice" type="button" data-hue="${hue}" data-c="${c}" aria-pressed="${hue === 250 && c === 0.13}"><i class="hue-dot" style="background:oklch(0.58 ${c} ${hue})"></i><span>${label}</span></button>`).join('')
+  + g.items.map(([label, hue, c]) => `<button class="hue-choice" type="button" data-hue="${hue}" data-c="${c}" aria-pressed="${hue === 250 && c === 0.16}"><i class="hue-dot" style="background:oklch(0.60 ${c} ${hue})"></i><span>${label}</span></button>`).join('')
   + '</div></div>').join('');
 const hueChoices = [...document.querySelectorAll('.hue-choice')];
 for (const choice of hueChoices) {
@@ -317,7 +320,7 @@ for (const choice of hueChoices) {
     render(Number(choice.dataset.hue), Number(choice.dataset.c));
   });
 }
-render(250, 0.13);
+render(250, 0.16);
 </script>
 </body>
 </html>
