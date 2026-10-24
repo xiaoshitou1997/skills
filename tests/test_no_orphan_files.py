@@ -20,6 +20,7 @@ EXEMPT = [
     'LICENSE',
     '.gitignore',
     '.gitattributes',
+    'CLAUDE.md',                                    # Claude Code 会话进入仓库自动加载
 ]
 
 
