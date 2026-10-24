@@ -14,7 +14,19 @@
 
 ## Agent 进程链 AF_UNIX 回环被拦（loopback connection）
 
-- 宿主 Java 环节（gradle/mvn、surefire fork、应用内嵌 Tomcat/Netty 等一切起 JVM 的步骤）报 `Unable to establish loopback connection`（`Selector.open` 失败，栈含 `UnixDomainSockets.connect0: Invalid argument`；仅 Windows 宿主 + JDK ≥14）：agent 命令运行器进程树上有过滤把 **AppData 子树下的 AF_UNIX connect** 拦为 EINVAL——bind 一律成功、仅 connect 失败，同路径经服务链（schtasks）或非 AppData 目录（主目录根、`C:\Windows\Temp`、`C:\ProgramData`、D:\ 工作区）均正常。JDK ≥14 起 WEPoll 选择器的 wakeup pipe 用 `java.io.tmpdir` 下的 UDS socketpair，恰好落进拦截区；JDK ≤13 走 TCP 回环 pipe 不受影响（实测 8/11 通过，17/21/25/26 被拦）。换 JDK、`preferIPv4Stack`、查 afunix 服务均无效——afunix.sys 本身正常，正常路径的 connect 返回的是标准 `Connection refused`。用 `doctor.py` 的 `host_build_chain` 项十秒判定。
+```text
+Selector.open()                                ← Tomcat/Netty/Gradle daemon/surefire fork 都要调
+   └─ JDK ≥17 Windows: WEPollSelectorImpl（JDK-8266369，JDK 17 起）
+        └─ 初始化先建 wakeup pipe（wakeup() 写一字节，叫醒阻塞在 select() 的线程）
+             └─ 管道 = 一对 AF_UNIX socket（UDS socketpair 机制随 JDK 16 JEP 380 落地）
+                  └─ socket 文件落 jdk.net.unixdomain.tmpdir（默认 ≈ java.io.tmpdir
+                     ≈ C:\Users\<你>\AppData\Local\Temp）        ← 落进雷区
+                       └─ agent 进程树过滤层：AppData 子树内 AF_UNIX connect → EINVAL
+                            └─ bind 成功、connect 失败
+                                 └─ IOException: Unable to establish loopback connection
+```
+
+- 宿主 Java 环节（gradle/mvn、surefire fork、应用内嵌 Tomcat/Netty 等一切起 JVM 的步骤）报 `Unable to establish loopback connection`（`Selector.open` 失败，栈含 `UnixDomainSockets.connect0: Invalid argument`；仅 Windows 宿主 + JDK ≥17）：agent 命令运行器进程树上有过滤把 **AppData 子树下的 AF_UNIX connect** 拦为 EINVAL——bind 一律成功、仅 connect 失败，同路径经服务链（schtasks）或非 AppData 目录（主目录根、`C:\Windows\Temp`、`C:\ProgramData`、D:\ 工作区）均正常。版本边界为 **≥17**：wakeup pipe 的 UDS socketpair 机制随 JDK 16 的 JEP 380 落地，而使用它的 WEPoll 选择器 [JDK-8266369](https://bugs.openjdk.org/browse/JDK-8266369) JDK 17 才进入；JDK ≤16 的 Windows 选择器 wakeup pipe 走 TCP 回环，不受此拦（本机实测 8 通过；issue 数据点 11 通过、17/21/25/26 被拦；14/15/16 未实测，按实现链路判定不受影响）。换 JDK、`preferIPv4Stack`、查 afunix 服务均无效——afunix.sys 本身正常，正常路径的 connect 返回的是标准 `Connection refused`。用 `doctor.py` 的 `host_build_chain` 项十秒判定。
 - 一线解法：加 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'` 后原链重试。该属性专门指定 UDS wakeup pipe 目录，**只改 `java.io.tmpdir` 无效**；`JAVA_TOOL_OPTIONS` 会被 daemon、test fork 等全部子 JVM 自动拾取（也可经 `MAVEN_OPTS`/`GRADLE_OPTS`/`org.gradle.jvmargs` 注入同一属性）。2026-10-24 本机经最小探针、Maven/Gradle 复现工程与两个真实项目实测通过：Maven 项目覆写后同链测试全绿（此前被迫走 schtasks）；Gradle 8.14.5 + JDK 21 项目覆写前 `gradlew help` 起 daemon 即报 loopback 失败，覆写后 daemon 与模块测试（7/7）全部通过。机理与绕过来源 [openai/codex#40902](https://github.com/openai/codex/issues/40902)。
 - 兜底：覆写仍失败（更严环境下目标目录不可写或 bind 也被拒）时改经 `templates/schtasks-build.cmd` 干净链（配同目录 `run-hidden.vbs` 隐藏窗口：计划任务无触发器注册、任务名带时间戳、用后注销，完整步骤见模板头注释），或请用户手动构建。
 

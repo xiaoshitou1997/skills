@@ -36,7 +36,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 ## 常见故障
 
-高频故障按症状对照 [常见故障](references/troubleshooting.md)：端口占用、agent 进程链 AF_UNIX 回环被拦（loopback，仅 Windows + JDK ≥14）。先用 `doctor.py` 判定环境，再按表处理；Linux/macOS 宿主的端口占用直接按表内命令排查。
+高频故障按症状对照 [常见故障](references/troubleshooting.md)：端口占用、agent 进程链 AF_UNIX 回环被拦（loopback，仅 Windows + JDK ≥17）。先用 `doctor.py` 判定环境，再按表处理；Linux/macOS 宿主的端口占用直接按表内命令排查。
 
 ## 边界
 

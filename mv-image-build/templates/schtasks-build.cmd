@@ -2,7 +2,7 @@
 setlocal
 chcp 65001 >nul
 REM ============================================================
-REM 干净进程链构建模板（tmpdir 覆写仍无法构建时的兜底：agent 进程树把 AppData 子树下的 AF_UNIX connect 拦为 EINVAL，JDK ≥14）
+REM 干净进程链构建模板（tmpdir 覆写仍无法构建时的兜底：agent 进程树把 AppData 子树下的 AF_UNIX connect 拦为 EINVAL，JDK ≥17）
 REM 症状: agent shell 里 gradlew/mvn 报 "Unable to establish loopback connection"
 REM       （Selector.open 失败，栈含 UnixDomainSockets.connect0: Invalid argument；
 REM        换 JDK / preferIPv4Stack / 查 afunix 服务均无效）

@@ -22,7 +22,7 @@ def _nio_smoke():
 
     Desktop-agent command-runner process chains on Windows can carry a filter that
     rejects AF_UNIX connect under AppData (bind passes, connect fails EINVAL); the
-    JDK >=14 WEPoll selector wakeup pipe lives in java.io.tmpdir and hits it, breaking
+    JDK >=17 WEPoll selector wakeup pipe lives in java.io.tmpdir and hits it, breaking
     Selector with 'Unable to establish loopback connection' — host gradle/mvn builds
     fail no matter the toolchain. First-line workaround:
     JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'
