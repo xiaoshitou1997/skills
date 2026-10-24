@@ -10,8 +10,8 @@
 
 ```css
 /* mv-ui-style 家族 tokens
-   家族参数: hue=250 · 色阶骨架 C0.13 · accent 主档 L0.60/C0.16 · 圆角=圆润 8/14/20 · 动效=140/240/400ms cubic-bezier(0.32,0.72,0,1) · 材质=毛玻璃 · 密度=标准（2026-10-23 苹果风定档；2026-10-24 accent 苹果向修订）
-   定档记录: 2026-10-23 苹果风全参数定档；2026-10-24 accent 苹果向修订（accent L0.60/C0.16，按钮白字门槛 3.0 部件级）
+   家族参数: hue=264 · 色阶骨架 C0.13 · accent 主档 L0.58/C0.2294 · 圆角=圆润 8/14/20 · 动效=140/240/400ms cubic-bezier(0.32,0.72,0,1) · 材质=毛玻璃 · 密度=标准（2026-10-23 苹果风定档；2026-10-24 accent 复刻修订）
+   定档记录: 2026-10-23 苹果风全参数定档；2026-10-24 accent 复刻修订（accent L0.58/C0.2294＝用户原工具蓝 #2F6BFF 逐位复刻，按钮白字门槛 3.0 部件级）
    偏离记录: <无；或逐条：偏离家族哪一条、理由> */
 :root {
   /* —— 家族固定项 —— */
@@ -35,12 +35,12 @@
   --ui-radius-md: 14px; /* 按钮、卡片 */
   --ui-radius-lg: 20px; /* 弹窗、面板 */
   /* —— 推导项：按 color-derivation.md 步骤从种子参数生成 —— */
-  --ui-hue: 250;      /* 种子：家族主色色相（2026-10-23 定档） */
+  --ui-hue: 264;      /* 种子：家族主色色相（2026-10-24 复刻修订定档） */
   --ui-seed-c: 0.13;  /* 种子：色阶骨架 C（2026-10-23 定档标准 0.13）；灰调/深调为修订候选，取值见 color-derivation */
-  --ui-accent-c: 0.16; /* accent 主档 C：苹果向校准（2026-10-24 定档，hue250 色域上限 0.170 内收安全边）；灰调 0.07–0.10 / 深调 0.08–0.12 */
-  --ui-color-accent: oklch(0.60 var(--ui-accent-c) var(--ui-hue));
-  --ui-color-accent-strong: oklch(0.44 calc(var(--ui-accent-c) * 0.75) var(--ui-hue));
-  --ui-color-accent-soft: oklch(0.95 calc(var(--ui-accent-c) * 0.15) var(--ui-hue));
+  --ui-accent-c: 0.2294; /* accent 主档 C：复刻用户原工具蓝 #2F6BFF（2026-10-24 定档，原值反推 0.2289 取整）；灰调 0.07–0.10 / 深调 0.08–0.12 */
+  --ui-color-accent: oklch(0.58 var(--ui-accent-c) var(--ui-hue));
+  --ui-color-accent-strong: oklch(0.44 0.12 var(--ui-hue)); /* C 定档字面，与 master 一致 */
+  --ui-color-accent-soft: oklch(0.95 0.024 var(--ui-hue)); /* C 定档字面，与 master 一致 */
   --ui-color-on-accent: <校验通过的白或近白，部件级门槛 ≥3.0；正文小字与链接文字改用 accent-strong 过 4.5>;
   --ui-color-bg: oklch(0.985 0.004 var(--ui-hue));
   --ui-color-surface: oklch(1 0 var(--ui-hue));
@@ -50,7 +50,7 @@
   --ui-color-success: oklch(0.55 0.12 145);
   --ui-color-warning: oklch(0.65 0.13 85);
   --ui-color-danger: oklch(0.55 0.16 27);
-  --ui-color-info: oklch(0.58 0.11 250);
+  --ui-color-info: oklch(0.58 0.11 var(--ui-hue));
   /* 焦点环：2px + 2px 外扩，颜色取 accent，对底 ≥3:1 校验 */
   --ui-focus-ring-width: 2px;
   --ui-focus-ring-offset: 2px;
@@ -67,19 +67,19 @@
   --ui-color-border: oklch(0.32 0.012 var(--ui-hue));
   --ui-color-text: oklch(0.93 0.006 var(--ui-hue));
   --ui-color-text-muted: oklch(0.72 0.012 var(--ui-hue));
-  --ui-color-accent: oklch(0.76 calc(var(--ui-accent-c) * 0.78) var(--ui-hue));
-  --ui-color-accent-strong: oklch(0.85 calc(var(--ui-accent-c) * 0.47) var(--ui-hue));
-  --ui-color-accent-soft: oklch(0.28 calc(var(--ui-accent-c) * 0.375) var(--ui-hue));
+  --ui-color-accent: oklch(0.76 0.125 var(--ui-hue)); /* C 定档字面，与 master 一致 */
+  --ui-color-accent-strong: oklch(0.85 0.075 var(--ui-hue)); /* C 定档字面，与 master 一致 */
+  --ui-color-accent-soft: oklch(0.28 0.06 var(--ui-hue)); /* C 定档字面，与 master 一致 */
   --ui-color-on-accent: <校验通过的深或近黑>;
   --ui-color-success: oklch(0.72 0.12 145);
   --ui-color-warning: oklch(0.78 0.12 85);
   --ui-color-danger: oklch(0.68 0.15 27);
-  --ui-color-info: oklch(0.75 0.1 250);
+  --ui-color-info: oklch(0.75 0.1 var(--ui-hue));
   --ui-material-surface: oklch(0.22 0.01 var(--ui-hue) / 0.72);
 }
 ```
 
-`--ui-hue`、`--ui-seed-c` 与 `--ui-accent-c` 是三个种子参数：主色 hue（2026-10-23 定档 250）、色阶骨架 C（2026-10-23 定档标准 0.13，管 10 档全谱色阶的彩度基带）、accent 主档 C（2026-10-24 accent 苹果向修订定档 0.16，管强调三档与暗色强调组；hue250 亮端色阶已被 sRGB 色域上限钉住，accent 提彩度不牵动色阶，故独立成参）。三个参数在 `:root` 内声明一次，全部推导色引用它们——修订家族风格只改这几处，改完同步各应用副本。master 文件（`~/.mv/ui-style/tokens.css`）头部注释记家族参数与定档记录，应用副本头部注释改记 master 来源与同步日期，两者都不省略偏离记录。跟随系统的明暗切换在应用入口按 `prefers-color-scheme` 设 `data-theme`，不在 tokens 内做双份取值。
+`--ui-hue`、`--ui-seed-c` 与 `--ui-accent-c` 是三个种子参数：主色 hue（2026-10-24 复刻修订定档 264）、色阶骨架 C（2026-10-23 定档标准 0.13，管 10 档全谱色阶的彩度基带）、accent 主档 C（2026-10-24 accent 复刻修订定档 0.2294＝用户原工具蓝 #2F6BFF，管强调三档与暗色强调组；亮端色阶已被 sRGB 色域上限钉住，accent 提彩度不牵动色阶，故独立成参）。三个参数在 `:root` 内声明一次，全部推导色引用它们——修订家族风格只改这几处，改完同步各应用副本。master 文件（`~/.mv/ui-style/tokens.css`）头部注释记家族参数与定档记录，应用副本头部注释改记 master 来源与同步日期，两者都不省略偏离记录。跟随系统的明暗切换在应用入口按 `prefers-color-scheme` 设 `data-theme`，不在 tokens 内做双份取值。
 
 ## Tailwind 4 映射
 
