@@ -39,6 +39,8 @@
 
 切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切。
 
+**模块名与目录名逐字相同**：无论 Maven、Gradle 还是其他构建工具，工具侧定义的模块名必须与所在文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name`，都直接取目录名；根工程（父 POM、根 settings）的项目名与仓库根目录名同理。按本节公式命名的模块，目录同名（如 `shop-order-service/`）。
+
 ### 三种布局
 
 单入口——两端共用一个可运行服务，不需要独立伸缩、独立网络边界或独立发布节奏时优先：
