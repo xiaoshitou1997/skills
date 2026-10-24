@@ -28,7 +28,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 7. 暂存状态不表示改动归属，IDE 或其他会话可能自动暂存。必要时同时审查 HEAD→index 和 index→工作区差异；`AM` 等状态意味着暂存版与最终文件不同。
 8. **commit 和 push 前都必须先 pull 并解决冲突。** 同步失败、冲突未解决或 rebase/merge 未结束时停止提交，不先 commit 再补同步。冲突解决不了时停止并交由用户处理，呈现两侧差异，不强行自动取舍。
 9. **保持线性提交历史，禁止生成 merge commit。** 远端同步使用 rebase，不用 merge commit 解决分支分歧。
-10. **AI 参与生成或修改的提交和 PR 必须添加 AI 署名或归属行。** 署名采用实际工具的默认方式或用户配置，本 skill 不规定具体格式。
+10. **AI 参与生成或修改的提交和 PR 必须添加 AI 署名或归属行。** 署名行统一用 `Co-Authored-By: <工具名> <工具邮箱>` 置于提交信息或 PR 描述末尾；Claude Code 固定为 `Co-Authored-By: Claude Code <noreply@anthropic.com>`。
 
 ## 工作流
 
