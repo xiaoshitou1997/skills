@@ -90,6 +90,7 @@
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格、相关引用及同步脚本的 STALE 清单。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`，必要时补离线用例（假 docker/假 ssh stub 风格）；`test_workflows.py` 直接运行默认并行，支持 `-k <子串>` 筛选（可多次、任一命中），日常按改动精准跑对应用例，全套留给发布前。
 4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 在隔离环境评测该 skill 正反例；CLI 或凭据缺失时明确记为未执行，并按 `tests/trigger_cases.py` 人工核对，不能把人工核对写成真实路由通过。
+5. 「本地跑一下」条件分流（项目文档化开发拓扑为容器时归 `mv-container-deploy` dev 交付的例外）语义改动 → 同步修改 `mv-local-debug` 与 `mv-container-deploy` 两处表述并保持语义一致，再按第 4 条重跑两个 skill 的触发评测。
 
 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部 skills 并清理改名/合并前旧版本；是否安装、装到哪台机器由使用者决定，不属于校验流程。旧版本清理名称仅维护在脚本内 STALE 清单，不写入文档。
 
