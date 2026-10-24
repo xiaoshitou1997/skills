@@ -10,8 +10,8 @@
 | --- | --- |
 | `mv-toolchain-manager` | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发 |
 | `mv-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零 WSL、零镜像） |
-| `mv-image-build` | 宿主出包与瘦镜像构建：Java 模块由模块内 Jib 插件定义，非 Java 模块用 `Dockerfile.delivery`；经 WSL 或本机 Docker 载入。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
-| `mv-container-deploy` | 镜像包部署 dev/prod 服务器、健康验证、同镜像晋级与回滚 |
+| `mv-image-build` | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
+| `mv-container-deploy` | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
 | `mv-business-use-case-modeler` | 从描述、文档或代码建模端到端业务用例：用例目录、生命周期与异常、E2E 测试场景与覆盖矩阵落盘 docs/business-use-cases/ |

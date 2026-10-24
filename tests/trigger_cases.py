@@ -46,7 +46,7 @@ CASES = [
     {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-git-publisher',
      'query': '把这些改动提交并推送'},
 
-    # --- mv-image-build：宿主出包 + 瘦镜像构建（Java 走模块内 Jib，非 Java 走模块内 Dockerfile.delivery），只构建不运行 ---
+    # --- mv-image-build：宿主出包 + 服务器构建镜像（各栈模块内 Dockerfile.delivery，出包→上传→服务器构建统一流程），只构建不运行 ---
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '帮我把这个项目打成 Docker 镜像，出个包'},
     {'skill': 'mv-image-build', 'kind': 'positive',
@@ -54,7 +54,7 @@ CASES = [
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '宿主已经编译出包，WSL 打瘦镜像时拉取基础镜像一直卡住，帮我排查'},
     {'skill': 'mv-image-build', 'kind': 'positive',
-     'query': 'Spring Boot 模块的 pom 已经配好 Jib 插件，帮我打成镜像先不部署'},
+     'query': 'Spring Boot 模块打个交付镜像，先不部署'},
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '非 Java 模块已经准备了 Dockerfile.delivery，用宿主构建产物打个交付镜像'},
     {'skill': 'mv-image-build', 'kind': 'positive',

@@ -11,7 +11,6 @@ import shutil
 from pathlib import Path
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 import unittest
@@ -28,7 +27,6 @@ if not Path(BASH).exists():
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
 IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
-JIB_BUILD = (ROOT / 'mv-image-build/scripts/jib-build.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 
 
@@ -77,7 +75,7 @@ class WorkflowTests(unittest.TestCase):
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('--approve-prod', run.stderr)
 
-    def test_build_packages_prebuilt_artifact(self):
+    def test_ssh_build_delivers_prebuilt_artifact(self):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             (d / '.dockerignore').write_text('.env*\n.git\n')
@@ -87,36 +85,27 @@ class WorkflowTests(unittest.TestCase):
             target.mkdir()
             (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
             (target / 'demo-app-1.0.0-sources.jar').write_bytes(b'not-deliverable')
-            bin_dir = d / 'bin'; bin_dir.mkdir()
-            fake_docker = bin_dir / 'docker'
-            docker_log = d / 'docker.log'
-            # build 时把上下文内容记入日志:最后一参数是 context,断言瘦上下文只含产物与 Dockerfile。
-            fake_docker.write_text(
-                '#!/bin/sh\n'
-                'printf "%s\\n" "$*" >> "$DOCKER_LOG"\n'
-                'if [ "$1" = "build" ]; then\n'
-                '  for a in "$@"; do ctx="$a"; done\n'
-                '  ls -A "$ctx" >> "$DOCKER_LOG"\n'
-                '  cat "$ctx/Dockerfile" >> "$DOCKER_LOG" 2>/dev/null\n'
-                'fi\n'
-                'if [ "$1" = "image" ]; then echo "IMAGE_ID=sha256:mocked"; fi\n'
-            )
-            fake_docker.chmod(0o755)
-            env = os.environ.copy()
-            env['PATH'] = str(bin_dir) + os.pathsep + env['PATH']
-            env['DOCKER_LOG'] = str(docker_log)
-            # FF_WSL_BRIDGE=0 仅供测试:走 PATH 里的 fake docker,不触真实 WSL。
-            env['FF_WSL_BRIDGE'] = '0'
-            run = subprocess.run([BASH, IMAGE_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            env = self._offline_env(d)
+            run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-            self.assertIn('IMAGE=demo:', run.stdout)
+            stdout = {line.split('=', 1)[0]: line.split('=', 1)[1]
+                      for line in run.stdout.splitlines()
+                      if line.split('=', 1)[0] in ('IMAGE', 'IMAGE_ID', 'PACKAGE', 'SHA256')}
             self.assertIn('ARTIFACT=', run.stdout)
-            log = docker_log.read_text(encoding='utf-8', errors='replace')
-            self.assertIn('build --pull', log)
-            self.assertIn('Dockerfile', log)
-            self.assertIn('app.jar', log)          # 产物改名进瘦上下文
-            self.assertNotIn('demo-app-1.0.0.jar', log)  # 原名不进上下文
-            self.assertNotIn('-sources.jar', log)  # sources jar 被排除
+            self.assertEqual(stdout['IMAGE_ID'], 'sha256:mocked')
+            self.assertIn('SECURITY_SCAN=skipped', run.stderr)
+            # 构建点收到的上下文只含 Dockerfile 与改名后的 app.jar;原名与 sources 不进包。
+            self.assertIn('docker\tbuild\t--pull', run.stderr)
+            self.assertIn('CONTEXT=Dockerfile\n', run.stderr)
+            self.assertIn('CONTEXT=app.jar\n', run.stderr)
+            self.assertNotIn('demo-app-1.0.0.jar', run.stderr)
+            self.assertNotIn('-sources.jar', run.stderr)
+            # 包与清单常驻构建点 packages/<app>/。行内容不在本机断言:假服务器上 bash
+            # 新写的清单会被端点透明加密改写,读回即密文;IMAGE_ID= 在服务器侧清单
+            # 落盘之后输出,本身即是清单写成功的证据。
+            packages = Path(env['FAKE_RUNTIME_ROOT']) / '.mv/image-build/packages/demo'
+            self.assertTrue((packages / stdout['PACKAGE']).is_file(), '包应常驻服务器包目录')
+            self.assertTrue((packages / 'manifest.tsv').is_file())
 
     def test_build_rejects_ambiguous_artifacts(self):
         # 交付契约要求唯一产物:多个候选拒绝并点名 FF_ARTIFACT,不按 mtime 静默猜测
@@ -129,126 +118,21 @@ class WorkflowTests(unittest.TestCase):
             target.mkdir()
             (target / 'demo-app-1.0.0.jar').write_bytes(b'fake-jar-bytes')
             (target / 'demo-app-1.0.1.jar').write_bytes(b'another-jar')
-            run = subprocess.run([BASH, IMAGE_BUILD, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            run = self._workflow(IMAGE_BUILD, d, self._offline_env(d), 'build', 'dev', 'demo')
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('FF_ARTIFACT', run.stderr)
 
-    def test_java_module_without_delivery_dockerfile_points_to_jib(self):
+    def test_java_module_without_delivery_dockerfile_names_contract(self):
+        # Java 与其他栈同一条服务器构建路径:镜像定义随模块提交 Dockerfile.delivery。
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
-            (d / '.dockerignore').write_text('.env*\n.git\n')
             (d / 'pom.xml').write_text('<project/>')
-            run = subprocess.run([BASH, IMAGE_BUILD, 'build', 'dev', 'demo'], cwd=d, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            run = self._workflow(IMAGE_BUILD, d, self._offline_env(d), 'build', 'dev', 'demo')
             self.assertNotEqual(run.returncode, 0)
-            self.assertIn('jib-build.sh', run.stderr)
             self.assertIn('Dockerfile.delivery', run.stderr)
-
-    # --- Jib 路径:Java 模块由模块内插件定义,脚本只编排 tar 产出与载入 ---
-
-    # 调用记录走 stderr:端点透明加密可能改写脚本写出的日志文件,断言只看进程输出。
-    FAKE_MAVEN = r"""#!/bin/sh
-printf 'MVN %s\n' "$*" >&2
-mkdir -p target
-printf 'fake-jib-tar' > target/jib-image.tar
-"""
-
-    FAKE_GRADLEW = r"""#!/bin/sh
-printf 'GRADLE %s\n' "$*" >&2
-mkdir -p build
-printf 'fake-jib-tar' > build/jib-image.tar
-"""
-
-    FAKE_DOCKER_JIB = r"""#!/bin/sh
-printf 'DOCKER %s\n' "$*" >&2
-case "$1" in
-  load) cat "$3" >/dev/null ;;
-  image) echo "IMAGE_ID=sha256:jibmocked" ;;
-esac
-"""
-
-    def _jib_env(self, d):
-        bin_dir = d / 'bin'
-        bin_dir.mkdir(exist_ok=True)
-        (bin_dir / 'mvn').write_text(self.FAKE_MAVEN, encoding='utf-8', newline='\n')
-        (bin_dir / 'docker').write_text(self.FAKE_DOCKER_JIB, encoding='utf-8', newline='\n')
-        for name in ('mvn', 'docker'):
-            (bin_dir / name).chmod(0o755)
-        env = os.environ.copy()
-        env['PATH'] = str(bin_dir) + os.pathsep + env['PATH']
-        # 仅供测试:走 PATH 里的 fake docker,不触真实 WSL。
-        env['FF_WSL_BRIDGE'] = '0'
-        return env
-
-    def test_jib_build_loads_tar_and_reports_identity(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / 'pom.xml').write_text('<project><build><plugins><plugin>jib-maven-plugin</plugin></plugins></build></project>')
-            (d / 'target').mkdir()
-            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
-                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
-            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-            self.assertIn('BUILD_TOOL=maven', run.stdout)
-            self.assertIn('IMAGE=demo:', run.stdout)
-            self.assertIn('IMAGE_ID=sha256:jibmocked', run.stdout)
-            self.assertIn('SECURITY_SCAN=skipped', run.stderr)
-            self.assertIn('MVN ', run.stderr)
-            self.assertIn('jib:buildTar', run.stdout)
-            self.assertIn('-Djib.to.image=demo:', run.stdout)
-            self.assertIn('DOCKER load -i target/jib-image.tar', run.stderr)
-
-    def test_jib_build_requires_module_plugin(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / 'pom.xml').write_text('<project/>')
-            (d / 'target').mkdir()
-            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
-                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
-            self.assertNotEqual(run.returncode, 0)
-            self.assertIn('jib-maven-plugin', run.stderr)
             self.assertIn('build-contract.md', run.stderr)
-            self.assertNotIn('MVN ', run.stderr)
 
-    def test_jib_build_requires_host_package(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / 'pom.xml').write_text('<project><build><plugins><plugin>jib-maven-plugin</plugin></plugins></build></project>')
-            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
-                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
-            self.assertNotEqual(run.returncode, 0)
-            self.assertIn('mvn -B package', run.stderr)
-            self.assertIn('mv-toolchain-manager', run.stderr)
-            self.assertNotIn('MVN ', run.stderr)
-
-    def test_jib_build_fails_when_tar_missing(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / 'pom.xml').write_text('<project><build><plugins><plugin>jib-maven-plugin</plugin></plugins></build></project>')
-            (d / 'target').mkdir()
-            env = self._jib_env(d)
-            (d / 'bin/mvn').write_text('#!/bin/sh\nexit 0\n', encoding='utf-8', newline='\n')
-            (d / 'bin/mvn').chmod(0o755)
-            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=env,
-                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
-            self.assertNotEqual(run.returncode, 0)
-            self.assertIn('未产出镜像 tar', run.stderr)
-            self.assertNotIn('IMAGE_ID=', run.stdout)
-
-    def test_jib_gradle_uses_wrapper_and_build_tar(self):
-        with tempfile.TemporaryDirectory() as d:
-            d = Path(d)
-            (d / 'build.gradle').write_text("plugins { id 'com.google.cloud.tools.jib' }\n")
-            (d / 'build/libs').mkdir(parents=True)
-            (d / 'gradlew').write_text(self.FAKE_GRADLEW, encoding='utf-8', newline='\n')
-            run = subprocess.run([BASH, JIB_BUILD, 'build', 'dev', 'demo'], cwd=d, env=self._jib_env(d),
-                                 capture_output=True, text=True, encoding='utf-8', errors='replace')
-            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-            self.assertIn('BUILD_TOOL=gradle', run.stdout)
-            self.assertIn('GRADLE ', run.stderr)
-            self.assertIn('jibBuildTar', run.stdout)
-            self.assertIn('-Djib.to.image=demo:', run.stdout)
-            self.assertIn('DOCKER load -i build/jib-image.tar', run.stderr)
-
-    def _offline_env(self, d, *, wsl=False):
+    def _offline_env(self, d):
         """All container/network commands terminate in local stubs, including SSH shell parsing."""
         self._repo(str(d))
         (d / '.dockerignore').write_text('.env*\n.git\n', encoding='utf-8')
@@ -282,6 +166,10 @@ esac
             'ssh': r"""#!/bin/bash
 while [[ "$1" == -o || "$1" == -i ]]; do shift 2; done
 shift
+{ printf ssh; printf '\t%s' "$@"; printf '\n'; } >&2
+if [[ -n "${FAKE_SSH_TAMPER:-}" && "$*" == *'cat >'* ]]; then
+  exec "$REAL_BASH" -c "$*; for f in \"\$HOME\"/.mv/image-build/packages/*/*.tgz; do printf X >> \"\$f\"; done"
+fi
 cd "$FAKE_RUNTIME_ROOT"
 exec "$REAL_BASH" -c "$*"
 """,
@@ -344,8 +232,9 @@ exec "$@"
             'WSL_LOG': (d / 'wsl.log').as_posix(),
             'RUNNER_LOG': (d / 'runner.log').as_posix(),
             'BASH_ENV': bash_env.as_posix(),
-            'FF_WSL_BRIDGE': '1' if wsl else '0',
+            'FF_WSL_BRIDGE': '0',
             'FF_WSL_DISTRO': 'FakeDistro',
+            'FF_BUILD_TARGET': 'tester@fakehost',
         })
         return env
 
@@ -365,7 +254,8 @@ exec "$@"
     def _assert_static_context(self, log):
         self.assertIn('CONTEXT=app\n', log)
         self.assertIn('CONTEXT=Dockerfile\n', log)
-        self.assertEqual([line for line in log.splitlines() if line.startswith('CONTEXT=')],
+        # 目录项顺序取决于文件系统枚举,不构成契约;只断言上下文构成。
+        self.assertEqual(sorted(line for line in log.splitlines() if line.startswith('CONTEXT=')),
                          ['CONTEXT=Dockerfile', 'CONTEXT=app'])
         for label, content in [('STATIC', b'<html>static delivery</html>\n'),
                                ('HIDDEN', b'hidden asset\n'),
@@ -373,7 +263,7 @@ exec "$@"
             blob = b'blob ' + str(len(content)).encode() + b'\0' + content
             self.assertIn(f'{label}_BLOB={hashlib.sha1(blob).hexdigest()}', log)
 
-    def _run_native_static(self, name):
+    def _run_ssh_static(self, name):
         with tempfile.TemporaryDirectory() as directory:
             d = Path(directory)
             env = self._offline_env(d)
@@ -384,11 +274,11 @@ exec "$@"
             self.assertIn(f'ARTIFACT_DIR={name}', run.stdout)
             self._assert_static_context(run.stderr)
 
-    def test_native_build_packages_dist_directory(self):
-        self._run_native_static('dist')
+    def test_ssh_build_packages_dist_directory(self):
+        self._run_ssh_static('dist')
 
-    def test_native_build_packages_build_directory(self):
-        self._run_native_static('build')
+    def test_ssh_build_packages_build_directory(self):
+        self._run_ssh_static('build')
 
     def test_static_build_missing_artifact_has_guidance(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -413,50 +303,51 @@ exec "$@"
             self.assertNotIn('unbound variable', run.stderr)
             self.assertFalse((d / 'docker.log').exists())
 
-    def _run_wsl_variant(self, name):
-        with tempfile.TemporaryDirectory() as directory, \
-                tempfile.TemporaryDirectory() as external:
+    def test_ssh_build_accepts_artifact_path_with_spaces(self):
+        with tempfile.TemporaryDirectory() as directory:
             d = Path(directory)
-            env = self._offline_env(d, wsl=True)
+            env = self._offline_env(d)
             (d / 'package.json').write_text('{}', encoding='utf-8')
-            (d / '.gitignore').write_text('dist/\nbuild/\nstatic output/\n', encoding='utf-8')
-            if name == 'external':
-                artifact = Path(external) / 'external output'
-                env['FF_ARTIFACT'] = artifact.as_posix() + '/'
-            elif name == 'absolute':
-                artifact = d / 'static output'
-                env['FF_ARTIFACT'] = artifact.as_posix() + '/'
-            elif name.startswith('./'):
-                artifact = d / 'static output'
-                env['FF_ARTIFACT'] = name
-            else:
-                artifact = d / name
-            self._static_artifact(artifact)
-            (d / 'unrelated.txt').write_text('staged content\n', encoding='utf-8')
-            subprocess.run(['git', '-C', str(d), 'add', 'unrelated.txt'], check=True)
-            before = subprocess.check_output(['git', '-C', str(d), 'ls-files', '--stage'])
+            self._static_artifact(d / 'static output')
+            env['FF_ARTIFACT'] = './static output/../static output'
             run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self._assert_static_context(run.stderr)
-            self.assertEqual(subprocess.check_output(['git', '-C', str(d), 'ls-files', '--stage']), before)
-            log = run.stderr
-            self.assertIn('/.mv/image-build/build/demo', log)
-            self.assertNotIn('/.mv/local-debug/', log)
+            self.assertIn('ARTIFACT_DIR=', run.stdout)
 
-    def test_wsl_build_discovers_gitignored_dist(self):
-        self._run_wsl_variant('dist')
+    def test_build_requires_build_target(self):
+        # 没有构建点就没有镜像产出地:FF_BUILD_TARGET 未设置直接拒绝,不猜缺省。
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d)
+            del env['FF_BUILD_TARGET']
+            (d / 'Dockerfile.delivery').write_text('FROM scratch\n', encoding='utf-8')
+            (d / 'target').mkdir()
+            (d / 'target/app.jar').write_bytes(b'jar')
+            run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
+            self.assertEqual(run.returncode, 2, run.stdout + run.stderr)
+            self.assertIn('FF_BUILD_TARGET', run.stderr)
+            self.assertNotIn('ssh\t', run.stderr)
 
-    def test_wsl_build_discovers_gitignored_build(self):
-        self._run_wsl_variant('build')
-
-    def test_wsl_build_normalizes_relative_artifact_path(self):
-        self._run_wsl_variant('./static output/../static output/')
-
-    def test_wsl_build_accepts_in_tree_absolute_path(self):
-        self._run_wsl_variant('absolute')
-
-    def test_wsl_build_accepts_external_directory(self):
-        self._run_wsl_variant('external')
+    def test_ssh_build_rejects_sha256_mismatch(self):
+        # 上传包在构建点核对 SHA-256:不匹配即失败并删除损坏包,不静默降级继续构建。
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d)
+            env['FAKE_SSH_TAMPER'] = '1'
+            (d / '.dockerignore').write_text('.env*\n.git\n', encoding='utf-8')
+            (d / 'pom.xml').write_text('<project/>', encoding='utf-8')
+            (d / 'Dockerfile.delivery').write_text('FROM scratch\n', encoding='utf-8')
+            (d / 'target').mkdir()
+            (d / 'target/app.jar').write_bytes(b'jar')
+            run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
+            self.assertNotEqual(run.returncode, 0)
+            self.assertIn('SHA-256', run.stderr)
+            self.assertNotIn('IMAGE_ID=', run.stdout)
+            packages = Path(env['FAKE_RUNTIME_ROOT']) / '.mv/image-build/packages/demo'
+            # 损坏包删除与清单不落盘:删除动作在本机假服务器上受安全软件干扰无法断言,
+            # 清单不创建是服务器侧拒绝的直接证据。
+            self.assertFalse((packages / 'manifest.tsv').exists())
 
     def _run_directory_artifact_guard(self, artifact, secret):
         with tempfile.TemporaryDirectory() as directory:
@@ -470,7 +361,7 @@ exec "$@"
             run = self._workflow(IMAGE_BUILD, d, env, 'build', 'dev', 'demo')
             self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
             self.assertIn('产物目录包含 .git 或 .env*', run.stderr)
-            self.assertNotIn('docker\tbuild', run.stderr)
+            self.assertNotIn('ssh\t', run.stderr)  # 守卫先于上传:失败时不发生任何传输
 
     def test_directory_artifact_rejects_repository_root(self):
         self._run_directory_artifact_guard('.', '.git')
@@ -478,10 +369,11 @@ exec "$@"
     def test_directory_artifact_rejects_nested_env_file(self):
         self._run_directory_artifact_guard('dist', 'assets/.env.dev')
 
-    def _run_strict_scan_gate(self, wsl):
+    def test_strict_scan_fails_when_trivy_missing(self):
+        # FF_REQUIRE_SECURITY_SCAN=1 时 trivy 是构建点硬门禁:缺 trivy 在构建前即失败,不降级。
         with tempfile.TemporaryDirectory() as directory:
             d = Path(directory)
-            env = self._offline_env(d, wsl=wsl)
+            env = self._offline_env(d)
             env['FF_REQUIRE_SECURITY_SCAN'] = '1'
             (d / 'pom.xml').write_text('<project/>', encoding='utf-8')
             (d / 'Dockerfile.delivery').write_text('FROM scratch\n', encoding='utf-8')
@@ -492,15 +384,7 @@ exec "$@"
             self.assertIn('Trivy unavailable; image security gate not satisfied', run.stderr)
             self.assertNotIn('SKIP:', run.stdout + run.stderr)
             self.assertNotIn('IMAGE_ID=', run.stdout)
-            if wsl:
-                self.assertIn('env\tFF_REQUIRE_SECURITY_SCAN=1\tbash\t-s\t--\timage\tdemo:',
-                              run.stderr)
-
-    def test_strict_scan_fails_when_trivy_missing_native(self):
-        self._run_strict_scan_gate(False)
-
-    def test_strict_scan_fails_when_trivy_missing_wsl(self):
-        self._run_strict_scan_gate(True)
+            self.assertIn('ssh\t', run.stderr)  # 门禁在构建点执行:包已上传,由服务器侧拒绝
 
     def _run_ssh_runner_arguments(self, health, ready):
         with tempfile.TemporaryDirectory() as directory:
@@ -563,7 +447,7 @@ def main():
         sys.exit(2)
     # 最长作业优先:重用例先占满工人、轻用例填空隙,否则字母序会让
     # 最重的 ssh 部署链最后才开跑,拖长关键路径。权重来自实测耗时档位。
-    weight = {'test_ssh_runner': 420, 'test_wsl_build': 64, 'test_strict_scan_fails_when_trivy_missing_wsl': 80}
+    weight = {'test_ssh_runner': 420, 'test_strict_scan_fails_when_trivy_missing': 80, 'test_ssh_build': 100}
     cases.sort(key=lambda c: next((w for p, w in weight.items() if c.id().split('.')[-1].startswith(p)), 0),
                reverse=True)
     # 4 是实测平衡点:6 路并发时安全软件逐进程挂钩争用加剧,

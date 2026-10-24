@@ -17,21 +17,6 @@ def version(*cmd):
         return {"ok": False, "detail": "not available"}
 
 
-def wsl_distro():
-    """First available WSL distro name, or empty string; tolerant of UTF-16 output."""
-    try:
-        p = subprocess.run(["wsl.exe", "-l", "-q"], capture_output=True, timeout=8)
-    except (OSError, subprocess.TimeoutExpired):
-        return ""
-    if p.returncode != 0:
-        return ""
-    for enc in ("utf-16-le", "utf-8"):
-        names = [line.strip() for line in p.stdout.decode(enc, "ignore").replace("\r", "").split("\n") if line.strip()]
-        if names:
-            return names[0]
-    return ""
-
-
 def _nio_smoke():
     """Selector.open() smoke test from the current process chain.
 
@@ -67,28 +52,6 @@ def _nio_smoke():
     return {"ok": False, "detail": detail[:120]}
 
 
-def _wsl_resources(distro):
-    # 用 --exec 直接 exec:否则 wsl.exe 把余下参数拼接后交给默认 shell,引号会丢失。
-    try:
-        p = subprocess.run(["wsl.exe", "-d", distro, "--exec", "sh", "-c",
-                            "nproc && grep MemTotal /proc/meminfo"],
-                           capture_output=True, timeout=15)
-    except (OSError, subprocess.TimeoutExpired):
-        return {"ok": False, "detail": "probe failed"}
-    for enc in ("utf-8", "utf-16-le"):
-        lines = [x.strip() for x in (p.stdout or b"").decode(enc, "ignore").replace("\r", "").split("\n") if x.strip()]
-        if len(lines) >= 2 and lines[0].isdigit() and "MemTotal" in lines[1]:
-            try:
-                mem_mb = int(lines[1].split()[1]) // 1024
-            except (ValueError, IndexError):
-                continue
-            cpus = int(lines[0])
-            # 经验阈值:低于 8 核 / 12GB 时 Gradle/Maven 与镜像构建明显变慢;仅建议输出,不是门禁。
-            ok = cpus >= 8 and mem_mb >= 12000
-            return {"ok": ok, "detail": f"nproc={cpus}, mem={mem_mb // 1024}GB (low values: check ~/.wslconfig)"}
-    return {"ok": False, "detail": "no data"}
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--project", default=".")
@@ -96,16 +59,17 @@ def main():
     args = ap.parse_args()
     root = Path(args.project).resolve()
     is_windows = os.name == "nt"
+    # 宿主只出包并上传:镜像与扫描都在构建点(服务器)完成,宿主侧只关心
+    # 编译工具链、git 溯源与 SSH 上传通道。
     command_names = (
-        "git", "docker", "ssh", "gh", "gitleaks", "trivy", "node", "java", "mvn",
+        "git", "ssh", "gh", "gitleaks", "node", "java", "mvn",
         "gradle", "python", "npm", "pnpm", "yarn", "uv",
     )
     commands = {key: {"available": shutil.which(key) is not None}
                 for key in command_names}
     checks = {
         "git": version("git", "--version"),
-        "docker": version("docker", "--version"),
-        "docker_compose": version("docker", "compose", "version"),
+        "ssh": version("ssh", "-V"),
         "gh": version("gh", "--version"),
         "node": version("node", "--version"),
         "java": version("java", "-version"),
@@ -117,25 +81,16 @@ def main():
         "yarn": version("yarn", "--version"),
         "uv": version("uv", "--version"),
     }
-    if is_windows:
-        distro = wsl_distro()
-        checks["wsl_distro"] = {"ok": bool(distro), "detail": distro or "no distro"}
-        checks["wsl_docker"] = (version("wsl.exe", "-d", distro, "--exec", "docker", "--version")
-                                if distro else {"ok": False, "detail": "not available"})
-        if commands["java"]["available"]:
-            checks["host_build_chain"] = _nio_smoke()
-        if distro:
-            checks["wsl_resources"] = _wsl_resources(distro)
+    if is_windows and commands["java"]["available"]:
+        checks["host_build_chain"] = _nio_smoke()
     project = {name: (root / name).exists() for name in
                ("pom.xml", "build.gradle", "build.gradle.kts", "package.json", "Dockerfile.delivery",
                 "compose.delivery.yml", ".dockerignore", ".env.dev", ".env.prod")}
     result = {"project": str(root), "commands": commands, "checks": checks, "files": project,
               "recommendations": []}
-    if not checks["docker_compose"]["ok"]:
-        result["recommendations"].append("Delivery requires Docker Engine and Compose v2")
-    if is_windows and not checks["wsl_docker"]["ok"]:
+    if not checks["ssh"]["ok"]:
         result["recommendations"].append(
-            "Team rule: containers must run inside WSL on Windows; install WSL2 + Docker (wsl --install -d Ubuntu)")
+            "镜像统一在构建点(服务器)构建:FF_BUILD_TARGET 走 SSH 通道,需要可用的 ssh 客户端")
     if not project[".dockerignore"]:
         result["recommendations"].append("Add .dockerignore before Docker delivery")
     if not commands["gh"]["available"]:
@@ -144,9 +99,6 @@ def main():
         result["recommendations"].append(
             "Builds launched from this shell may fail (process-chain security hook, 'loopback connection'); "
             "run builds via templates/schtasks-build.cmd or have the user build manually")
-    if is_windows and "wsl_resources" in checks and not checks["wsl_resources"]["ok"]:
-        result["recommendations"].append(
-            f"WSL resources constrained: {checks['wsl_resources']['detail']}")
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:

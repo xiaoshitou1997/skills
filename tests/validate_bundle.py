@@ -31,15 +31,12 @@ SKILLS = {
 DUPLICATE_GROUPS = [
     ['mv-toolchain-manager/scripts/doctor.py',
      'mv-local-debug/scripts/doctor.py',
-     'mv-container-deploy/scripts/doctor.py',
-     'mv-image-build/scripts/doctor.py'],
+     'mv-container-deploy/scripts/doctor.py'],
     ['mv-git-publisher/scripts/quality-check.sh',
      'mv-image-build/scripts/quality-check.sh',
      'mv-java-backend-standards/scripts/quality-check.sh'],
     ['mv-git-publisher/scripts/security-scan.sh',
      'mv-image-build/scripts/security-scan.sh'],
-    ['mv-image-build/scripts/wsl-bridge.sh',
-     'mv-container-deploy/scripts/wsl-bridge.sh'],
     ['mv-image-build/templates/compose.delivery.yml',
      'mv-container-deploy/templates/compose.delivery.yml'],
 ]

@@ -17,7 +17,7 @@ if [[ "$MODE" == source ]]; then
   fi
 else
   if command -v trivy >/dev/null 2>&1; then
-    # image: 扫描本地 Docker 内的镜像引用;image-tar: 扫描可被 docker load 载入的镜像 tar(Jib buildTar 产物,无需守护进程)。
+    # image: 扫描本地 Docker 内的镜像引用;image-tar: 扫描镜像 tar(trivy --input,无需守护进程)。
     if [[ "$MODE" == image-tar ]]; then
       trivy image --input "$TARGET" --exit-code 1 --severity HIGH,CRITICAL --no-progress
     else

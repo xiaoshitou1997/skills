@@ -23,7 +23,7 @@ description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Ma
 - 不进行系统范围 sudo 安装，不修改注册表、`.bashrc`、`.zshrc` 或 PowerShell profile，除非用户明确授权。
 - 优先项目/用户态工具链，严格使用项目要求的 major/minor，不随意升级。
 - 自带便携安装器位于 `scripts/installer/`（`runtime_cli.py`），仅在第 3-4 步均无可用方案、且用户同意后使用。
-- `mv-image-build` 的产物在宿主构建，宿主 JDK/Maven/Gradle/Node 工具链是出包前置条件（Java 模块的 Jib 插件随 Maven/Gradle 构建运行，无需额外 CLI）；`mv-local-debug` 的宿主直启与调测也使用本 skill 准备的工具链。skill 自身脚本所需 Python 同样由本 skill 按需准备（`ensure --python`），不要求用户手工下载。
+- `mv-image-build` 的二进制包在宿主构建，宿主 JDK/Maven/Gradle/Node 工具链是出包前置条件；`mv-local-debug` 的宿主直启与调测也使用本 skill 准备的工具链。skill 自身脚本所需 Python 同样由本 skill 按需准备（`ensure --python`），不要求用户手工下载。
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 - 不按缓存内容拼 classpath：依赖解析与手工验证的完整条款见 [manual-classpath](references/manual-classpath.md)。
 

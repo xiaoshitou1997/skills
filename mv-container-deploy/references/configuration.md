@@ -4,17 +4,16 @@
 
 | 变量 | 含义 |
 |---|---|
-| `FF_DEV_SSH` | dev 目标 SSH，如 `devops@dev.example.com`；未设置走本机容器运行时（Windows 为 WSL Docker，Linux/macOS 为宿主 Docker） |
+| `FF_DEV_SSH` | dev 目标 SSH，如 `devops@dev.example.com`；未设置时 dev 目标为开发服务器（Windows 宿主即本机 WSL，其余宿主为项目声明的开发服务器，未声明向用户确认） |
 | `FF_PROD_SSH` | prod 目标 SSH；生产部署必填 |
 | `FF_DEV_SSH_KEY` / `FF_PROD_SSH_KEY` | 对应环境的 SSH 私钥绝对路径，可留空使用 SSH Agent |
 | `FF_COMPOSE_FILE` | 项目自定义的 Compose 文件名 |
 | `FF_HEALTH_URL` | dev 收据与 prod 门禁的唯一健康探活依据（readiness 端点，如 `http://127.0.0.1:8080/actuator/health/readiness`）；必须能**从目标机访问**，不要求客户端能够访问。未设置时部署最多记 `liveness-only`（HEALTHCHECK 通过）或 `running-only`，均不产生可晋级收据 |
 | `FF_REQUIRE_DEV_PROOF` | 默认 `1`：生产晋级要求同一 Image ID 的 dev 健康验证收据；置 `0` 仅限风险评估后的显式应急，详见 [交付契约](deployment-contract.md) |
 | `FF_READY_TIMEOUT` | 目标机就绪轮询上限秒数，默认 `50`；慢启动应用可调大，经 deploy.sh 透传到目标机 |
-| `FF_WSL_DISTRO` | （仅 Windows 桥接生效）指定 WSL 发行版；默认取第一个可用发行版。其余宿主忽略 |
-| `FF_WSL_BRIDGE` | （仅 Windows 桥接生效）设为 `0` 绕过 WSL 桥接走宿主 Docker；仅供测试/CI，Windows 生产使用违反团队规范。其余宿主忽略 |
+| `FF_WSL_DISTRO` | （仅 Windows 宿主生效）指定本机 WSL 开发服务器的发行版；默认取第一个可用发行版。其余宿主忽略 |
 
-Windows 上容器部署一律经 WSL（`scripts/wsl-bridge.sh` 桥接）：镜像由 mv-image-build 在宿主出包后构建，本 skill 经 WSL 执行 docker；运行状态、dev 收据与发布历史保存在 WSL 侧 `~/.mv/container-deploy/`。Linux/macOS 宿主由 `wsl-bridge.sh` 判定后直连本机 Docker，收据与发布历史落本机用户目录同一路径。Windows 缺 WSL 或宿主缺 Docker 时部署直接失败，不虚构部署成功。
+Windows 宿主的开发服务器为本机 WSL（当前经 `scripts/wsl-bridge.sh` 通道访问）：容器操作在 WSL 侧执行，运行状态、dev 收据与发布历史保存在 WSL 侧用户目录 `~/.mv/container-deploy/`。远端服务器经 SSH 交付，收据与发布历史落目标机用户目录同一路径。目标服务器缺 Docker 时部署直接失败，不虚构部署成功，也不改在宿主侧操作。
 
 项目的 `.env.dev` / `.env.prod` 应包含 `APP_ENV`、`HOST_PORT`、`CONTAINER_PORT` 和应用必须的环境变量；真实密码不能入 Git。示例：
 
@@ -40,4 +39,4 @@ SPRING_PROFILES_ACTIVE=dev
 
 ## 限制
 
-默认模板针对常规 Spring Boot uber-jar 和 Node 静态前端的单服务 Compose。多服务 Compose 请提供项目专用 `compose.delivery.yml` 并先单独验证。镜像在本地目标架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行。
+默认模板针对常规 Spring Boot uber-jar 和 Node 静态前端的单服务 Compose。多服务 Compose 请提供项目专用 `compose.delivery.yml` 并先单独验证。镜像在构建点架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行，多架构分发需镜像仓库侧支持。

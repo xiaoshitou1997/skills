@@ -18,7 +18,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | Java 版本 | JDK 21（LTS） |  |
 | Java 框架 | Spring Boot 3.5.x | 框架条款见 mv-java-backend-standards |
 | 构建工具 | Maven | 优先 mvnw 锁版本 |
-| 镜像构建 | Java 模块用 Jib：jib-maven-plugin 3.5.2 / jib-gradle-plugin 3.5.4 | 镜像定义随模块，编排见 mv-image-build |
+| 镜像基线 | 基镜像 eclipse-temurin:21-jre、非 root 用户 10001、端口 8080 | 各栈 Dockerfile.delivery 基线，镜像定义随模块，编排见 mv-image-build |
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
 | JSON 序列化 | Jackson | 禁止 fastjson、gson |
 | 数据库 | PostgreSQL | dev/prod 统一，开发联调直连远程 |

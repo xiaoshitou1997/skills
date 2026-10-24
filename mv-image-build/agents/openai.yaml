@@ -1,3 +1,3 @@
 interface:
   display_name: "Image Build"
-  short_description: "宿主出包与瘦镜像构建：Java 模块用模块内 Jib 插件，非 Java 模块用 Dockerfile.delivery；经 WSL 或本机 Docker 载入。只构建不运行，镜像身份（IMAGE_ID）交部署侧验证晋级。"
+  short_description: "宿主出包、上传服务器构建镜像：各栈模块内 Dockerfile.delivery，服务器侧 docker build，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧验证晋级。"
