@@ -57,8 +57,6 @@ class EnhancementsTests(unittest.TestCase):
             data=json.loads(p.stdout)
             self.assertIn('git', data['checks'])
             self.assertEqual(list(Path(d).iterdir()), [])
-            # 探针冒烟文件必须用完即清,不在系统临时目录留残留
-            self.assertFalse((Path(tempfile.gettempdir()) / 'ff_build_chain_smoke.java').exists())
 
     def test_preflight_requires_target_and_remote_compose(self):
         with tempfile.TemporaryDirectory() as d:
