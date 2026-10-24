@@ -49,11 +49,11 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 1. 出包前检查：宿主工具链就绪（见 `mv-toolchain-manager`）、Maven/Gradle Wrapper、Node lockfile；目标模块已按 [构建契约](references/build-contract.md) 备好 `Dockerfile.delivery`；`.dockerignore` 显式排除 `.git` 与 `.env*`。用户自有规范优先。
 2. 检查版本与前端环境变量是否编译期固化：Vite 构建期嵌入不同 API 地址就不能宣称跨环境同一镜像，必须改为相对路径或运行时配置注入，或明确例外。
-3. 宿主出包：按项目约定在宿主执行构建，记录实际命令、退出状态与产物路径；构建失败不进入上传。构建基于当前工作区时明确 staged、unstaged、untracked 和删除项的范围，如实记录构建输入不是纯 Git SHA。agent shell 内构建失败且特征为 `Unable to establish loopback connection` 时是进程链被安全软件 hook（仅 Windows 宿主现象，非工具链问题），改走 `templates/schtasks-build.cmd` 干净链，或交由用户手动构建并如实记录。
+3. 宿主出包：按项目约定在宿主执行构建，记录实际命令、退出状态与产物路径；构建失败不进入上传。构建基于当前工作区时明确 staged、unstaged、untracked 和删除项的范围，如实记录构建输入不是纯 Git SHA。agent shell 内构建失败且特征为 `Unable to establish loopback connection`（栈含 `UnixDomainSockets.connect0`，仅 Windows 宿主 + JDK ≥14 现象，非工具链问题）时，先加 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'` 重试（机理与解法排序见 [常见故障](references/troubleshooting.md)），仍失败改走 `templates/schtasks-build.cmd` 干净链或交由用户手动构建并如实记录。
 4. 生成包版本并上传：出包时按 Tag 公式生成包 Tag（见 [构建契约](references/build-contract.md)），包上传至构建点 `~/.mv/image-build/packages/<app>/`，上传与构建统一经 SSH（`FF_BUILD_TARGET`）。
 5. 服务器构建镜像：构建点核对上传包 SHA-256 与出包时计算值一致后，按模块 `Dockerfile.delivery` 组装瘦上下文（只含包与 Dockerfile，源码不出宿主）执行 `docker build`；输出 `IMAGE` 与 `IMAGE_ID` 如实转记作为镜像身份证据，并把包名、校验和、镜像引用写入包清单。核对不匹配或构建失败不输出镜像身份。
 6. 出包前可先跑宿主侧检查 `bash "${SKILL_ROOT}/scripts/quality-check.sh" quick` 或 `full`；安全扫描 `bash "${SKILL_ROOT}/scripts/security-scan.sh" source .` 用已有 Gitleaks；`FF_REQUIRE_SECURITY_SCAN=1` 时由构建点侧 Trivy 做镜像门禁，构建点缺 Trivy 即在构建前失败。缺扫描器不能宣称扫描通过。
-7. 只读诊断：`python3 "${SKILL_ROOT}/scripts/doctor.py" --project .`（`host_build_chain` 项十秒判定构建链路是否被安全软件拦截，仅 Windows 宿主执行，其余宿主自动跳过）。
+7. 只读诊断：`python3 "${SKILL_ROOT}/scripts/doctor.py" --project .`（`host_build_chain` 项十秒判定是否命中 agent 进程链上的 AF_UNIX 拦截，仅 Windows 宿主执行，其余宿主自动跳过）。
 
 ## 验证边界与验收报告
 
@@ -67,7 +67,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 - 服务器侧包核对不匹配（SHA-256 与出包记录不一致）：上传不完整或包在途中被改动，重出包重传，不带病构建。
 - 构建点容器环境不可用（无 Docker、无法访问镜像仓库节点）：明确报错并请示，不在宿主侧代构建。
 - 基础镜像拉取停滞：在构建点侧检查仓库域名解析、HTTPS 连通性与 Docker 代理；已有兼容的常驻运行时镜像时可用 `FF_RUNTIME_IMAGE` 指定后重试，并记录来源与实际结果；构建入口固定带 `--pull`，本地存在基础镜像不能承诺离线成功。
-- 宿主 gradle/mvn 报 `Unable to establish loopback connection`（`Selector.open` 失败，仅 Windows 宿主）：安全软件按**进程链** hook，bash/agent 子进程一律被拦——换 JDK、`preferIPv4Stack`、查 afunix 服务均无效。用 `doctor.py` 的 `host_build_chain` 项十秒判定；构建可改经 `templates/schtasks-build.cmd`（配同目录 `run-hidden.vbs` 隐藏窗口，完整步骤见模板头注释）或请用户手动构建。
+- 宿主 gradle/mvn 报 `Unable to establish loopback connection`（`Selector.open` 失败，栈含 `UnixDomainSockets.connect0`，仅 Windows 宿主 + JDK ≥14）：agent 命令运行器进程树上有过滤把 **AppData 子树下的 AF_UNIX connect** 拦为 EINVAL，WEPoll 选择器的 wakeup pipe 恰好落在默认 `java.io.tmpdir`——换 JDK、`preferIPv4Stack`、查 afunix 服务均无效。用 `doctor.py` 的 `host_build_chain` 项十秒判定。先加 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'` 重试（机理与实测证据见 [常见故障](references/troubleshooting.md)），仍失败改经 `templates/schtasks-build.cmd`（配同目录 `run-hidden.vbs` 隐藏窗口，完整步骤见模板头注释）或请用户手动构建。
 - 宿主 Gradle 反复下载依赖：核对实际构建进程的用户目录、`GRADLE_USER_HOME` 与 Wrapper 缓存，区分下载耗时与编译耗时；不得把编译转入服务器或容器，详见 [常见故障](references/troubleshooting.md)。
 
 ## 安全要点

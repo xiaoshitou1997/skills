@@ -20,9 +20,13 @@ def version(*cmd):
 def _nio_smoke():
     """Selector.open() smoke test from the current process chain.
 
-    Some security software hooks java by process chain (agent shells like Git Bash),
-    breaking Selector with 'Unable to establish loopback connection' — which makes
-    host gradle/mvn builds fail no matter the toolchain. Detects it in seconds."""
+    Desktop-agent command-runner process chains on Windows can carry a filter that
+    rejects AF_UNIX connect under AppData (bind passes, connect fails EINVAL); the
+    JDK >=14 WEPoll selector wakeup pipe lives in java.io.tmpdir and hits it, breaking
+    Selector with 'Unable to establish loopback connection' — host gradle/mvn builds
+    fail no matter the toolchain. First-line workaround:
+    JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'
+    (java.io.tmpdir alone does NOT work). Detects it in seconds."""
     import tempfile
     src = Path(tempfile.gettempdir()) / "ff_build_chain_smoke.java"
     try:
@@ -97,8 +101,9 @@ def main():
         result["recommendations"].append("Install/authenticate gh only if GitHub PR workflow is wanted")
     if is_windows and not checks.get("host_build_chain", {"ok": True})["ok"]:
         result["recommendations"].append(
-            "Builds launched from this shell may fail (process-chain security hook, 'loopback connection'); "
-            "run builds via templates/schtasks-build.cmd or have the user build manually")
+            "Builds launched from this shell may fail (AF_UNIX connect blocked in agent process chain, 'loopback connection'); "
+            "retry with JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp' (java.io.tmpdir will NOT work), "
+            "then templates/schtasks-build.cmd or have the user build manually")
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:

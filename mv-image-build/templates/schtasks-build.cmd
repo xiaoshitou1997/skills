@@ -2,10 +2,13 @@
 setlocal
 chcp 65001 >nul
 REM ============================================================
-REM 干净进程链构建模板（宿主侧安全软件按进程链拦截 agent/bash 子进程时的替代构建方式）
+REM 干净进程链构建模板（tmpdir 覆写仍无法构建时的兜底：agent 进程树把 AppData 子树下的 AF_UNIX connect 拦为 EINVAL，JDK ≥14）
 REM 症状: agent shell 里 gradlew/mvn 报 "Unable to establish loopback connection"
-REM       （Selector.open 失败，换 JDK / preferIPv4Stack / 查 afunix 服务均无效）
-REM 原理: 计划任务拉起的进程链根在系统服务（Schedule 服务/svchost），不经过被拦截的 agent 子进程链，构建可正常执行。
+REM       （Selector.open 失败，栈含 UnixDomainSockets.connect0: Invalid argument；
+REM        换 JDK / preferIPv4Stack / 查 afunix 服务均无效）
+REM 第 0 步: 先试 JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'（注意 java.io.tmpdir 无效），
+REM          覆写后同链即可构建（见 mv-image-build references/troubleshooting.md），多数场景无需本模板。
+REM 原理: 计划任务拉起的进程链根在系统服务（Schedule 服务/svchost），不在 agent 命令运行器进程树上，AF_UNIX 拦截不生效，构建可正常执行。
 REM
 REM 用法（在 Git Bash 里）:
 REM   1. 复制本文件与同目录 run-hidden.vbs，修改下方三处占位；记下两文件所在目录（下称 <dir>）。

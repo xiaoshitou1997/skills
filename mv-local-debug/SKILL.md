@@ -21,14 +21,14 @@ description: 在本机（宿主）把 Java（Gradle/Maven）/Node 项目直接�
 从本次加载的 SKILL.md 路径确定 skill 目录实际绝对路径，赋给 `SKILL_ROOT`（这是文档中的路径变量，agent 不保证自动提供）；路径始终加引号，工作目录保持为用户应用仓库。Python 按环境选择 `python3`、`python` 或 `py -3`。
 
 ```bash
-# 只读诊断:构建/直启链路是否被安全软件 hook,十秒判定
+# 只读诊断:构建/直启链路是否命中 agent 进程链 AF_UNIX 拦截,十秒判定
 python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 ```
 
 ## 直启流程
 
 1. 确认启动方式：先读项目 README、文档与运行脚本确定启动命令、参数与 profile（见「启动方式分层」硬性规范）；项目未文档化时按产物直启（`java -jar target/app.jar`）或框架约定（`mvn spring-boot:run`、`./gradlew bootRun`、`npm run dev`、`pnpm dev`）。检查运行参数与现有占用端口，默认只启动用户目标组件，不改变仓库或系统配置。
-2. 前台可见启动：**新开终端窗口**运行启动命令，日志实时可见；不在 agent 终端面板内执行，禁止后台化与静默重定向。直启进程被安全软件 hook 时，给出确切命令请用户在自己的终端运行（进程链根在用户会话，干净且可见），如实记录实际执行者。
+2. 前台可见启动：**新开终端窗口**运行启动命令，日志实时可见；不在 agent 终端面板内执行，禁止后台化与静默重定向。直启进程命中 agent 进程链 AF_UNIX 拦截（loopback，见 [常见故障](references/troubleshooting.md)）时，先加 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'` 重试，仍失败给出确切命令请用户在自己的终端运行（进程链根在用户会话，干净且可见），如实记录实际执行者。
 3. 观测：以前台窗口实时日志为主，辅以只读探测（如 curl 健康端点）；不接管、不代重启用户窗口中的进程。
 4. 断点与热更新：IDE 直连宿主进程（本机调试端口）；前端热更新走 dev server 原生能力。
 5. 单元测试与本地集成测试按变更影响范围运行，记录实际命令与结果，不暗示完整 CI 已通过。
@@ -36,7 +36,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 ## 常见故障
 
-高频故障按症状对照 [常见故障](references/troubleshooting.md)：端口占用、进程链被安全软件 hook（loopback，仅 Windows）。先用 `doctor.py` 判定环境，再按表处理；Linux/macOS 宿主的端口占用直接按表内命令排查。
+高频故障按症状对照 [常见故障](references/troubleshooting.md)：端口占用、agent 进程链 AF_UNIX 回环被拦（loopback，仅 Windows + JDK ≥14）。先用 `doctor.py` 判定环境，再按表处理；Linux/macOS 宿主的端口占用直接按表内命令排查。
 
 ## 边界
 
