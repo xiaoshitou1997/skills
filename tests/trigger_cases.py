@@ -246,4 +246,22 @@ CASES = [
      'query': '新前端项目选 Next.js 还是 Vite 加 React？帮我定一下技术栈'},
     {'skill': 'mv-ui-style', 'kind': 'negative',
      'query': '帮我实现这个 React 组件的键盘导航逻辑'},
+
+    # --- mv-business-use-case-modeler：端到端业务用例建模与验证场景，接口文档、PRD 与 NFR 不归它 ---
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'positive',
+     'query': '分析一下这个项目的业务，把端到端业务流程建模成业务用例，落盘到 docs'},
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'positive',
+     'query': '梳理这个商城系统支持哪些业务，每个业务的正常流程、异常分支和业务规则都要'},
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'positive',
+     'query': '给下单到退款补全业务用例的全生命周期，取消、超时、外部支付失败这些分支不能漏'},
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'positive',
+     'query': '每个业务该怎么验证？帮我出 E2E 业务测试场景和覆盖矩阵'},
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'positive', 'required': ['mv-nfr-intake'],
+     'query': '新项目开工，先把业务用例建出来，同时把用户量、峰值 TPS 和部署约束确认掉'},
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer',
+     'query': '把已经梳理好的业务用例整理成正式的 PRD 文档'},
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'negative', 'instead': 'mv-nfr-intake',
+     'query': '新模块开工前确认一下目标用户量、峰值 TPS 和部署环境约束'},
+    {'skill': 'mv-business-use-case-modeler', 'kind': 'negative', 'instead': 'mv-java-backend-standards',
+     'query': '按规范实现退款流程的 E2E 自动化测试代码'},
 ]

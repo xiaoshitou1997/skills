@@ -59,7 +59,7 @@ description: 新项目或新模块启动开发、日常新需求开工前，采�
 
 ## 边界
 
-正式 PRD/HLD 写作归 mv-engineering-doc-writer，画像与开放问题可作为其输入；编码健壮性条款见 mv-java-backend-standards；画像引出的技术选型与基线归 mv-tech-stack-standards；出包与镜像构建见 mv-image-build，部署晋级回滚归 mv-container-deploy，宿主直启调试见 mv-local-debug。
+正式 PRD/HLD 写作归 mv-engineering-doc-writer，画像与开放问题可作为其输入；业务用例建模归 mv-business-use-case-modeler，本 skill 对关键业务流程只记采集信号，不展开用例；编码健壮性条款见 mv-java-backend-standards；画像引出的技术选型与基线归 mv-tech-stack-standards；出包与镜像构建见 mv-image-build，部署晋级回滚归 mv-container-deploy，宿主直启调试见 mv-local-debug。
 
 ## 参考
 

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Business Use Case Modeler"
+  short_description: "从描述、文档或代码建模端到端业务用例，落盘用例目录、生命周期与 E2E 测试场景。"

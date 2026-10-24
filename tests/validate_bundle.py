@@ -22,6 +22,7 @@ SKILLS = {
     'mv-doc-figure-placement',
     'mv-diagram-drafter',
     'mv-unattended-watch',
+    'mv-business-use-case-modeler',
     'mv-nfr-intake',
 }
 

@@ -119,7 +119,7 @@ description: >-
 
 ## 产物组合
 
-用户明确要求 DOCX、PDF、幻灯片等渲染产物时，先用本 skill 确定内容与结构，再用相应的能力生成目标文件格式。写文档需要配图时，本 skill 编排内容并核对图文事实：绘图（可编辑图源与渲染成品）归 mv-diagram-drafter，插图、换图与文档内核验归 mv-doc-figure-placement；Markdown 正文中的内联 Mermaid 块属于正文写作，由本 skill 直接撰写。
+用户明确要求 DOCX、PDF、幻灯片等渲染产物时，先用本 skill 确定内容与结构，再用相应的能力生成目标文件格式。写文档需要配图时，本 skill 编排内容并核对图文事实：绘图（可编辑图源与渲染成品）归 mv-diagram-drafter，插图、换图与文档内核验归 mv-doc-figure-placement；Markdown 正文中的内联 Mermaid 块属于正文写作，由本 skill 直接撰写。上游业务用例建模（端到端业务流程、规则与验证场景）归 mv-business-use-case-modeler，其落盘文档可作为 PRD/HLD 的业务输入。
 
 ## 参考
 
