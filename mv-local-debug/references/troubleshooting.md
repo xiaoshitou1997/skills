@@ -2,10 +2,10 @@
 
 本文件收录 mv-local-debug 宿主链路（直启与宿主构建）的高频故障与判定方法；调测停滞时先按症状对照本表，再用 `doctor.py` 复核环境。只覆盖宿主范围；镜像构建链路故障见 `mv-image-build`，部署与容器运行故障见 `mv-container-deploy`。
 
-## 端口占用（WSL Mirrored 共享端口层）
+## 端口占用
 
-- WSL Mirrored 网络模式下 Windows 与 WSL 共享端口：宿主直启前停掉占用同端口的进程（IDEA 网关、vite dev server、WSL 内容器发布端口等）；间歇性 `address already in use` 先查这一层。
-- Linux/macOS 宿主没有 Mirrored 层：直接 `ss -ltnp | grep <端口>` 或 `lsof -i :<端口>` 查占用进程并停掉或改端口，连不通时再核对防火墙（ufw/firewalld/安全组）。
+- 宿主直启前停掉占用同端口的进程（IDEA 网关、vite dev server 等）；间歇性 `address already in use` 先查这一层。
+- Windows 宿主用 `netstat -ano | findstr <端口>`，Linux/macOS 宿主用 `ss -ltnp | grep <端口>` 或 `lsof -i :<端口>` 查占用进程并停掉或改端口，连不通时再核对防火墙（ufw/firewalld/安全组）。
 
 ## 进程链被安全软件 hook（loopback connection）
 

@@ -4,16 +4,15 @@
 
 | 变量 | 含义 |
 |---|---|
-| `FF_DEV_SSH` | dev 目标 SSH，如 `devops@dev.example.com`；未设置时 dev 目标为开发服务器（Windows 宿主即本机 WSL，其余宿主为项目声明的开发服务器，未声明向用户确认） |
+| `FF_DEV_SSH` | dev 目标 SSH（必填），如 `devops@dev.example.com`；项目未声明开发服务器时向用户确认 |
 | `FF_PROD_SSH` | prod 目标 SSH；生产部署必填 |
 | `FF_DEV_SSH_KEY` / `FF_PROD_SSH_KEY` | 对应环境的 SSH 私钥绝对路径，可留空使用 SSH Agent |
 | `FF_COMPOSE_FILE` | 项目自定义的 Compose 文件名 |
 | `FF_HEALTH_URL` | dev 收据与 prod 门禁的唯一健康探活依据（readiness 端点，如 `http://127.0.0.1:8080/actuator/health/readiness`）；必须能**从目标机访问**，不要求客户端能够访问。未设置时部署最多记 `liveness-only`（HEALTHCHECK 通过）或 `running-only`，均不产生可晋级收据 |
 | `FF_REQUIRE_DEV_PROOF` | 默认 `1`：生产晋级要求同一 Image ID 的 dev 健康验证收据；置 `0` 仅限风险评估后的显式应急，详见 [交付契约](deployment-contract.md) |
 | `FF_READY_TIMEOUT` | 目标机就绪轮询上限秒数，默认 `50`；慢启动应用可调大，经 deploy.sh 透传到目标机 |
-| `FF_WSL_DISTRO` | （仅 Windows 宿主生效）指定本机 WSL 开发服务器的发行版；默认取第一个可用发行版。其余宿主忽略 |
 
-Windows 宿主的开发服务器为本机 WSL（当前经 `scripts/wsl-bridge.sh` 通道访问）：容器操作在 WSL 侧执行，运行状态、dev 收据与发布历史保存在 WSL 侧用户目录 `~/.mv/container-deploy/`。远端服务器经 SSH 交付，收据与发布历史落目标机用户目录同一路径。目标服务器缺 Docker 时部署直接失败，不虚构部署成功，也不改在宿主侧操作。
+所有部署目标统一经 SSH 通道交付：容器操作在目标机执行，运行状态与发布历史保存在目标机用户目录 `~/.mv/container-deploy/`；dev 健康验证收据保存在执行部署的本机 `~/.mv/container-deploy/receipts/`（记录本机执行的验证）。目标服务器缺 Docker/Compose 时部署直接失败，不虚构部署成功，也不改在宿主侧操作。
 
 项目的 `.env.dev` / `.env.prod` 应包含 `APP_ENV`、`HOST_PORT`、`CONTAINER_PORT` 和应用必须的环境变量；真实密码不能入 Git。示例：
 
@@ -39,4 +38,4 @@ SPRING_PROFILES_ACTIVE=dev
 
 ## 限制
 
-默认模板针对常规 Spring Boot uber-jar 和 Node 静态前端的单服务 Compose。多服务 Compose 请提供项目专用 `compose.delivery.yml` 并先单独验证。镜像在构建点架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行，多架构分发需镜像仓库侧支持。
+默认模板针对常规 Spring Boot uber-jar 和 Node 静态前端的单服务 Compose。多服务 Compose 请提供项目专用 `compose.delivery.yml` 并先单独验证。镜像在构建点按其架构构建；跨 CPU 架构分发需镜像仓库侧多架构支持。

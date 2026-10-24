@@ -16,11 +16,11 @@ import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-# PATH 里排在前的可能是 System32 的 WSL bash,必须显式使用 Git Bash;
+# PATH 里排在前的可能是 System32 自带的 bash,必须显式使用 Git Bash;
 # 且 bash 不接受 Windows 反斜杠路径(msys 会吞掉反斜杠),统一转为正斜杠。
 # 必须用 bin/bash.exe(trampoline):它负责初始化 MSYS 运行时环境;
 # 从 Windows 父进程直启 usr/bin/bash.exe 真身后,`exec env VAR=… cmd` 链路
-# 会静默断裂(目标命令不执行且无报错),wsl 桥接用例的 env 中转全部失效。
+# 会静默断裂(目标命令不执行且无报错),离线用例的 env 中转全部失效。
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
     BASH = shutil.which('bash') or 'bash'
@@ -28,6 +28,8 @@ GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
 IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
 DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
+# 假 docker/假 ssh 返回的固定镜像 ID:满足 deploy.sh 对 sha256:<64 位十六进制> 的校验。
+MOCK_ID = 'sha256:' + '0123456789abcdef' * 4
 
 
 class WorkflowTests(unittest.TestCase):
@@ -69,11 +71,18 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(run.returncode, 1)
             self.assertIn('sensitive path', run.stdout)
 
-    def test_prod_rejects_without_approval_or_host(self):
+    def test_deploy_requires_explicit_target(self):
+        # 部署目标一律经 SSH:dev/prod 各自必填,prod 另需显式授权;没有本机缺省目标。
         with tempfile.TemporaryDirectory() as d:
-            run = subprocess.run([BASH, DEPLOY, 'deploy', 'prod', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
-            self.assertNotEqual(run.returncode, 0)
-            self.assertIn('--approve-prod', run.stderr)
+            dev = subprocess.run([BASH, DEPLOY, 'deploy', 'dev', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
+            self.assertEqual(dev.returncode, 3)
+            self.assertIn('FF_DEV_SSH', dev.stderr)
+            prod = subprocess.run([BASH, DEPLOY, 'deploy', 'prod', 'someapp', 'someapp:abc'], cwd=d, capture_output=True, text=True)
+            self.assertNotEqual(prod.returncode, 0)
+            self.assertIn('--approve-prod', prod.stderr)
+            approved = subprocess.run([BASH, DEPLOY, 'deploy', 'prod', 'someapp', 'someapp:abc', '--approve-prod'], cwd=d, capture_output=True, text=True)
+            self.assertEqual(approved.returncode, 3)
+            self.assertIn('FF_PROD_SSH', approved.stderr)
 
     def test_ssh_build_delivers_prebuilt_artifact(self):
         with tempfile.TemporaryDirectory() as d:
@@ -92,7 +101,7 @@ class WorkflowTests(unittest.TestCase):
                       for line in run.stdout.splitlines()
                       if line.split('=', 1)[0] in ('IMAGE', 'IMAGE_ID', 'PACKAGE', 'SHA256')}
             self.assertIn('ARTIFACT=', run.stdout)
-            self.assertEqual(stdout['IMAGE_ID'], 'sha256:mocked')
+            self.assertEqual(stdout['IMAGE_ID'], MOCK_ID)
             self.assertIn('SECURITY_SCAN=skipped', run.stderr)
             # 构建点收到的上下文只含 Dockerfile 与改名后的 app.jar;原名与 sources 不进包。
             self.assertIn('docker\tbuild\t--pull', run.stderr)
@@ -154,12 +163,11 @@ case "$1 $2" in
       printf 'NESTED_BLOB=%s\n' "$(git hash-object -- "$ctx/app/assets/main.js")" >&2
     fi ;;
   'image inspect')
-    if [[ "$*" == *'IMAGE_ID='* ]]; then echo IMAGE_ID=sha256:mocked; else echo sha256:mocked; fi ;;
+    if [[ "$*" == *'IMAGE_ID='* ]]; then echo "IMAGE_ID=@MOCK_ID@"; else echo "@MOCK_ID@"; fi ;;
   'compose --env-file')
     if [[ "${@: -2}" == 'ps -q' ]]; then echo fake-container; fi ;;
   'inspect --format')
     if [[ "$3" == *Health* ]]; then echo healthy; else echo running; fi ;;
-  'load '*) cat >/dev/null ;;
 esac
 """,
             # OpenSSH joins command arguments with spaces and sends the result to a login shell.
@@ -167,32 +175,34 @@ esac
 while [[ "$1" == -o || "$1" == -i ]]; do shift 2; done
 shift
 { printf ssh; printf '\t%s' "$@"; printf '\n'; } >&2
+if [[ -n "${FAKE_SSH_ABSENT_IMAGE:-}" && "$*" == *inspect* && "$*" != *format* ]]; then exit 1; fi
 if [[ -n "${FAKE_SSH_TAMPER:-}" && "$*" == *'cat >'* ]]; then
   exec "$REAL_BASH" -c "$*; for f in \"\$HOME\"/.mv/image-build/packages/*/*.tgz; do printf X >> \"\$f\"; done"
 fi
 cd "$FAKE_RUNTIME_ROOT"
 exec "$REAL_BASH" -c "$*"
 """,
-            'scp': '#!/bin/bash\nexit 0\n',
-            'uname': '#!/bin/bash\necho MINGW64_NT\n',
-            'wsl.exe': r"""#!/bin/bash
-unset MSYS_NO_PATHCONV MSYS2_ARG_CONV_EXCL
-# WSL does not inherit arbitrary host variables. Only explicit env arguments survive.
-unset FF_REQUIRE_SECURITY_SCAN
-[[ "$1" == -d && "$2" == FakeDistro ]] || exit 91
-shift 2
-if [[ "$1" == sh && "$2" == -c ]]; then
-  cd "$FAKE_RUNTIME_ROOT" && pwd
-  exit
+            'scp': r"""#!/bin/bash
+{ printf scp; printf '\t%s' "$@"; printf '\n'; } >&2
+src=''; dest=''
+for a in "$@"; do
+  case "$a" in
+    -*) ;;
+    *:*) dest=$a ;;
+    *) src=$a ;;
+  esac
+done
+if [[ -n "$src" && -n "$dest" ]]; then
+  remote=${dest#*:}
+  mkdir -p "$FAKE_RUNTIME_ROOT/$(dirname "$remote")"
+  cp -- "$src" "$FAKE_RUNTIME_ROOT/$remote"
 fi
-[[ "$1" != --exec && "$1" != -e && "$1" != -- ]] || shift
-{ printf wsl; printf '\t%s' "$@"; printf '\n'; } >&2
-exec "$@"
 """,
+            'uname': '#!/bin/bash\necho MINGW64_NT\n',
         }
         for name, text in scripts.items():
             path = bin_dir / name
-            path.write_text(text, encoding='utf-8', newline='\n')
+            path.write_text(text.replace('@MOCK_ID@', MOCK_ID), encoding='utf-8', newline='\n')
             path.chmod(0o755)
         runtime = d / 'runtime'
         runtime.mkdir()
@@ -217,7 +227,7 @@ exec "$@"
             '  fi\n'
             '  "$REAL_BASH" "$@"\n'
             '}\n'
-            'for offline_tool in docker ssh scp wsl.exe uname; do\n'
+            'for offline_tool in docker ssh scp uname; do\n'
             '  resolved=$(type -P "$offline_tool")\n'
             '  [[ "$resolved" == "$OFFLINE_BIN/"* ]] || exit 90\n'
             'done\n', encoding='utf-8')
@@ -229,11 +239,8 @@ exec "$@"
             'REAL_BASH': BASH,
             'OFFLINE_BIN': bin_dir.as_posix(),
             'DOCKER_LOG': (d / 'docker.log').as_posix(),
-            'WSL_LOG': (d / 'wsl.log').as_posix(),
             'RUNNER_LOG': (d / 'runner.log').as_posix(),
             'BASH_ENV': bash_env.as_posix(),
-            'FF_WSL_BRIDGE': '0',
-            'FF_WSL_DISTRO': 'FakeDistro',
             'FF_BUILD_TARGET': 'tester@fakehost',
         })
         return env
@@ -417,6 +424,55 @@ exec "$@"
     def test_ssh_runner_forwards_health_url_and_ready_timeout(self):
         self._run_ssh_runner_arguments('http://127.0.0.1:8080/health', '2')
 
+    def test_deploy_pulls_image_when_absent_on_target(self):
+        # 目标机缺镜像时经镜像仓库拉取分发,不经宿主直传;拉取就位后核对 Image ID 再启动。
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d)
+            env['FAKE_SSH_ABSENT_IMAGE'] = '1'
+            env.update(FF_DEV_SSH='tester@fakehost', FF_HEALTH_URL='http://127.0.0.1:8080/health')
+            curl = d / 'bin/curl'
+            curl.write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
+            curl.chmod(0o755)
+            run = self._workflow(DEPLOY, d, env, 'deploy', 'dev', 'demo', 'demo:release')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn('docker\tpull\tdemo:release\n', run.stderr)
+            self.assertIn(f'DEV_RECEIPT={MOCK_ID}', run.stdout)
+
+    def test_dev_receipt_gates_prod_promotion(self):
+        # dev 健康收据落本机 receipts/;prod 晋级按目标机 Image ID 核对本机收据,缺收据不上传不启动。
+        with tempfile.TemporaryDirectory() as directory:
+            d = Path(directory)
+            env = self._offline_env(d)
+            env.update(FF_DEV_SSH='tester@fakedev', FF_HEALTH_URL='http://127.0.0.1:8080/health')
+            curl = d / 'bin/curl'
+            curl.write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
+            curl.chmod(0o755)
+            (d / '.env.prod').write_text('APP_ENV=prod\n', encoding='utf-8')
+            run = self._workflow(DEPLOY, d, env, 'deploy', 'dev', 'demo', 'demo:release')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn(f'DEV_RECEIPT={MOCK_ID}', run.stdout)
+            # 收据文件由部署链路新写,本机可能被透明加密,只断言存在性。
+            receipt = Path(env['HOME']) / '.mv/container-deploy/receipts/demo' / MOCK_ID.replace(':', '-')
+            self.assertTrue(receipt.is_file(), 'dev 收据应落在本机 receipts 目录')
+            prod_env = dict(env)
+            prod_env['FF_PROD_SSH'] = 'deployer@fakeprod'
+            run = self._workflow(DEPLOY, d, prod_env, 'deploy', 'prod', 'demo', 'demo:release', '--approve-prod')
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertIn('DEPLOYED_IMAGE=demo:release', run.stdout)
+            releases = Path(env['HOME']) / '.mv/container-deploy/demo/releases.tsv'
+            self.assertTrue(releases.is_file(), '发布记录应常驻目标机目录')
+            # 无收据的镜像不得晋级:门禁在任何上传/启动之前拒绝。
+            with tempfile.TemporaryDirectory() as fresh:
+                fd = Path(fresh)
+                fresh_env = self._offline_env(fd)
+                fresh_env.update(FF_PROD_SSH='deployer@fakeprod')
+                (fd / '.env.prod').write_text('APP_ENV=prod\n', encoding='utf-8')
+                run = self._workflow(DEPLOY, fd, fresh_env, 'deploy', 'prod', 'demo', 'demo:release', '--approve-prod')
+                self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
+                self.assertIn('receipt', run.stderr)
+                self.assertNotIn('scp\t', run.stderr)
+
 
 def _flatten(suite):
     cases = []
@@ -437,7 +493,7 @@ def main():
         return
     cases = _flatten(unittest.defaultTestLoader.loadTestsFromModule(sys.modules[__name__]))
     # -k 子串筛选(可多次,任一命中即选,大小写不敏感,对完整用例名匹配):
-    # 日常按改动精准跑,如 python3 tests/test_workflows.py -k wsl_build -k ssh_runner;
+    # 日常按改动精准跑,如 python3 tests/test_workflows.py -k ssh_build -k ssh_runner;
     # --serial 模式下 -k 由 unittest 原生支持,语义一致。
     patterns = [v for flag, v in zip(sys.argv, sys.argv[1:] + ['']) if flag == '-k' and v]
     if patterns:
@@ -447,7 +503,8 @@ def main():
         sys.exit(2)
     # 最长作业优先:重用例先占满工人、轻用例填空隙,否则字母序会让
     # 最重的 ssh 部署链最后才开跑,拖长关键路径。权重来自实测耗时档位。
-    weight = {'test_ssh_runner': 420, 'test_strict_scan_fails_when_trivy_missing': 80, 'test_ssh_build': 100}
+    weight = {'test_ssh_runner': 420, 'test_deploy_pulls': 420, 'test_dev_receipt_gates': 420,
+              'test_strict_scan_fails_when_trivy_missing': 80, 'test_ssh_build': 100}
     cases.sort(key=lambda c: next((w for p, w in weight.items() if c.id().split('.')[-1].startswith(p)), 0),
                reverse=True)
     # 4 是实测平衡点:6 路并发时安全软件逐进程挂钩争用加剧,

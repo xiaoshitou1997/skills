@@ -81,4 +81,4 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 - 交付镜像只复制产物不做编译：镜像内容边界由模块 `Dockerfile.delivery` 决定，构建期安装应评估预装基镜像或项目内 CI/CD，不在本 skill 另写构建逻辑。
 - 内置模板只覆盖 Node 静态前端（`templates/Dockerfile.web`）；Next.js SSR、原生扩展等请提供项目专用 `Dockerfile.delivery` 并用 `FF_ARTIFACT` 指定产物，先单独验证。
-- 镜像在构建点所在架构构建；跨不同 CPU 架构不能仅靠 `docker save/load` 直接保证可运行，多架构分发需镜像仓库侧支持。
+- 镜像在构建点按其架构构建；跨 CPU 架构分发需镜像仓库侧多架构支持。

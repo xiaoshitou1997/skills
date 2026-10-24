@@ -1,11 +1,11 @@
 ---
 name: mv-local-debug
-description: 在本机（宿主）把 Java（Gradle/Maven）/Node 项目直接跑起来调测时统一使用本 skill：宿主直启、debug/断点、热更新、本机联调、宿主构建或启动失败排查。触发场景：本地跑一下、启动应用、断点调试、热更新不起作用、排查宿主构建或启动失败。核心原则：直启一律在用户可见前台 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；只加载项目允许的开发环境设置，绝不默认连生产；宿主直启不产生镜像、不写部署收据。构建出包与镜像归 mv-image-build，容器部署归 mv-container-deploy（dev 目标是开发服务器，Windows 宿主即本机 WSL）。
+description: 在本机（宿主）把 Java（Gradle/Maven）/Node 项目直接跑起来调测时统一使用本 skill：宿主直启、debug/断点、热更新、本机联调、宿主构建或启动失败排查。触发场景：本地跑一下、启动应用、断点调试、热更新不起作用、排查宿主构建或启动失败。核心原则：直启一律在用户可见前台 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；只加载项目允许的开发环境设置，绝不默认连生产；宿主直启不产生镜像、不写部署收据。构建出包与镜像归 mv-image-build，容器部署归 mv-container-deploy（dev 目标是开发服务器，经 SSH 交付）。
 ---
 
 # 本机（宿主）调测
 
-本 skill 只回答一个问题：**这份代码在宿主上直接跑，行为对不对？** 宿主直启是本地运行的默认且唯一方式——不打镜像、不起容器；「在 WSL/容器里跑」是部署动作，归 `mv-container-deploy`（dev 目标是开发服务器，Windows 宿主即本机 WSL）。
+本 skill 只回答一个问题：**这份代码在宿主上直接跑，行为对不对？** 宿主直启是本地运行的默认且唯一方式——不打镜像、不起容器；「在 WSL/容器里跑」是部署动作，归 `mv-container-deploy`（dev 目标是开发服务器，经 SSH 交付）。
 
 `确认启动方式（项目约定优先）→ 前台可见直启 → 观测日志/断点/热更新 → 如实记录证据`
 
@@ -27,7 +27,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 ## 直启流程
 
-1. 确认启动方式：先读项目 README、文档与运行脚本确定启动命令、参数与 profile（见「启动方式分层」硬性规范）；项目未文档化时按产物直启（`java -jar target/app.jar`）或框架约定（`mvn spring-boot:run`、`./gradlew bootRun`、`npm run dev`、`pnpm dev`）。检查运行参数与现有占用端口（Windows 上含 WSL Mirrored 共享端口层），默认只启动用户目标组件，不改变仓库或系统配置。
+1. 确认启动方式：先读项目 README、文档与运行脚本确定启动命令、参数与 profile（见「启动方式分层」硬性规范）；项目未文档化时按产物直启（`java -jar target/app.jar`）或框架约定（`mvn spring-boot:run`、`./gradlew bootRun`、`npm run dev`、`pnpm dev`）。检查运行参数与现有占用端口，默认只启动用户目标组件，不改变仓库或系统配置。
 2. 前台可见启动：**新开终端窗口**运行启动命令，日志实时可见；不在 agent 终端面板内执行，禁止后台化与静默重定向。直启进程被安全软件 hook 时，给出确切命令请用户在自己的终端运行（进程链根在用户会话，干净且可见），如实记录实际执行者。
 3. 观测：以前台窗口实时日志为主，辅以只读探测（如 curl 健康端点）；不接管、不代重启用户窗口中的进程。
 4. 断点与热更新：IDE 直连宿主进程（本机调试端口）；前端热更新走 dev server 原生能力。
@@ -36,11 +36,11 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 ## 常见故障
 
-高频故障按症状对照 [常见故障](references/troubleshooting.md)：端口占用（Mirrored 共享层，仅 Windows）、进程链被安全软件 hook（loopback，仅 Windows）。先用 `doctor.py` 判定环境，再按表处理；Linux/macOS 宿主的端口占用直接按表内命令排查。
+高频故障按症状对照 [常见故障](references/troubleshooting.md)：端口占用、进程链被安全软件 hook（loopback，仅 Windows）。先用 `doctor.py` 判定环境，再按表处理；Linux/macOS 宿主的端口占用直接按表内命令排查。
 
 ## 边界
 
-- 构建出包与镜像构建归 `mv-image-build`；需要镜像或在 WSL/容器里跑，走 `mv-image-build` 出镜像后交 `mv-container-deploy` 部署（默认 dev 目标是开发服务器，Windows 宿主即本机 WSL）。
+- 构建出包与镜像构建归 `mv-image-build`；需要镜像或在 WSL/容器里跑，走 `mv-image-build` 出镜像后交 `mv-container-deploy` 部署（默认 dev 目标是开发服务器，经 SSH 交付）。
 - 宿主工具链安装与切换归 `mv-toolchain-manager`；提交发布归 `mv-git-publisher`。
 - 签名桩或手工 classpath 的验证只覆盖该范围；仅 mock 联调通过时明确外部系统尚未验证，不虚构成功。
 

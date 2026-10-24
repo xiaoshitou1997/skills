@@ -28,7 +28,7 @@ CASES = [
     {'skill': 'mv-toolchain-manager', 'kind': 'negative', 'instead': 'mv-image-build',
      'query': '前端已在宿主出包，工具链正常，把 dist 打成瘦运行时镜像，只构建不运行'},
 
-    # --- mv-local-debug：本机（宿主）直启调试，零 WSL 零镜像，不含构建出包、容器与部署 ---
+    # --- mv-local-debug：本机（宿主）直启调试，零容器零镜像，不含构建出包、容器与部署 ---
     {'skill': 'mv-local-debug', 'kind': 'positive',
      'query': '这次改动在本地跑一下，我要打断点调试接口'},
     {'skill': 'mv-local-debug', 'kind': 'positive',
@@ -52,7 +52,7 @@ CASES = [
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': '出个镜像包就行，先不用部署'},
     {'skill': 'mv-image-build', 'kind': 'positive',
-     'query': '宿主已经编译出包，WSL 打瘦镜像时拉取基础镜像一直卡住，帮我排查'},
+     'query': '宿主已经编译出包，服务器构建瘦镜像时拉取基础镜像一直卡住，帮我排查'},
     {'skill': 'mv-image-build', 'kind': 'positive',
      'query': 'Spring Boot 模块打个交付镜像，先不部署'},
     {'skill': 'mv-image-build', 'kind': 'positive',

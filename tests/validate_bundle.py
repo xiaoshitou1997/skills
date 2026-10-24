@@ -30,8 +30,7 @@ SKILLS = {
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
     ['mv-toolchain-manager/scripts/doctor.py',
-     'mv-local-debug/scripts/doctor.py',
-     'mv-container-deploy/scripts/doctor.py'],
+     'mv-local-debug/scripts/doctor.py'],
     ['mv-git-publisher/scripts/quality-check.sh',
      'mv-image-build/scripts/quality-check.sh',
      'mv-java-backend-standards/scripts/quality-check.sh'],

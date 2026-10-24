@@ -4,3 +4,5 @@ __pycache__/
 .env*
 .idea/
 .claude/
+# 本机端点加密会按时间漂移密封 %TEMP% 新写文件,测试临时目录经 TMPDIR 指到这里
+tests/.tmp/

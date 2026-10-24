@@ -57,9 +57,9 @@
 ## 运行时目录
 
 - 本仓库 skills 的运行时状态根为 `~/.mv/`，子目录为 skill 目录名去掉 `mv-` 前缀（如 `mv-toolchain-manager` → `~/.mv/toolchain-manager/`）；根承载来源标识，与 `mv-` 前缀同构，整个 `~/.mv/` 可整体重置。
-- 目录路径常量必须有环境变量覆盖，命名统一 `MV_<子目录名大写、连字符转下划线>_HOME`（如 `MV_TOOLCHAIN_MANAGER_HOME`、`MV_UNATTENDED_WATCH_HOME`），供测试与隔离使用；该覆盖适用于状态落在本机（执行 skill 的机器）的场景。状态落在目标机（WSL 侧、远端服务器、以本机为交付目标的 native 模式）时路径相对目标用户 HOME 解析，测试隔离经 `HOME`/`WSL_HOME` 重定向与 stub 实现，不另设覆盖变量。
+- 目录路径常量必须有环境变量覆盖，命名统一 `MV_<子目录名大写、连字符转下划线>_HOME`（如 `MV_TOOLCHAIN_MANAGER_HOME`、`MV_UNATTENDED_WATCH_HOME`），供测试与隔离使用；该覆盖适用于状态落在本机（执行 skill 的机器）的场景。状态落在目标机（统一经 SSH 访问）时路径相对目标用户 HOME 解析，测试隔离经 `HOME` 重定向与 stub 实现，不另设覆盖变量。
 - 状态不写入其他 skill 的子目录；跨 skill 依赖走产物与收据文件，不共享运行时目录。
-- 各 skill 的落点在本 skill 文档中写明，与脚本常量同源；WSL、本机 native（非 Windows 宿主）与远端目标机侧写入同一 `~/.mv/<name>` 路径。
+- 各 skill 的落点在本 skill 文档中写明，与脚本常量同源；执行侧本机与远端目标机写入同一 `~/.mv/<name>` 路径。
 - `~/.claude` 与 XDG 目录不是本仓库 skills 的状态落点；宿主自身的配置文件（如 `~/.claude/settings.json`）不受此条约束。
 
 ## 构建与交付分工
@@ -88,7 +88,7 @@
 
 1. `python3 tests/validate_bundle.py`：skill 集合；frontmatter 标量子集结构、字段唯一、必填元数据、名称格式/限长及目录一致；description 非空/限长；SKILL.md 正文行数（不含 frontmatter）；所有 Markdown 的显式本地链接目标存在性（不验证锚点）；skill 正文与 README 纯文本提及的 `mv-*` 名称解析到已发布 skill（改名漂移兜底，docs/ 的抽象占位不在扫描范围）；正文脚本/模板路径与 SKILL_ROOT 声明；复制脚本一致性；`agents/openai.yaml` 存在时 `display_name` 与 `short_description` 非空引号字符串且短描述 ≤200 字符（弱校验，不比对与 description 的措辞一致，SKILL.md description 为准）；Bash/Python 语法。
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格、相关引用及同步脚本的 STALE 清单。
-3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`、`tests/test_wsl_bridge.py`，必要时补离线用例（假 docker/假 wsl.exe stub 风格）；`test_workflows.py` 直接运行默认并行，支持 `-k <子串>` 筛选（可多次、任一命中），日常按改动精准跑对应用例，全套留给发布前。
+3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`，必要时补离线用例（假 docker/假 ssh stub 风格）；`test_workflows.py` 直接运行默认并行，支持 `-k <子串>` 筛选（可多次、任一命中），日常按改动精准跑对应用例，全套留给发布前。
 4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 在隔离环境评测该 skill 正反例；CLI 或凭据缺失时明确记为未执行，并按 `tests/trigger_cases.py` 人工核对，不能把人工核对写成真实路由通过。
 
 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部 skills 并清理改名/合并前旧版本；是否安装、装到哪台机器由使用者决定，不属于校验流程。旧版本清理名称仅维护在脚本内 STALE 清单，不写入文档。

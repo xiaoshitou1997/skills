@@ -64,4 +64,4 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 
 ## 与项目自检配合
 
-需要一次性诊断 Docker、Git、gh 和基础运行工具是否可用时使用 `python3 "${SKILL_ROOT}/scripts/doctor.py" --project .`。此工具为只读诊断，不替代工具链安装，也不能当作测试通过。
+需要一次性诊断 Git、gh 和基础运行工具是否可用时使用 `python3 "${SKILL_ROOT}/scripts/doctor.py" --project .`。此工具为只读诊断，不替代工具链安装，也不能当作测试通过。

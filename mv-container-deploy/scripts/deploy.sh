@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploy prebuilt immutable images and manage promotion/rollback (delivery side of the pipeline).
-# Windows 团队规范:容器部署一律经 WSL,没有 WSL 就失败,禁止本机直接启动应用(见 scripts/wsl-bridge.sh)。
-# 镜像由 mv-image-build 在宿主出包后构建;本脚本只做预检、传输、启动、健康验证、收据与回滚。
+# 所有部署目标一律经 SSH 访问;宿主不安装 Docker,不直接操作容器。
+# 镜像由 mv-image-build 在构建点产出;本脚本只做预检、分发、启动、健康验证、收据与回滚。
 # 目标机不执行构建,只加载并运行不可变镜像;镜像常驻,任何流程不得 rmi/prune/清理镜像。
 set -euo pipefail
 umask 077
@@ -13,8 +13,6 @@ ENV=${2:-}
 APP=${3:-}
 IMAGE=${4:-}
 APPROVAL=${5:-}
-WSL_DISTRO=''
-WSL_HOME=''
 
 usage() {
   echo 'Usage: deploy.sh deploy dev|prod APP IMAGE [--approve-prod]' >&2
@@ -47,22 +45,22 @@ if [[ "$ACTION" == deploy && "$ENV" == prod && "$IMAGE" == *-dirty* ]]; then
   echo 'Refusing to deploy an image tagged from an uncommitted working tree to prod' >&2
   exit 3
 fi
-SSH_DEST=""
-SSH_KEY=""
+
+# 部署目标一律经 SSH:dev 与 prod 各自必填,无本机缺省目标,不设宿主侧容器通道。
 if [[ "$ENV" == prod ]]; then
   SSH_DEST=${FF_PROD_SSH:-}
   SSH_KEY=${FF_PROD_SSH_KEY:-}
   [[ -n "$SSH_DEST" ]] || { echo 'FF_PROD_SSH must be set' >&2; exit 3; }
+  if [[ "$SSH_DEST" == "${FF_DEV_SSH:-}" ]]; then
+    echo 'Dev and prod cannot use the same SSH target and app directory' >&2; exit 3
+  fi
 else
   SSH_DEST=${FF_DEV_SSH:-}
   SSH_KEY=${FF_DEV_SSH_KEY:-}
+  [[ -n "$SSH_DEST" ]] || { echo 'FF_DEV_SSH must be set' >&2; exit 3; }
 fi
-
 # Explicitly constrain identity syntax; SSH will validate host keys with user's configured known_hosts.
-if [[ "$ENV" == prod && -n "${FF_DEV_SSH:-}" && "$SSH_DEST" == "${FF_DEV_SSH}" ]]; then
-  echo "Dev and prod cannot use the same SSH target and app directory" >&2; exit 3
-fi
-if [[ -n "$SSH_DEST" && ! "$SSH_DEST" =~ ^[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+$ ]]; then
+if [[ ! "$SSH_DEST" =~ ^[a-zA-Z0-9_.-]+@[a-zA-Z0-9_.-]+$ ]]; then
   echo 'SSH destination must look like user@host (use ~/.ssh/config for custom ports)' >&2
   exit 2
 fi
@@ -89,19 +87,6 @@ env_checks() {
   if ! grep -Eq "^APP_ENV=$ENV\r?$" "$path"; then echo "$path must set APP_ENV=$ENV" >&2; exit 3; fi
 }
 
-init_runtime() {
-  # Windows 无 WSL 时 distro 为空但 require 会给出安装指引;非 Windows 宿主 distro 返回空,native 分支查宿主 Docker。
-  # FF_WSL_BRIDGE=0 仅供测试/CI。
-  WSL_DISTRO=$(bash "$HERE/wsl-bridge.sh" distro)
-  WSL_HOME=''
-  if [[ -n "$WSL_DISTRO" ]]; then
-    bash "$HERE/wsl-bridge.sh" require >/dev/null
-    WSL_HOME=$(bash "$HERE/wsl-bridge.sh" home)
-  else
-    command -v docker >/dev/null 2>&1 || { echo 'Docker not installed' >&2; exit 3; }
-  fi
-}
-
 # SSH 把 argv 重新拼成远端 shell 命令;逐参数 POSIX 单引号编码,保留空参数。
 # 不用 printf %q:远端登录 shell 不保证是 Bash。
 ssh_cli() {
@@ -113,100 +98,49 @@ ssh_cli() {
   ssh "${SSH_OPTS[@]}" "$SSH_DEST" "$remote_command"
 }
 
-# 统一 docker 入口:桥接模式下在 WSL 内执行,并关闭 MSYS 路径转换,防止 /mnt、镜像、路径参数被改写。
-docker_cli() {
-  if [[ -n "$WSL_DISTRO" ]]; then
-    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" --exec docker "$@"
-  else
-    docker "$@"
-  fi
-}
-
-# 在 WSL 内执行任意命令(桥接模式专用);调用方保证 WSL_DISTRO 非空。
-wsl_bash() {
-  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' wsl.exe -d "$WSL_DISTRO" --exec "$@"
-}
-
 case "$ACTION" in
   deploy)
     project_checks
     env_checks
-    init_runtime
     bash "$SKILL_ROOT/scripts/deploy-preflight.sh" "$ENV" "$APP"
-    docker_cli image inspect "$IMAGE" >/dev/null 2>&1 || { echo "Image missing locally: $IMAGE (build first)" >&2; exit 3; }
-    LOCAL_ID=$(docker_cli image inspect --format '{{.Id}}' "$IMAGE")
-    # 收据/发布历史与运行状态同侧保存:桥接模式在 WSL 的用户目录,否则在本机用户目录。
-    RECEIPT_ROOT=${WSL_HOME:-$HOME}
-    RECEIPT_DIR="$RECEIPT_ROOT/.mv/container-deploy/receipts/$APP"
-    # 文件名不能沿用 Image ID 原文:native 回退路径下 sha256:xxx 的冒号是 NTFS 备用数据流语义,
-    # 统一冒号替换为连字符(WSL/远端 Linux 与 Windows 三侧一致)。
-    RECEIPT_FILE="$RECEIPT_DIR/${LOCAL_ID//:/-}"
+    # 镜像分发不经宿主:目标机已有该镜像直接使用,缺失时经镜像仓库拉取;不构建,不从宿主直传镜像数据。
+    if ! ssh_cli docker image inspect "$IMAGE" >/dev/null 2>&1; then
+      echo "Image absent on target; pulling from registry: $IMAGE" >&2
+      ssh_cli docker pull "$IMAGE" >/dev/null
+    fi
+    TARGET_ID=$(ssh_cli docker image inspect --format '{{.Id}}' "$IMAGE") || { echo "Image unavailable on target: $IMAGE" >&2; exit 3; }
+    [[ "$TARGET_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo 'Target returned unexpected image ID' >&2; exit 3; }
     if [[ "$ENV" == prod && "${FF_REQUIRE_DEV_PROOF:-1}" == 1 ]]; then
-      if [[ -n "$WSL_DISTRO" ]]; then
-        wsl_bash bash -c 'test -f "$1"' _ "$RECEIPT_FILE" || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
-      else
-        [[ -f "$RECEIPT_FILE" ]] || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
-      fi
+      # 晋级门禁在本机核对:dev 收据记录本机执行的验证,按目标机 Image ID 关联。
+      RECEIPT_FILE="$HOME/.mv/container-deploy/receipts/$APP/${TARGET_ID//:/-}"
+      [[ -f "$RECEIPT_FILE" ]] || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
     fi
     COMPOSE=${FF_COMPOSE_FILE:-}
     if [[ -z "$COMPOSE" ]]; then
       if [[ -f compose.delivery.yml ]]; then COMPOSE=compose.delivery.yml; else COMPOSE="$SKILL_ROOT/templates/compose.delivery.yml"; fi
     fi
     [[ -f "$COMPOSE" ]] || { echo "Missing Compose file: $COMPOSE" >&2; exit 3; }
-    if [[ -n "$SSH_DEST" ]]; then
-      ssh "${SSH_OPTS[@]}" "$SSH_DEST" "mkdir -p '.mv/container-deploy/$APP' && chmod 700 '.mv/container-deploy/$APP'"
-      # Stream immutable image data; no registry and no remote source compilation.
-      docker_cli save "$IMAGE" | ssh_cli docker load >/dev/null
-      REMOTE_ID=$(ssh_cli docker image inspect --format '{{.Id}}' "$IMAGE")
-      [[ "$LOCAL_ID" == "$REMOTE_ID" ]] || { echo 'Transferred image ID mismatch' >&2; exit 3; }
-      scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.mv/container-deploy/$APP/compose.yml" >/dev/null
-      scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.mv/container-deploy/$APP/.env.$ENV" >/dev/null
-      # scp 落盘到 target-runner 收紧权限之间有窗口,立即按 600 收口。
-      ssh "${SSH_OPTS[@]}" "$SSH_DEST" "chmod 600 '.mv/container-deploy/$APP/.env.$ENV'"
-      OUTPUT=$(ssh_cli bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
-      printf '%s\n' "$OUTPUT"
-    else
-      if [[ -n "$WSL_DISTRO" ]]; then
-        APPDIR="$WSL_HOME/.mv/container-deploy/$APP"
-        bash "$HERE/wsl-bridge.sh" push "$COMPOSE" "$APPDIR/compose.yml"
-        bash "$HERE/wsl-bridge.sh" push ".env.$ENV" "$APPDIR/.env.$ENV"
-        bash "$HERE/wsl-bridge.sh" plain "$HERE/target-runner.sh"
-        OUTPUT=$(wsl_bash bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
-      else
-        DIR="$HOME/.mv/container-deploy/$APP"
-        mkdir -p "$DIR"
-        chmod 700 "$DIR"
-        cp -- "$COMPOSE" "$DIR/compose.yml"
-        cp -- ".env.$ENV" "$DIR/.env.$ENV"
-        OUTPUT=$(bash "$HERE/target-runner.sh" deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}")
-      fi
-      printf '%s\n' "$OUTPUT"
-    fi
+    ssh "${SSH_OPTS[@]}" "$SSH_DEST" "mkdir -p '.mv/container-deploy/$APP' && chmod 700 '.mv/container-deploy/$APP'"
+    scp "${SCP_OPTS[@]}" "$COMPOSE" "$SSH_DEST:.mv/container-deploy/$APP/compose.yml" >/dev/null
+    scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.mv/container-deploy/$APP/.env.$ENV" >/dev/null
+    # scp 落盘到 target-runner 收紧权限之间有窗口,立即按 600 收口。
+    ssh "${SSH_OPTS[@]}" "$SSH_DEST" "chmod 600 '.mv/container-deploy/$APP/.env.$ENV'"
+    OUTPUT=$(ssh_cli bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
+    printf '%s\n' "$OUTPUT"
     if [[ "$ENV" == dev && "$OUTPUT" == *"VERIFIED_HEALTH=strong"* ]]; then
-      if [[ -n "$WSL_DISTRO" ]]; then
-        printf '%s\n' "$IMAGE" | wsl_bash bash -c 'mkdir -p "$1" && chmod 700 "$1" && cat > "$2" && chmod 600 "$2"' _ "$RECEIPT_DIR" "$RECEIPT_FILE"
-      else
-        mkdir -p "$RECEIPT_DIR"
-        chmod 700 "$RECEIPT_DIR"
-        printf '%s\n' "$IMAGE" > "$RECEIPT_FILE"
-        chmod 600 "$RECEIPT_FILE"
-      fi
-      echo "DEV_RECEIPT=$LOCAL_ID"
+      # 文件名不沿用 Image ID 原文:sha256:xxx 的冒号在 Windows 是 NTFS 备用数据流语义,统一替换为连字符。
+      RECEIPT_DIR="$HOME/.mv/container-deploy/receipts/$APP"
+      RECEIPT_FILE="$RECEIPT_DIR/${TARGET_ID//:/-}"
+      mkdir -p "$RECEIPT_DIR"
+      chmod 700 "$RECEIPT_DIR"
+      printf '%s\n' "$IMAGE" > "$RECEIPT_FILE"
+      chmod 600 "$RECEIPT_FILE"
+      echo "DEV_RECEIPT=$TARGET_ID"
     elif [[ "$ENV" == dev ]]; then
       echo 'No promotable dev receipt: set FF_HEALTH_URL to the readiness endpoint and redeploy' >&2
     fi
     ;;
   status|rollback)
-    if [[ -n "$SSH_DEST" ]]; then
-      ssh_cli bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
-    else
-      init_runtime
-      if [[ -n "$WSL_DISTRO" ]]; then
-        bash "$HERE/wsl-bridge.sh" plain "$HERE/target-runner.sh"
-        wsl_bash bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
-      else
-        bash "$HERE/target-runner.sh" "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}"
-      fi
-    fi
+    ssh_cli bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
     ;;
 esac

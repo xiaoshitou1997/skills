@@ -1,7 +1,7 @@
 # 文本文件统一 LF 入库；Windows 检出按原生换行。
 * text=auto
 
-# 脚本在 WSL / Linux / 远程 SSH 目标机上执行,任何平台检出都必须保持 LF,
+# 脚本在 Linux / 远程 SSH 目标机上执行,任何平台检出都必须保持 LF,
 # 否则真 Linux bash 会因 CRLF 报 `$'\r': command not found`。
 *.sh text eol=lf
 *.py text eol=lf

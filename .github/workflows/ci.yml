@@ -17,7 +17,7 @@ jobs:
           python-version: '3.x'
       - name: Static bundle validation (skills, frontmatter, references, duplicates, syntax)
         run: python tests/validate_bundle.py
-      - name: Offline unit tests (stubs only; no Docker/WSL required)
+      - name: Offline unit tests (stubs only; no Docker required)
         run: python -m unittest discover -s tests -p 'test_*.py' -v
         env:
           PYTHONUTF8: '1'

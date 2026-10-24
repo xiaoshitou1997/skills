@@ -9,7 +9,7 @@ import unittest
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-# PATH 里排在前的可能是 System32 的 WSL bash,必须显式使用 Git Bash;
+# PATH 里排在前的可能是 System32 自带的 bash,必须显式使用 Git Bash;
 # 且 bash 不接受 Windows 反斜杠路径(msys 会吞掉反斜杠),统一转为正斜杠。
 BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/bash.exe')
 if not Path(BASH).exists():
@@ -36,23 +36,48 @@ def sealed(path):
         return False
 
 
+def stub_env(d, bin_dir, **updates):
+    # MSYS 运行时会对继承的 Windows 形式 PATH 前置自带目录,PATH 里的假命令永远轮不到
+    # (真 /usr/bin/ssh 抢先);与 test_workflows._offline_env 同法:
+    # 经 BASH_ENV 在每个 bash 启动时以 POSIX 形式重新前置。
+    fix = Path(d) / 'path-fix.sh'
+    fix.write_text(f'export PATH="$(cd -- "{bin_dir.as_posix()}" && pwd):$PATH"\n', newline='\n')
+    env = os.environ.copy()
+    env['PATH'] = str(bin_dir) + os.pathsep + env['PATH']
+    env['BASH_ENV'] = fix.as_posix()
+    env.update(updates)
+    return env
+
+
 class EnhancementsTests(unittest.TestCase):
     def test_doctor_is_read_only(self):
         with tempfile.TemporaryDirectory() as d:
             p=exec_run(sys.executable, DOCTOR, '--project', d, '--json')
             self.assertEqual(p.returncode, 0, p.stderr)
             data=json.loads(p.stdout)
-            self.assertIn('docker_compose', data['checks'])
+            self.assertIn('git', data['checks'])
             self.assertEqual(list(Path(d).iterdir()), [])
             # 探针冒烟文件必须用完即清,不在系统临时目录留残留
             self.assertFalse((Path(tempfile.gettempdir()) / 'ff_build_chain_smoke.java').exists())
 
-    def test_preflight_rejects_missing_docker(self):
+    def test_preflight_requires_target_and_remote_compose(self):
         with tempfile.TemporaryDirectory() as d:
             env=os.environ.copy()
-            env['FF_WSL_BRIDGE']='0'
             p=exec_run(BASH,PREFLIGHT,'prod','api',cwd=d,env=env)
             self.assertNotEqual(p.returncode,0)
+            self.assertIn('FF_PROD_SSH',p.stderr)
+            # 静态配置齐备后,目标机 Compose v2 经 SSH 校验,不可达即拒绝。
+            root=Path(d)
+            (root/'.dockerignore').write_text('.env*\n.git\n')
+            (root/'.env.prod').write_text('APP_ENV=prod\n')
+            b=root/'bin'; b.mkdir()
+            ssh=b/'ssh'
+            ssh.write_text('#!/bin/sh\nexit 127\n')
+            ssh.chmod(0o755)
+            env=stub_env(d, b, FF_PROD_SSH='deploy@prod.example.com')
+            p=exec_run(BASH,PREFLIGHT,'prod','api',cwd=d,env=env)
+            self.assertEqual(p.returncode,3)
+            self.assertIn('Compose',p.stderr)
 
     def test_prod_delivery_no_dev_receipt(self):
         with tempfile.TemporaryDirectory() as d:
@@ -64,8 +89,11 @@ class EnhancementsTests(unittest.TestCase):
             docker=b/'docker'
             docker.write_text('#!/bin/sh\nif [ "$1" = "image" ] && [ "$2" = "inspect" ]; then echo sha256:fakehash; fi\nif [ "$1" = "compose" ] && [ "$2" = "version" ]; then echo v2.0; fi\n')
             docker.chmod(0o755)
-            env=os.environ.copy()
-            env.update(PATH=str(b)+os.pathsep+env['PATH'], HOME=d, FF_PROD_SSH='deploy@prod.example.com', FF_WSL_BRIDGE='0')
+            # 假 ssh:目标机 Image ID 校验通过后,晋级门禁在本机收据处拒绝,无需真实连接。
+            ssh=b/'ssh'
+            ssh.write_text('#!/bin/sh\necho sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n')
+            ssh.chmod(0o755)
+            env=stub_env(d, b, HOME=d, FF_PROD_SSH='deploy@prod.example.com')
             p=exec_run(BASH,DEPLOY,'deploy','prod','api','api:abc','--approve-prod',cwd=d,env=env)
             self.assertNotEqual(p.returncode,0)
             self.assertIn('no verified dev deployment receipt',p.stderr)
@@ -80,8 +108,7 @@ class EnhancementsTests(unittest.TestCase):
             shim=b/'python3'
             shim.write_text('#!/bin/sh\nexec python "$@"\n')
             shim.chmod(0o755)
-            env=os.environ.copy()
-            env['PATH']=str(b)+os.pathsep+env['PATH']
+            env=stub_env(d, b)
             p=exec_run(BASH,QUALITY,'quick',cwd=d,env=env)
             self.assertNotEqual(p.returncode,0)
             self.assertIn('not a pass',p.stderr)

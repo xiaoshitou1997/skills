@@ -9,7 +9,7 @@
 | Skill | 范围 |
 | --- | --- |
 | `mv-toolchain-manager` | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发 |
-| `mv-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零 WSL、零镜像） |
+| `mv-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零容器、零镜像） |
 | `mv-image-build` | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
@@ -66,7 +66,7 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## 容器构建与部署
 
-本地"跑一下"默认宿主直启：`java -jar`、`npm run dev` 等在宿主前台可见 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默——归 `mv-local-debug`，纯宿主、零容器零镜像。构建与交付按宿主/服务器职责二分（[构建与交付分工](docs/structure-rules.md#构建与交付分工)）：宿主只编译出二进制包并上传，镜像全部在服务器构建——单机部署为部署机自身，集群为镜像仓库所在节点；Windows 的本机 WSL 就是一台开发服务器，与远端服务器走同一条「上传包 → 服务器构建镜像 → 部署」流程，宿主不安装 Docker。在 WSL/容器里跑属于部署，归 `mv-container-deploy`（dev 默认目标是开发服务器，验证健康后写收据；prod 需明确授权）。两者之间是 `mv-image-build`：宿主出包后在服务器构建只含运行时的瘦镜像，只构建不运行，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）交接部署侧；晋级 prod 要求同一 Image ID 的 dev 健康收据。镜像定义与模块同源：各栈模块内自备 `Dockerfile.delivery`（Node 静态前端可用内置模板），其他产物布局用 `FF_ARTIFACT` 指定。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。出包上传统一经 SSH（`FF_BUILD_TARGET` 指向构建点），构建点核对 SHA-256，不匹配即删除损坏包中止构建。详见 [镜像构建契约](mv-image-build/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
+本地"跑一下"默认宿主直启：`java -jar`、`npm run dev` 等在宿主前台可见 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默——归 `mv-local-debug`，纯宿主、零容器零镜像。构建与交付按宿主/服务器职责二分（[构建与交付分工](docs/structure-rules.md#构建与交付分工)）：宿主只编译出二进制包并上传，镜像全部在服务器构建——单机部署为部署机自身，集群为镜像仓库所在节点，宿主不安装 Docker。把镜像跑起来属于部署，归 `mv-container-deploy`（dev 目标是开发服务器，经 `FF_DEV_SSH` 指定，验证健康后写收据；prod 需明确授权）。两者之间是 `mv-image-build`：宿主出包后在服务器构建只含运行时的瘦镜像，只构建不运行，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）交接部署侧；晋级 prod 要求同一 Image ID 的 dev 健康收据。镜像定义与模块同源：各栈模块内自备 `Dockerfile.delivery`（Node 静态前端可用内置模板），其他产物布局用 `FF_ARTIFACT` 指定。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。出包上传统一经 SSH（`FF_BUILD_TARGET` 指向构建点），构建点核对 SHA-256，不匹配即删除损坏包中止构建。详见 [镜像构建契约](mv-image-build/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
 
 ```bash
 SKILL_ROOT="/实际绝对路径/mv-image-build"
@@ -74,11 +74,11 @@ SKILL_ROOT="/实际绝对路径/mv-image-build"
 FF_BUILD_TARGET=user@host bash "$SKILL_ROOT/scripts/image-build.sh" build dev myapp
 
 SKILL_ROOT="/实际绝对路径/mv-container-deploy"
-bash "$SKILL_ROOT/scripts/deploy.sh" deploy dev myapp 'myapp:TAG'
-bash "$SKILL_ROOT/scripts/deploy.sh" status dev myapp
+FF_DEV_SSH=devops@dev.example.com bash "$SKILL_ROOT/scripts/deploy.sh" deploy dev myapp 'myapp:TAG'
+FF_DEV_SSH=devops@dev.example.com bash "$SKILL_ROOT/scripts/deploy.sh" status dev myapp
 ```
 
-Docker/Compose 在服务器侧（Windows 装在本机 WSL 内），宿主不安装 Docker；远程交付使用 SSH。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态保存在目标服务器侧 `~/.mv/` 下（包与构建记录 `~/.mv/image-build/`；收据与发布历史 `~/.mv/container-deploy/`）。应用回滚不回滚数据库迁移或外部副作用。
+Docker/Compose 只在服务器侧，宿主不安装 Docker；部署目标一律经 SSH 交付。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态与发布历史保存在目标服务器侧 `~/.mv/` 下（包与构建记录 `~/.mv/image-build/`；发布历史 `~/.mv/container-deploy/`），dev 健康验证收据保存在执行部署的本机 `~/.mv/container-deploy/receipts/`。应用回滚不回滚数据库迁移或外部副作用。
 
 Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装或未正常运行时该 skill 仅在当前上下文内有效）。值守 Hook 机制依赖 Claude Code 的 Hook 事件（UserPromptSubmit/SessionStart/PreToolUse）与 `~/.claude/settings.json`，仅 Claude Code 上可安装；分发到其他 agent 时无法安装 Hook，该 skill 自动降级为仅当前上下文有效的值守模式。
 
