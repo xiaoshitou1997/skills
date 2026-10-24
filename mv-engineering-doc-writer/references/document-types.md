@@ -207,3 +207,5 @@ MOP 规则：
 - `mop-<系统>-<版本>.md`
 
 保留单一权威版本，不使用 `final-v2-latest` 式后缀。
+
+落盘默认仓库 `docs/` 平铺（命名公式已含类型前缀，不另设类型子目录）；成套多文件产物落专目录（如业务用例集 `docs/business-use-cases/`，落点见 `mv-business-use-case-modeler`）。项目已有文档目录约定优先。
