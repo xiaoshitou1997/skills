@@ -231,7 +231,7 @@ CASES = [
     {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '项目 README 规定开发时必须用 Compose 起全套，宿主无法独立运行，按这个方式在本地跑一下'},
 
-    # --- mv-ui-style：家族界面风格（全家族一套 tokens），不管工程图绘制、技术选型与前端编码 ---
+    # --- mv-ui-style：家族界面风格（全家族一套 tokens 与 logo 语言），不管工程图绘制、技术选型与前端编码 ---
     {'skill': 'mv-ui-style', 'kind': 'positive',
      'query': '新的桌面应用开工，帮我把界面风格定下来：配色、字号、间距、圆角、暗色模式出成一套 tokens，要有我们自己的设计感，别照抄别家'},
     {'skill': 'mv-ui-style', 'kind': 'positive',
@@ -240,6 +240,8 @@ CASES = [
      'query': '这两个应用的界面放一起不像一家出的，按设计语言把配色和圆角统一掉'},
     {'skill': 'mv-ui-style', 'kind': 'positive',
      'query': '评审一下这个应用的界面，间距、字号、焦点态有没有偏离我们的 UI 风格'},
+    {'skill': 'mv-ui-style', 'kind': 'positive',
+     'query': '给我们的新工具设计一个 logo 标志，要和全家其他应用一个风格一脉相承'},
     {'skill': 'mv-ui-style', 'kind': 'negative', 'instead': 'mv-diagram-drafter',
      'query': '画一张这个应用的页面示意图，标出主要区域和交互入口'},
     {'skill': 'mv-ui-style', 'kind': 'negative', 'instead': 'mv-tech-stack-standards',

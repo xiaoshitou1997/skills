@@ -1,16 +1,16 @@
 ---
 name: mv-ui-style
 description: >-
-  统一各应用界面视觉风格、建立或套用家族设计 tokens 时使用：首次建档定配色、字号、间距、圆角、动效、暗色模式，新应用开工套用家族 tokens，多个应用之间核对风格一致性；用户说「统一风格」「全家一个风格」「像大厂产品那样」「有设计感」「别照抄」「定一套配色或主题」时触发。全家族只维护一套 tokens（结构与配色固定，对齐大厂产品矩阵的公司级设计系统做法），master 落 ~/.mv/ui-style/，每个 token 可追溯推导来源并过对比度与原创性校验。绘制工程图与页面示意图归 mv-diagram-drafter，前端框架与技术栈选型归 mv-tech-stack-standards。
+  统一各应用界面视觉风格与家族 logo、建立或套用家族设计 tokens 时使用：首次建档定配色、字号、间距、圆角、动效、暗色模式，logo 按家族语言逐应用定档，新应用开工套用家族 tokens 与 logo，多个应用之间核对风格一致性；用户说「统一风格」「全家一个风格」「像大厂产品那样」「有设计感」「别照抄」「定一套配色或主题」「设计 logo」「定个标志」时触发。全家族只维护一套 tokens 与一套 logo 语言（结构与配色固定，对齐大厂产品矩阵的公司级设计系统做法），master 落 ~/.mv/ui-style/，每个 token 可追溯推导来源并过对比度与原创性校验。绘制工程图与页面示意图归 mv-diagram-drafter，前端框架与技术栈选型归 mv-tech-stack-standards。
 ---
 
 # UI 风格设计语言
 
-面向自研应用（桌面 Electron、Web、移动端）的界面视觉风格：全家族维护一套设计 tokens，结构 DNA 与配色一并固定，所有应用共用，对齐大厂产品矩阵的公司级设计系统做法（TDesign、Ant Design、Arco 均为公司级全家统一）。管家族风格的建档、套用与一致性评审，不管前端编码实现，不管工程制图。
+面向自研应用（桌面 Electron、Web、移动端）的界面视觉风格与家族 logo：全家族维护一套设计 tokens 与一套 logo 语言，结构 DNA 与配色一并固定，所有应用共用，对齐大厂产品矩阵的公司级设计系统做法（TDesign、Ant Design、Arco 均为公司级全家统一）。管家族视觉资产的建档、套用与一致性评审，不管前端编码实现，不管工程制图，不管插画与营销素材。
 
 `读家族 tokens（缺失先建档）→ 套用到应用 → 校验对比度 → 红线自查`
 
-- 运行时落点：家族 tokens master 存 `~/.mv/ui-style/`（环境变量 `MV_UI_STYLE_HOME` 覆盖，供测试与隔离）；应用侧只放引用或注明来源的副本，不另建第二套 tokens。
+- 运行时落点：家族 tokens master 存 `~/.mv/ui-style/tokens.css`，logo master 存 `~/.mv/ui-style/logo/`（环境变量 `MV_UI_STYLE_HOME` 覆盖，供测试与隔离）；应用侧只放引用或注明来源的副本，不另建第二套 tokens 或第二版 mark。
 
 ## 作用与优先级
 
@@ -36,6 +36,7 @@ description: >-
 | 材质 | 头部/侧栏等覆盖层可用毛玻璃：`--ui-material-blur: saturate(180%) blur(20px)` + α 0.72 半透明 surface；正文面板不用（2026-10-23 苹果风定档） | 苹果 HIG 材质语言；web 以 backdrop-filter 落地，弱性能环境降级为不透明 |
 | 焦点态 | 2px 焦点环 + 2px 外扩，颜色取强调色，与底对比 ≥3:1；不删除 `outline`，以自定义焦点环样式替换默认外观 | WCAG 2.2 焦点可见性要求 |
 | 图标 | 24px 栅格、1.5px 描边、圆头端点、单色随文字色 | 与主流 2px 描边图标集（Lucide、Feather、Tabler）形制区分 |
+| logo | 家族 logo 语言一套：24px 栅格构造、圆润几何、单色 accent 为主形、wordmark 用 OFL 字体转路径；构造、变体与定档见 [references/logo-language.md](references/logo-language.md) | 与图标条款同一形制语言、取色可追溯 tokens；商标域按加严原创性判定 |
 | 语义色 | success=绿系、warning=琥珀系、danger=红系、info=蓝系，hue 区间全家族固定 | 通用语义惯例 |
 | 暗色 | 与亮色同一份 hue 推导，映射规则见 [references/color-derivation.md](references/color-derivation.md)；不做脱离推导的独立暗色皮肤 | 同源推导才保持同族 |
 
@@ -57,6 +58,10 @@ description: >-
 3. 运行对比度校验（命令见下）。
 4. 对照「不可违反的原则」自查，结论记入交付说明。
 
+logo 定档与使用：
+
+家族 logo 语言固定项与逐应用定档流程见 [references/logo-language.md](references/logo-language.md)：应用需要 mark 时按流程取题材产候选、过原创性判定、用户定档落 master，应用侧取注明来源的副本；界面内使用不改形不换色，换色仅限家族 tokens 色值。
+
 对比度校验：
 
 ```bash
@@ -68,13 +73,13 @@ python3 "${SKILL_ROOT}/scripts/check_contrast.py" <前景> <背景> [<前景> <�
 
 风格一致性评审：
 
-1. 对照 master tokens 逐项核对应用实际取值：颜色、圆角、动效、焦点态。
+1. 对照 master tokens 逐项核对应用实际取值：颜色、圆角、动效、焦点态；logo 是否取自 master 定档变体、用色是否在家族 tokens 色值内。
 2. 色阶外散落取色、表外间距与字号逐处列出。
 3. 产出问题清单，每条给出回到 master 的具体改法（改哪个 token、取哪一档值）；应用侧无法解决的问题记为家族修订建议，不在应用内私改。
 
 ## 不可违反的原则
 
-- **一套 tokens**：全家族只存在 master 一份家族 tokens；应用不另建配色体系、不改主色、不引入第二套字体栈。新风格诉求走家族修订，不在应用内私改。
+- **一套 tokens、一套 logo 语言**：全家族只存在 master 一份家族 tokens 与一套 logo 语言；应用不另建配色体系、不改主色、不引入第二套字体栈、不另造第二版 mark。新风格诉求走家族修订，不在应用内私改。
 - **不复刻可识别外观**：禁止像素级仿制布局、复用现有产品的品牌色组合、模仿标志性组件形制。判定标准：把产出与任一现有产品并排，普通用户能指认「这是某产品的样子」即不过关，按 [references/originality-rules.md](references/originality-rules.md) 回炉重推。
 - **产出可追溯**：每个 token 能指出推导来源（家族 tokens 条款或建档推导记录）；说不出来源的取值删除重推。
 - **资产授权干净**：字体只用系统栈或 OFL 授权字体；图标自绘或用 OFL/MIT/ISC 等宽松授权图标集并在 tokens 注明来源与授权；图片素材取可商用授权；禁止截取或抠用他人产品的视觉资产。
@@ -82,10 +87,11 @@ python3 "${SKILL_ROOT}/scripts/check_contrast.py" <前景> <背景> [<前景> <�
 
 ## 输出与边界
 
-建档产出 master tokens 文件（头部含定档记录）与自查结论；应用接入产出注明来源的 tokens 副本或引用与自查结论；评审产出问题清单与逐条改法。偏离家族 tokens 的项在应用 tokens 头注释逐条记录理由并列为家族修订候选，未记录理由的偏离按不合规处理。工程图与页面示意图的绘制归 mv-diagram-drafter；前端框架与技术栈选型归 mv-tech-stack-standards；组件代码结构与前端编码规范不在本 skill 范围。
+建档产出 master tokens 文件（头部含定档记录）与自查结论；logo 定档产出带定档记录的 master SVG 与应用侧注明来源的副本；应用接入产出注明来源的 tokens 副本或引用与自查结论；评审产出问题清单与逐条改法。偏离家族 tokens 的项在应用 tokens 头注释逐条记录理由并列为家族修订候选，未记录理由的偏离按不合规处理。工程图与页面示意图的绘制归 mv-diagram-drafter；前端框架与技术栈选型归 mv-tech-stack-standards；组件代码结构与前端编码规范、插画与营销素材不在本 skill 范围。
 
 ## 参考
 
 - [设计 tokens 与模板](references/design-tokens.md)：命名约定、master 与应用副本的 CSS variables 模板（明暗两套）与 Tailwind 4 映射。
 - [配色推导](references/color-derivation.md)：家族建档的 OKLCH 推导步骤、中性阶与语义色规则、暗色映射、对比度必查对清单与回改规则。
 - [原创性红线](references/originality-rules.md)：照抄判定三问、红线清单、允许的借鉴路径与自查记录格式。
+- [家族 logo 语言](references/logo-language.md)：logo 构造固定项、变体与使用规范、逐应用定档流程与商标域加严判定。

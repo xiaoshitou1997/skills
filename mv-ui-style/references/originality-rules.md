@@ -1,6 +1,6 @@
 # 原创性红线
 
-本文定义 mv-ui-style 产出的原创性判定：什么算照抄、什么算合规借鉴、自查怎么记录。推导步骤见 [color-derivation.md](color-derivation.md)，落盘模板见 [design-tokens.md](design-tokens.md)；与 SKILL.md 冲突时以 SKILL.md 为准。
+本文定义 mv-ui-style 产出的原创性判定：什么算照抄、什么算合规借鉴、自查怎么记录。推导步骤见 [color-derivation.md](color-derivation.md)，落盘模板见 [design-tokens.md](design-tokens.md)，logo 的商标域加严判定见 [logo-language.md](logo-language.md)；与 SKILL.md 冲突时以 SKILL.md 为准。
 
 原则依据：设计方法论与公开标准（模数比、对比度公式、栅格、缓动公式、CRAP 四原则）不受版权保护，可引用；具体视觉表达——配色组合、字形授权、图标与插画资产、标志性形制——受版权或商标保护，须自产或取得授权。
 
