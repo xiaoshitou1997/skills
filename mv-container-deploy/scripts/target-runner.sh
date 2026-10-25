@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Runs at the delivery target; does not print env contents. Records only verified releases.
+# 版本化交付:版本清单 versions/<VERSION>.tsv(service<TAB>image<TAB>imageID)是运行状态源;
+# 部署=整栈启动验证后快照为新版本清单;回退=按上一版清单经 compose.override.yml 恢复,
+# 默认整栈回退,FF_ROLLBACK_SERVICE 限定单服务(不移动 current-version)。
 # 镜像常驻:本脚本只启动/替换容器并追加记录文件,任何分支都不得 rmi/prune/删除镜像。
 set -euo pipefail
 umask 077
@@ -9,14 +12,25 @@ APP=${3:-}
 IMAGE=${4:-}
 HEALTH_URL=${5:-}
 READY_SECS=${6:-50}
-[[ "$ACTION" =~ ^(deploy|rollback|status)$ && "$ENV" =~ ^(dev|prod)$ ]] || exit 2
+VERSION=${7:-}
+SERVICE=${8:-}
+[[ "$ACTION" =~ ^(deploy|rollback|status|plan)$ && "$ENV" =~ ^(dev|prod)$ ]] || exit 2
 [[ "$APP" =~ ^[a-z][a-z0-9_-]{0,62}$ ]] || exit 2
 [[ "$READY_SECS" =~ ^[0-9]+$ ]] || { echo 'READY_SECS must be a positive integer (seconds)' >&2; exit 2; }
+if [[ "$ACTION" == deploy ]]; then
+  [[ "$VERSION" =~ ^version_[0-9]{14}_[a-z0-9]{1,40}(-dirty)?$ ]] || { echo "Invalid version id: $VERSION" >&2; exit 2; }
+else
+  [[ -z "$VERSION" ]] || { echo 'VERSION only applies to deploy' >&2; exit 2; }
+  [[ -z "$SERVICE" || "$SERVICE" =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]*$ ]] || { echo 'Invalid service name' >&2; exit 2; }
+fi
 DIR="$HOME/.mv/container-deploy/$APP"
 cd "$DIR"
 [[ -f compose.yml && -f ".env.$ENV" ]] || { echo 'Missing deployed Compose/env files' >&2; exit 3; }
 chmod 600 ".env.$ENV"
 DOCKER=(docker compose --env-file ".env.$ENV" -f compose.yml -p "$APP")
+VERSIONS_DIR="$DIR/versions"
+CURRENT="$DIR/current-version"
+mkdir -p "$VERSIONS_DIR"
 
 check_service() {
   local candidate=$1
@@ -72,40 +86,136 @@ check_service() {
   return 1
 }
 
+# 目标机镜像分发:清单里缺哪个镜像拉哪个,全部就位并核对 Image ID 后才启动;不构建,不经宿主直传。
+ensure_images() {
+  local img
+  for img in $("${DOCKER[@]}" config --images); do
+    if ! docker image inspect "$img" >/dev/null 2>&1; then
+      echo "Image absent on target; pulling from registry: $img" >&2
+      docker pull "$img" >/dev/null
+    fi
+    docker image inspect --format '{{.Id}}' "$img" >/dev/null
+  done
+}
+
+# 运行态快照:service<TAB>image<TAB>imageID,逐行输出。只统计 running 容器。
+snapshot_manifest() {
+  local line svc img cid
+  while IFS= read -r line; do
+    [[ -n "$line" ]] || continue
+    svc=${line%%$'\t'*}
+    img=${line#*$'\t'}
+    cid=$("${DOCKER[@]}" ps -q "$svc")
+    [[ -n "$cid" ]] || { echo "No container for service $svc" >&2; return 1; }
+    printf '%s\t%s\t%s\n' "$svc" "$img" "$(docker inspect --format '{{.Id}}' "$cid")"
+  done < <("${DOCKER[@]}" ps --format '{{.Service}}\t{{.Image}}')
+}
+
+# 把版本清单落为 compose.override.yml 再 up:compose 合并后只重建镜像变化的 service。
+apply_manifest() {
+  local file=$1 svc img
+  {
+    printf 'services:\n'
+    while IFS=$'\t' read -r svc img _; do
+      [[ -n "$svc" ]] || continue
+      printf '  %s:\n    image: %s\n' "$svc" "$img"
+    done < "$file"
+  } > compose.override.yml
+  # 单服务模板 image 字段是 ${FF_IMAGE:?};回退/恢复路径以清单首行镜像充当。
+  FF_IMAGE=$(head -n 1 "$file" | cut -f2) "${DOCKER[@]}" up -d --no-build --pull never
+}
+
+record_releases() {
+  # TSV 发布记录:时间/动作/环境/版本/服务/镜像/Image ID/验证档位;不含 secret 环境值。
+  local ts action ver file
+  ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  action=$1
+  ver=$2
+  file=$3
+  while IFS=$'\t' read -r svc img id; do
+    [[ -n "$svc" ]] || continue
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$ts" "$action" "$ENV" "$ver" "$svc" "$img" "$id" "$VERIFIED_HEALTH" >> releases.tsv
+  done < "$file"
+}
+
+print_manifest() {
+  local svc img id
+  while IFS=$'\t' read -r svc img id; do
+    [[ -n "$svc" ]] || continue
+    printf 'MANIFEST_LINE=%s\t%s\t%s\n' "$svc" "$img" "$id"
+  done < "$1"
+}
+
 case "$ACTION" in
   status)
-    IMG=$(cat current-image 2>/dev/null || true)
-    [[ -n "$IMG" ]] || { echo 'No previously verified deployment' >&2; exit 3; }
-    FF_IMAGE="$IMG" "${DOCKER[@]}" ps
-    echo "CURRENT_IMAGE=$IMG"
+    VER=$(cat "$CURRENT" 2>/dev/null || true)
+    [[ -n "$VER" ]] || { echo 'No previously verified deployment' >&2; exit 3; }
+    "${DOCKER[@]}" ps
+    echo "CURRENT_VERSION=$VER"
     ;;
-  deploy|rollback)
-    if [[ "$ACTION" == rollback ]]; then
-      [[ -f previous-image ]] || { echo 'No previous verified image' >&2; exit 3; }
-      IMAGE=$(cat previous-image)
-    fi
+  plan)
+    # 只读预检:把即将部署的镜像全部分发就位并输出 PLAN_LINE=<image>\t<imageID>,供本机晋级门禁核对。
+    ensure_images
+    img=''
+    for img in $("${DOCKER[@]}" config --images); do
+      printf 'PLAN_LINE=%s\t%s\n' "$img" "$(docker image inspect --format '{{.Id}}' "$img")"
+    done
+    ;;
+  deploy)
     [[ "$IMAGE" =~ ^[a-zA-Z0-9][a-zA-Z0-9._:/@-]{0,199}$ ]] || { echo 'Invalid image ref' >&2; exit 2; }
-    docker image inspect "$IMAGE" >/dev/null 2>&1 || { echo 'Image absent on target' >&2; exit 3; }
-    OLD=$(cat current-image 2>/dev/null || true)
-    # Must attempt restore on startup failure as well as readiness failure.
-    # --no-build --pull never:目标机只用已有镜像,不重新构建、不重新拉取;镜像全部常驻。
+    rm -f compose.override.yml
+    ensure_images
+    OLD_VERSION=$(cat "$CURRENT" 2>/dev/null || true)
+    # Must attempt restore of the previous version on startup or readiness failure.
     if ! FF_IMAGE="$IMAGE" "${DOCKER[@]}" up -d --no-build --pull never || ! check_service "$IMAGE"; then
       echo 'Deployment verification failed' >&2
-      if [[ -n "$OLD" && "$OLD" != "$IMAGE" ]] && docker image inspect "$OLD" >/dev/null 2>&1; then
-        echo "Trying application rollback to $OLD (database state is NOT rolled back)" >&2
-        FF_IMAGE="$OLD" "${DOCKER[@]}" up -d --no-build --pull never || true
-        check_service "$OLD" || echo 'Previous application did not become healthy' >&2
+      if [[ -n "$OLD_VERSION" && -f "$VERSIONS_DIR/$OLD_VERSION.tsv" ]]; then
+        echo "Trying application rollback to $OLD_VERSION (database state is NOT rolled back)" >&2
+        apply_manifest "$VERSIONS_DIR/$OLD_VERSION.tsv" || true
+        check_service "$(head -n 1 "$VERSIONS_DIR/$OLD_VERSION.tsv" | cut -f3)" || echo 'Previous application did not become healthy' >&2
       fi
       exit 4
     fi
-    if [[ -n "$OLD" && "$OLD" != "$IMAGE" ]]; then printf '%s\n' "$OLD" > previous-image; fi
-    printf '%s\n' "$IMAGE" > current-image
-    ID=$(docker image inspect --format '{{.Id}}' "$IMAGE")
-    # TSV history contains no secret environment values.
-    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ACTION" "$ENV" "$IMAGE" "$ID" "$VERIFIED_HEALTH" >> releases.tsv
+    snapshot_manifest > "$VERSIONS_DIR/$VERSION.tsv"
+    [[ -s "$VERSIONS_DIR/$VERSION.tsv" ]] || { echo 'Empty version manifest; refusing to record' >&2; exit 4; }
+    printf '%s\n' "$VERSION" > "$CURRENT"
+    record_releases deploy "$VERSION" "$VERSIONS_DIR/$VERSION.tsv"
+    echo "VERSION=$VERSION"
     echo "DEPLOYED_IMAGE=$IMAGE"
-    echo "IMAGE_ID=$ID"
     echo "VERIFIED_HEALTH=$VERIFIED_HEALTH"
-    FF_IMAGE="$IMAGE" "${DOCKER[@]}" ps
+    print_manifest "$VERSIONS_DIR/$VERSION.tsv"
+    "${DOCKER[@]}" ps
+    ;;
+  rollback)
+    [[ -f "$CURRENT" ]] || { echo 'No deployed version to roll back from' >&2; exit 3; }
+    CUR=$(cat "$CURRENT")
+    PREV=''
+    while IFS= read -r v; do
+      v=${v%.tsv}
+      if [[ "$v" == "$CUR" ]]; then break; fi
+      PREV=$v
+    done < <(ls "$VERSIONS_DIR" | sort)
+    [[ -n "$PREV" && -f "$VERSIONS_DIR/$PREV.tsv" ]] || { echo "No previous version to roll back to (current: $CUR)" >&2; exit 3; }
+    TARGET_MANIFEST="$VERSIONS_DIR/$PREV.tsv"
+    TARGET_VER="$PREV"
+    if [[ -n "$SERVICE" ]]; then
+      awk -F'\t' -v s="$SERVICE" '$1 == s' "$TARGET_MANIFEST" > "$DIR/.rollback-service.tsv"
+      [[ -s "$DIR/.rollback-service.tsv" ]] || { echo "Service $SERVICE not in version $PREV" >&2; exit 3; }
+      TARGET_MANIFEST="$DIR/.rollback-service.tsv"
+    fi
+    if ! apply_manifest "$TARGET_MANIFEST" || ! check_service "$(head -n 1 "$TARGET_MANIFEST" | cut -f3)"; then
+      echo 'Rollback verification failed; restoring current version' >&2
+      apply_manifest "$VERSIONS_DIR/$CUR.tsv" || true
+      check_service "$(head -n 1 "$VERSIONS_DIR/$CUR.tsv" | cut -f3)" || true
+      exit 4
+    fi
+    if [[ -z "$SERVICE" ]]; then
+      printf '%s\n' "$PREV" > "$CURRENT"
+    fi
+    record_releases rollback "$TARGET_VER" "$TARGET_MANIFEST"
+    echo "ROLLED_BACK_TO=$TARGET_VER"
+    echo "VERIFIED_HEALTH=$VERIFIED_HEALTH"
+    print_manifest "$TARGET_MANIFEST"
+    "${DOCKER[@]}" ps
     ;;
 esac

@@ -17,18 +17,33 @@ APPROVAL=${5:-}
 usage() {
   echo 'Usage: deploy.sh deploy dev|prod APP IMAGE [--approve-prod]' >&2
   echo '       deploy.sh status dev|prod APP' >&2
-  echo '       deploy.sh rollback dev|prod APP [--approve-prod]' >&2
+  echo '       deploy.sh rollback dev|prod APP [--approve-prod] [--service NAME]' >&2
   exit 2
 }
 
 [[ "$ACTION" =~ ^(deploy|status|rollback)$ ]] || usage
 [[ "$ENV" =~ ^(dev|prod)$ ]] || usage
 [[ "$APP" =~ ^[a-z][a-z0-9_-]{0,62}$ ]] || { echo 'APP must be lowercase letters/digits/hyphens/underscores' >&2; exit 2; }
+SERVICE=''
 if [[ "$ACTION" == deploy ]]; then
   [[ "$IMAGE" =~ ^[a-zA-Z0-9][a-zA-Z0-9._:/@-]{0,199}$ ]] || { echo 'Unsafe or empty image ref' >&2; exit 2; }
 fi
+if [[ "$ACTION" == rollback ]]; then
+  shift 3
+  while (($#)); do
+    case "$1" in
+      --approve-prod) APPROVAL=--approve-prod ;;
+      --service)
+        shift
+        SERVICE=${1:-}
+        [[ -n "$SERVICE" ]] || { echo '--service requires a service name' >&2; exit 2; }
+        ;;
+      *) echo "Unknown rollback argument: $1" >&2; exit 2 ;;
+    esac
+    shift
+  done
+fi
 if [[ "$ENV" == prod && "$ACTION" != status ]]; then
-  if [[ "$ACTION" == rollback ]]; then APPROVAL=${4:-}; fi
   [[ "$APPROVAL" == --approve-prod ]] || { echo 'Production mutation requires --approve-prod after explicit user authorization' >&2; exit 3; }
 fi
 
@@ -44,6 +59,19 @@ fi
 if [[ "$ACTION" == deploy && "$ENV" == prod && "$IMAGE" == *-dirty* ]]; then
   echo 'Refusing to deploy an image tagged from an uncommitted working tree to prod' >&2
   exit 3
+fi
+
+# 版本号在发布时生成:version_<UTC yyyyMMddHHmmSS>_<git sha 前12位>[-dirty]。
+# hash 锚发布时工作区 HEAD(发版基准点);非 Git 目录记 unversioned 且强制 -dirty,与镜像 Tag 同纪律。
+VERSION=''
+if [[ "$ACTION" == deploy ]]; then
+  GIT_SHA=$(git rev-parse --short=12 HEAD 2>/dev/null || echo unversioned)
+  if [[ "$GIT_SHA" == unversioned || -n "$(git status --porcelain 2>/dev/null)" ]]; then DIRTY=-dirty; else DIRTY=''; fi
+  VERSION="version_$(date -u +%Y%m%d%H%M%S)_${GIT_SHA}${DIRTY}"
+  if [[ "$ENV" == prod && "$DIRTY" == -dirty ]]; then
+    echo 'Refusing to deploy an uncommitted working tree version to prod' >&2
+    exit 3
+  fi
 fi
 
 # 部署目标一律经 SSH:dev 与 prod 各自必填,无本机缺省目标,不设宿主侧容器通道。
@@ -103,7 +131,7 @@ case "$ACTION" in
     project_checks
     env_checks
     bash "$SKILL_ROOT/scripts/deploy-preflight.sh" "$ENV" "$APP"
-    # 镜像分发不经宿主:目标机已有该镜像直接使用,缺失时经镜像仓库拉取;不构建,不从宿主直传镜像数据。
+    # 主镜像先行分发:目标机已有该镜像直接使用,缺失时经镜像仓库拉取;不构建,不从宿主直传镜像数据。
     if ! ssh_cli docker image inspect "$IMAGE" >/dev/null 2>&1; then
       echo "Image absent on target; pulling from registry: $IMAGE" >&2
       ssh_cli docker pull "$IMAGE" >/dev/null
@@ -111,7 +139,7 @@ case "$ACTION" in
     TARGET_ID=$(ssh_cli docker image inspect --format '{{.Id}}' "$IMAGE") || { echo "Image unavailable on target: $IMAGE" >&2; exit 3; }
     [[ "$TARGET_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo 'Target returned unexpected image ID' >&2; exit 3; }
     if [[ "$ENV" == prod && "${FF_REQUIRE_DEV_PROOF:-1}" == 1 ]]; then
-      # 晋级门禁在本机核对:dev 收据记录本机执行的验证,按目标机 Image ID 关联。
+      # 晋级门禁第一段(本机,上传前):主镜像按目标机 Image ID 核对本机 dev 收据。
       RECEIPT_FILE="$HOME/.mv/container-deploy/receipts/$APP/${TARGET_ID//:/-}"
       [[ -f "$RECEIPT_FILE" ]] || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
     fi
@@ -125,22 +153,50 @@ case "$ACTION" in
     scp "${SCP_OPTS[@]}" ".env.$ENV" "$SSH_DEST:.mv/container-deploy/$APP/.env.$ENV" >/dev/null
     # scp 落盘到 target-runner 收紧权限之间有窗口,立即按 600 收口。
     ssh "${SSH_OPTS[@]}" "$SSH_DEST" "chmod 600 '.mv/container-deploy/$APP/.env.$ENV'"
-    OUTPUT=$(ssh_cli bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh")
+    if [[ "$ENV" == prod && "${FF_REQUIRE_DEV_PROOF:-1}" == 1 ]]; then
+      # 晋级门禁第二段(本机,启动前):plan 取目标机完整镜像清单,逐镜像核对收据并拒绝 -dirty。
+      PLAN_OUTPUT=$(ssh_cli bash -s -- plan "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" '' '' < "$HERE/target-runner.sh")
+      while IFS= read -r gate_line; do
+        case "$gate_line" in
+          PLAN_LINE=*)
+            gate_row=${gate_line#PLAN_LINE=}
+            gate_img=$(printf '%s\n' "$gate_row" | cut -f1)
+            gate_id=$(printf '%s\n' "$gate_row" | cut -f2)
+            if [[ "$gate_img" == *-dirty* ]]; then
+              echo "Refusing to deploy an image tagged from an uncommitted working tree to prod: $gate_img" >&2
+              exit 3
+            fi
+            gate_receipt="$HOME/.mv/container-deploy/receipts/$APP/${gate_id//:/-}"
+            [[ -f "$gate_receipt" ]] || { echo "Image has no verified dev deployment receipt: $gate_img" >&2; exit 3; }
+            ;;
+        esac
+      done <<< "$PLAN_OUTPUT"
+    fi
+    OUTPUT=$(ssh_cli bash -s -- deploy "$ENV" "$APP" "$IMAGE" "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" "$VERSION" "$SERVICE" < "$HERE/target-runner.sh")
     printf '%s\n' "$OUTPUT"
     if [[ "$ENV" == dev && "$OUTPUT" == *"VERIFIED_HEALTH=strong"* ]]; then
+      # 版本级 dev 收据:清单里每个 Image ID 一条,晋级门禁按它逐镜像核对。
       # 文件名不沿用 Image ID 原文:sha256:xxx 的冒号在 Windows 是 NTFS 备用数据流语义,统一替换为连字符。
       RECEIPT_DIR="$HOME/.mv/container-deploy/receipts/$APP"
-      RECEIPT_FILE="$RECEIPT_DIR/${TARGET_ID//:/-}"
       mkdir -p "$RECEIPT_DIR"
       chmod 700 "$RECEIPT_DIR"
-      printf '%s\n' "$IMAGE" > "$RECEIPT_FILE"
-      chmod 600 "$RECEIPT_FILE"
-      echo "DEV_RECEIPT=$TARGET_ID"
+      printf '%s\n' "$OUTPUT" | while IFS= read -r receipt_line; do
+        case "$receipt_line" in
+          MANIFEST_LINE=*)
+            receipt_row=${receipt_line#MANIFEST_LINE=}
+            receipt_img=$(printf '%s\n' "$receipt_row" | cut -f2)
+            receipt_id=$(printf '%s\n' "$receipt_row" | cut -f3)
+            printf '%s\n' "$receipt_img" > "$RECEIPT_DIR/${receipt_id//:/-}"
+            chmod 600 "$RECEIPT_DIR/${receipt_id//:/-}"
+            ;;
+        esac
+      done
+      echo "DEV_RECEIPT=$VERSION"
     elif [[ "$ENV" == dev ]]; then
       echo 'No promotable dev receipt: set FF_HEALTH_URL to the readiness endpoint and redeploy' >&2
     fi
     ;;
   status|rollback)
-    ssh_cli bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" < "$HERE/target-runner.sh"
+    ssh_cli bash -s -- "$ACTION" "$ENV" "$APP" '' "${FF_HEALTH_URL:-}" "${FF_READY_TIMEOUT:-}" '' "$SERVICE" < "$HERE/target-runner.sh"
     ;;
 esac

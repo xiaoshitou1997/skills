@@ -32,6 +32,15 @@ DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 MOCK_ID = 'sha256:' + '0123456789abcdef' * 4
 
 
+def _bash_write(path, content):
+    # 本机 DLP 透明加密按写入进程封密:python(uv)写出的文件对其同链子进程
+    # (git-bash、git)只呈现密文,而 bash 写出的是全链明文。离线夹具会被被测
+    # 脚本经 bash/git 读取,一律经 bash 落盘;内容经环境变量传递,不落脚本文件。
+    subprocess.run([BASH, '-c', 'printf %s "$W" > "$P"', 'bash-write'],
+                   env={**os.environ, 'W': content, 'P': str(path)},
+                   check=True, capture_output=True)
+
+
 class WorkflowTests(unittest.TestCase):
     def test_detect_toolchain(self):
         with tempfile.TemporaryDirectory() as d:
@@ -144,9 +153,9 @@ class WorkflowTests(unittest.TestCase):
     def _offline_env(self, d):
         """All container/network commands terminate in local stubs, including SSH shell parsing."""
         self._repo(str(d))
-        (d / '.dockerignore').write_text('.env*\n.git\n', encoding='utf-8')
-        (d / '.env.dev').write_text('APP_ENV=dev\n', encoding='utf-8')
-        (d / 'compose.delivery.yml').write_text('services: {}\n', encoding='utf-8')
+        _bash_write(d / '.dockerignore', '.env*\n.git\n')
+        _bash_write(d / '.env.dev', 'APP_ENV=dev\n')
+        _bash_write(d / 'compose.delivery.yml', 'services: {}\n')
         bin_dir = d / 'bin'
         bin_dir.mkdir()
         scripts = {
@@ -165,9 +174,15 @@ case "$1 $2" in
   'image inspect')
     if [[ "$*" == *'IMAGE_ID='* ]]; then echo "IMAGE_ID=@MOCK_ID@"; else echo "@MOCK_ID@"; fi ;;
   'compose --env-file')
-    if [[ "${@: -2}" == 'ps -q' ]]; then echo fake-container; fi ;;
+    if [[ "${*: -3:2}" == 'ps -q' || "${*: -2}" == 'ps -q' ]]; then echo fake-container; fi
+    if [[ "${@: -2}" == 'config --images' ]]; then echo demo:release; fi
+    if [[ "${@: -3:2}" == 'ps --format' ]]; then printf 'app\tdemo:release\n'; fi ;;
   'inspect --format')
-    if [[ "$3" == *Health* ]]; then echo healthy; else echo running; fi ;;
+    if [[ "$3" == *Health* ]]; then echo healthy
+    elif [[ "$3" == *State.Status* ]]; then echo running
+    elif [[ "$3" == *Config.Image* ]]; then echo demo:release
+    elif [[ "$3" == *'.Id'* ]]; then echo "@MOCK_ID@"
+    else echo running; fi ;;
 esac
 """,
             # OpenSSH joins command arguments with spaces and sends the result to a login shell.
@@ -202,19 +217,25 @@ fi
         }
         for name, text in scripts.items():
             path = bin_dir / name
-            path.write_text(text.replace('@MOCK_ID@', MOCK_ID), encoding='utf-8', newline='\n')
+            _bash_write(path, text.replace('@MOCK_ID@', MOCK_ID))
             path.chmod(0o755)
         runtime = d / 'runtime'
         runtime.mkdir()
         app_dir = runtime / '.mv/container-deploy/demo'
         app_dir.mkdir(parents=True)
-        (app_dir / 'compose.yml').write_text('services: {}\n', encoding='utf-8')
-        (app_dir / '.env.dev').write_text('APP_ENV=dev\n', encoding='utf-8')
-        (app_dir / 'current-image').write_text('demo:current\n', encoding='utf-8')
-        (app_dir / 'previous-image').write_text('demo:previous\n', encoding='utf-8')
+        _bash_write(app_dir / 'compose.yml', 'services: {}\n')
+        _bash_write(app_dir / '.env.dev', 'APP_ENV=dev\n')
+        # 版本化状态源:current-version 指向已验证版本,versions/ 保留全部历史清单(service/image/imageID)。
+        versions = app_dir / 'versions'
+        versions.mkdir()
+        _bash_write(versions / 'version_20250101000000_aaaaaaaaaaaa.tsv',
+                    'app\tdemo:previous\t' + MOCK_ID + '\n')
+        _bash_write(versions / 'version_20250101000001_aaaaaaaaaaaa.tsv',
+                    'app\tdemo:current\t' + MOCK_ID + '\n')
+        _bash_write(app_dir / 'current-version', 'version_20250101000001_aaaaaaaaaaaa\n')
         # Force scanner discovery to report Trivy missing, independent of the host installation.
         bash_env = d / 'bash-env.sh'
-        bash_env.write_text(
+        _bash_write(bash_env,
             'export OFFLINE_BIN="$(cd -- "$OFFLINE_BIN" && pwd)"\n'
             'export PATH="$OFFLINE_BIN:$PATH"\n'
             'command() {\n'
@@ -230,7 +251,7 @@ fi
             'for offline_tool in docker ssh scp uname; do\n'
             '  resolved=$(type -P "$offline_tool")\n'
             '  [[ "$resolved" == "$OFFLINE_BIN/"* ]] || exit 90\n'
-            'done\n', encoding='utf-8')
+            'done\n')
         env = {k: v for k, v in os.environ.items() if not k.startswith('FF_')}
         env.update({
             'PATH': str(bin_dir) + os.pathsep + env['PATH'],
@@ -253,10 +274,10 @@ fi
 
     def _static_artifact(self, directory):
         directory.mkdir(parents=True)
-        (directory / 'index.html').write_bytes(b'<html>static delivery</html>\n')
-        (directory / '.asset.js').write_bytes(b'hidden asset\n')
+        _bash_write(directory / 'index.html', '<html>static delivery</html>\n')
+        _bash_write(directory / '.asset.js', 'hidden asset\n')
         (directory / 'assets').mkdir()
-        (directory / 'assets/main.js').write_bytes(b'console.log("ready");\n')
+        _bash_write(directory / 'assets/main.js', 'console.log("ready");\n')
 
     def _assert_static_context(self, log):
         self.assertIn('CONTEXT=app\n', log)
@@ -400,7 +421,7 @@ fi
             env.update(FF_DEV_SSH='tester@fakehost', FF_HEALTH_URL=health, FF_READY_TIMEOUT=ready)
             # An HTTP probe must also stay offline.
             curl = d / 'bin/curl'
-            curl.write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
+            _bash_write(curl, '#!/bin/sh\nexit 0\n')
             curl.chmod(0o755)
             output = ''
             for action in ('deploy', 'status', 'rollback'):
@@ -409,9 +430,15 @@ fi
                 self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
                 output += run.stderr
             lines = [line for line in output.splitlines() if line.startswith('runner\t')]
-            self.assertEqual(lines, [
-                '\t'.join(['runner', '-s', '--', action, 'dev', 'demo', image, health, ready])
-                for action, image in [('deploy', 'demo:release'), ('status', ''), ('rollback', '')]])
+            # deploy 的版本槽由脚本生成发布号,status/rollback 恒为空参数;其余槽位逐参数核对。
+            deploy_fields = lines[0].split('\t')
+            self.assertEqual(deploy_fields[:9],
+                             ['runner', '-s', '--', 'deploy', 'dev', 'demo', 'demo:release', health, ready])
+            self.assertRegex(deploy_fields[9], r'^version_[0-9]{14}_[0-9a-z]{1,40}(-dirty)?$')
+            self.assertEqual(deploy_fields[10], '')
+            self.assertEqual(lines[1:], [
+                '\t'.join(['runner', '-s', '--', 'status', 'dev', 'demo', '', health, ready, '', '']),
+                '\t'.join(['runner', '-s', '--', 'rollback', 'dev', 'demo', '', health, ready, '', ''])])
             self.assertIn('docker\timage\tinspect\t--format\t{{.Id}}\tdemo:release\n',
                           output)
 
@@ -432,12 +459,12 @@ fi
             env['FAKE_SSH_ABSENT_IMAGE'] = '1'
             env.update(FF_DEV_SSH='tester@fakehost', FF_HEALTH_URL='http://127.0.0.1:8080/health')
             curl = d / 'bin/curl'
-            curl.write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
+            _bash_write(curl, '#!/bin/sh\nexit 0\n')
             curl.chmod(0o755)
             run = self._workflow(DEPLOY, d, env, 'deploy', 'dev', 'demo', 'demo:release')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertIn('docker\tpull\tdemo:release\n', run.stderr)
-            self.assertIn(f'DEV_RECEIPT={MOCK_ID}', run.stdout)
+            self.assertRegex(run.stdout, 'DEV_RECEIPT=version_[0-9]{14}_[0-9a-z]{1,40}(-dirty)?')
 
     def test_dev_receipt_gates_prod_promotion(self):
         # dev 健康收据落本机 receipts/;prod 晋级按目标机 Image ID 核对本机收据,缺收据不上传不启动。
@@ -446,12 +473,18 @@ fi
             env = self._offline_env(d)
             env.update(FF_DEV_SSH='tester@fakedev', FF_HEALTH_URL='http://127.0.0.1:8080/health')
             curl = d / 'bin/curl'
-            curl.write_text('#!/bin/sh\nexit 0\n', encoding='utf-8')
+            _bash_write(curl, '#!/bin/sh\nexit 0\n')
             curl.chmod(0o755)
-            (d / '.env.prod').write_text('APP_ENV=prod\n', encoding='utf-8')
+            _bash_write(d / '.env.prod', 'APP_ENV=prod\n')
+            # 版本级发布号取工作区 HEAD 且 prod 拒绝 -dirty:预先落一个干净 Git 基线(忽略运行产物)。
+            _bash_write(d / '.gitignore', '*\n!.gitignore\n')
+            subprocess.run(['git', 'init', '-q'], cwd=d, check=True)
+            subprocess.run(['git', 'add', '-A'], cwd=d, check=True)
+            subprocess.run(['git', '-c', 'user.email=t@example.com', '-c', 'user.name=t',
+                            'commit', '-q', '--allow-empty', '-m', 'baseline'], cwd=d, check=True)
             run = self._workflow(DEPLOY, d, env, 'deploy', 'dev', 'demo', 'demo:release')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
-            self.assertIn(f'DEV_RECEIPT={MOCK_ID}', run.stdout)
+            self.assertRegex(run.stdout, 'DEV_RECEIPT=version_[0-9]{14}_[0-9a-f]{12}')
             # 收据文件由部署链路新写,本机可能被透明加密,只断言存在性。
             receipt = Path(env['HOME']) / '.mv/container-deploy/receipts/demo' / MOCK_ID.replace(':', '-')
             self.assertTrue(receipt.is_file(), 'dev 收据应落在本机 receipts 目录')
@@ -467,10 +500,26 @@ fi
                 fd = Path(fresh)
                 fresh_env = self._offline_env(fd)
                 fresh_env.update(FF_PROD_SSH='deployer@fakeprod')
-                (fd / '.env.prod').write_text('APP_ENV=prod\n', encoding='utf-8')
+                _bash_write(fd / '.env.prod', 'APP_ENV=prod\n')
+                # 干净基线让 -dirty 门禁放行,专测收据门禁。
+                _bash_write(fd / '.gitignore', '*\n!.gitignore\n')
+                subprocess.run(['git', 'init', '-q'], cwd=fd, check=True)
+                subprocess.run(['git', 'add', '-A'], cwd=fd, check=True)
+                subprocess.run(['git', '-c', 'user.email=t@example.com', '-c', 'user.name=t',
+                                'commit', '-q', '--allow-empty', '-m', 'baseline'], cwd=fd, check=True)
                 run = self._workflow(DEPLOY, fd, fresh_env, 'deploy', 'prod', 'demo', 'demo:release', '--approve-prod')
                 self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
                 self.assertIn('receipt', run.stderr)
+                self.assertNotIn('scp\t', run.stderr)
+            # 未提交工作区生成的版本号拒绝上 prod(版本级 -dirty 门禁)。
+            with tempfile.TemporaryDirectory() as raw:
+                rd = Path(raw)
+                renv = self._offline_env(rd)
+                renv.update(FF_PROD_SSH='deployer@fakeprod')
+                _bash_write(rd / '.env.prod', 'APP_ENV=prod\n')
+                run = self._workflow(DEPLOY, rd, renv, 'deploy', 'prod', 'demo', 'demo:release', '--approve-prod')
+                self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
+                self.assertIn('uncommitted working tree version', run.stderr)
                 self.assertNotIn('scp\t', run.stderr)
 
 
