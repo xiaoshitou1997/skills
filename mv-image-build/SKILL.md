@@ -1,6 +1,6 @@
 ---
 name: mv-image-build
-description: 宿主出包并在服务器构建容器镜像时使用本 skill：宿主只编译二进制包（Maven/Gradle/npm 按项目约定），包上传服务器后由服务器侧 docker build 出镜像；镜像定义与模块同源，各栈模块内自备 Dockerfile.delivery（Node 静态前端可用内置模板），Java 与非 Java 统一走「出包 → 上传 → 服务器构建」，构建点经 SSH 访问，无宿主侧特例。触发场景：打镜像、出镜像包、构建交付镜像、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。核心原则：宿主不安装 Docker、不执行镜像构建与容器操作；镜像构建点与部署目标同侧（单机即部署机，集群为镜像仓库所在节点）；包版本标识出包时生成、包与镜像同 Tag 一一对应，包版本管理在服务器侧；本 skill 只构建不运行——镜像验证与部署归 mv-container-deploy；包与镜像常驻不清理。本机直启调试归 mv-local-debug。
+description: 宿主出包并在服务器构建容器镜像时使用：打镜像、出镜像包、构建交付镜像、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。宿主只编译二进制包，镜像一律由服务器侧 docker build 产出，构建点经 SSH 访问。镜像验证与部署归 mv-container-deploy，本机直启调试归 mv-local-debug。
 ---
 
 # 镜像构建

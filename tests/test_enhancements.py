@@ -83,6 +83,13 @@ class EnhancementsTests(unittest.TestCase):
             (root/'.dockerignore').write_text('.env*\n.git\n')
             (root/'.env.prod').write_text('APP_ENV=prod\n')
             (root/'compose.delivery.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
+            # 干净 Git 基线:空提交给出真实 SHA;status 不计未跟踪文件,运行产物不致 dirty;
+            # .env* 始终未被跟踪,env_checks 才放行。不依赖 .gitignore——它经进程落盘会被
+            # 透明加密封密,git 读到密文后忽略规则失效。
+            subprocess.run(['git','init','-q'],cwd=root,check=True)
+            subprocess.run(['git','-c','user.email=t@example.com','-c','user.name=t',
+                            'commit','-q','--allow-empty','-m','baseline'],cwd=root,check=True)
+            subprocess.run(['git','config','status.showUntrackedFiles','no'],cwd=root,check=True)
             b=root/'bin'; b.mkdir()
             docker=b/'docker'
             docker.write_text('#!/bin/sh\nif [ "$1" = "image" ] && [ "$2" = "inspect" ]; then echo sha256:fakehash; fi\nif [ "$1" = "compose" ] && [ "$2" = "version" ]; then echo v2.0; fi\n')
@@ -124,22 +131,31 @@ class EnhancementsTests(unittest.TestCase):
 case "$1" in
   image) if [ "$2" = inspect ]; then echo sha256:mocked; fi ;;
   inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; esac ;;
-  compose) case "$*" in *'ps -q'*) echo mock-container;; *' ps'*) echo mock-container;; esac ;;
+  compose)
+    case "$*" in
+      *'ps -q'*) echo mock-container ;;
+      *'ps --format'*) printf 'app\tapi:one\n' ;;
+      *' ps'*) echo mock-container ;;
+    esac ;;
 esac
 ''')
             docker.chmod(0o755)
-            env=os.environ.copy()
-            env.update(HOME=d,PATH=str(b)+os.pathsep+env['PATH'])
-            first=exec_run(BASH,RUNNER,'deploy','dev','api','api:one','',cwd=d,env=env)
-            second=exec_run(BASH,RUNNER,'deploy','dev','api','api:two','',cwd=d,env=env)
+            env=stub_env(d,b,HOME=str(d))
+            first=exec_run(BASH,RUNNER,'deploy','dev','api','api:one','','','version_20260101000000_000000000001','',cwd=d,env=env)
+            second=exec_run(BASH,RUNNER,'deploy','dev','api','api:two','','','version_20260101000000_000000000002','',cwd=d,env=env)
             self.assertEqual(first.returncode,0,first.stderr)
             self.assertEqual(second.returncode,0,second.stderr)
-            # 收据文件由 target-runner.sh 写盘,部署了安全软件的机器上可能被透明加密密封;
-            # 行为验证已由 stdout 断言覆盖,文件状态断言只在干净机器执行。
-            if sealed(target/'current-image'):
-                self.skipTest('Security agent sealed the receipt files; state assertion needs a clean machine')
-            self.assertEqual((target/'current-image').read_text(encoding='utf-8').strip(),'api:two')
-            self.assertEqual((target/'previous-image').read_text(encoding='utf-8').strip(),'api:one')
+            self.assertIn('VERSION=version_20260101000000_000000000002',second.stdout)
+            # 运行状态源是版本清单:每次部署落一份 versions/<版本>.tsv,
+            # current-version 指向当前版本,发布记录逐版本追加。
+            versions=target/'versions'
+            manifest_file=versions/'version_20260101000000_000000000002.tsv'
+            if sealed(manifest_file):
+                self.skipTest('Security agent sealed the state files; state assertion needs a clean machine')
+            manifest=manifest_file.read_text(encoding='utf-8').splitlines()
+            self.assertEqual(len(manifest),1)
+            self.assertEqual(manifest[0].split('\t')[1],'api:two')
+            self.assertEqual((target/'current-version').read_text(encoding='utf-8').strip(),'version_20260101000000_000000000002')
             self.assertEqual(len((target/'releases.tsv').read_text(encoding='utf-8').splitlines()),2)
 
 
@@ -156,19 +172,19 @@ esac
 case "$1" in
   image) echo sha256:fake;;
   inspect) case "$*" in *State.Health*) echo none;; *State.Status*) echo running;; esac;;
-  compose) case "$*" in *'ps -q'*) echo mock;; esac;;
+  compose) case "$*" in *'ps -q'*) echo mock;; *'ps --format'*) printf 'app\tapi:one\n';; esac;;
 esac
 ''')
             docker.chmod(0o755)
-            env=os.environ.copy();env.update(HOME=d,PATH=str(binary)+os.pathsep+env['PATH'])
-            run=exec_run(BASH,RUNNER,'deploy','dev','api','api:one','',cwd=d,env=env)
+            env=stub_env(d,binary,HOME=str(d))
+            run=exec_run(BASH,RUNNER,'deploy','dev','api','api:one','','','version_20260101000000_0123456789ab','',cwd=d,env=env)
             self.assertEqual(run.returncode,0,run.stderr)
             self.assertIn('VERIFIED_HEALTH=running-only',run.stdout)
             if sealed(target/'releases.tsv'):
                 self.skipTest('Security agent sealed the receipt files; state assertion needs a clean machine')
             self.assertEqual((target/'releases.tsv').read_text(encoding='utf-8').strip().split('\t')[-1], 'running-only')
             (target/'.env.prod').write_text('APP_ENV=prod\n')
-            prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','',cwd=d,env=env)
+            prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','','','version_20260101000000_0123456789ab','',cwd=d,env=env)
             self.assertNotEqual(prod.returncode,0)
             self.assertIn('requires FF_HEALTH_URL', prod.stderr)
             if not sealed(target/'current-image'):
@@ -187,12 +203,12 @@ esac
 case "$1" in
   image) echo sha256:fake;;
   inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; esac;;
-  compose) case "$*" in *'ps -q'*) echo mock;; esac;;
+  compose) case "$*" in *'ps -q'*) echo mock;; *'ps --format'*) printf 'app\tapi:one\n';; esac;;
 esac
 ''')
             docker.chmod(0o755)
-            env=os.environ.copy();env.update(HOME=d,PATH=str(binary)+os.pathsep+env['PATH'])
-            run=exec_run(BASH,RUNNER,'deploy','dev','api','api:one','',cwd=d,env=env)
+            env=stub_env(d,binary,HOME=str(d))
+            run=exec_run(BASH,RUNNER,'deploy','dev','api','api:one','','','version_20260101000000_0123456789ab','',cwd=d,env=env)
             self.assertEqual(run.returncode,0,run.stderr)
             # 收据门禁只认 readiness(FF_HEALTH_URL):HEALTHCHECK 属 liveness 观测位。
             self.assertIn('VERIFIED_HEALTH=liveness-only',run.stdout)
@@ -203,7 +219,7 @@ esac
             receipts=target.parent/'receipts'/'api'
             self.assertFalse(receipts.exists() and any(receipts.iterdir()))
             (target/'.env.prod').write_text('APP_ENV=prod\n')
-            prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','',cwd=d,env=env)
+            prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','','','version_20260101000000_0123456789ab','',cwd=d,env=env)
             self.assertNotEqual(prod.returncode,0)
             self.assertIn('requires FF_HEALTH_URL', prod.stderr)
 
@@ -214,7 +230,11 @@ esac
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')
-            (target/'current-image').write_text('api:old\n')
+            # 新契约:回退目标是上一版本清单,current-version 指向当前版本。
+            versions=target/'versions'
+            versions.mkdir(parents=True)
+            (versions/'version_20260101000000_000000000001.tsv').write_text('app\tapi:old\tsha256:fake\n')
+            (target/'current-version').write_text('version_20260101000000_000000000001\n')
             binary=base/'bin';binary.mkdir()
             docker=binary/'docker'
             docker.write_text('''#!/bin/sh
@@ -225,16 +245,16 @@ case "$1" in
     case "$*" in
       *' up '* ) if [ "$FF_IMAGE" = api:bad ]; then exit 9; fi;;
       *'ps -q'*) echo mock;;
+      *'ps --format'*) printf 'app\\tapi:one\\n';;
     esac;;
 esac
 ''')
             docker.chmod(0o755)
-            env=os.environ.copy();env.update(HOME=d,PATH=str(binary)+os.pathsep+env['PATH'])
-            failed=exec_run(BASH,RUNNER,'deploy','dev','api','api:bad','',cwd=d,env=env)
+            env=stub_env(d,binary,HOME=str(d))
+            failed=exec_run(BASH,RUNNER,'deploy','dev','api','api:bad','','','version_20260101000000_0123456789ab','',cwd=d,env=env)
             self.assertNotEqual(failed.returncode,0)
-            self.assertIn('Trying application rollback',failed.stderr)
-            if not sealed(target/'current-image'):
-                self.assertEqual((target/'current-image').read_text(encoding='utf-8').strip(),'api:old')
+            # 启动失败时按上一版本清单回退整栈;数据库迁移不随回滚。
+            self.assertIn('Trying application rollback to version_20260101000000_000000000001',failed.stderr)
             self.assertFalse((target/'releases.tsv').exists())
 
 

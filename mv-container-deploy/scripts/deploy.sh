@@ -61,19 +61,6 @@ if [[ "$ACTION" == deploy && "$ENV" == prod && "$IMAGE" == *-dirty* ]]; then
   exit 3
 fi
 
-# 版本号在发布时生成:version_<UTC yyyyMMddHHmmSS>_<git sha 前12位>[-dirty]。
-# hash 锚发布时工作区 HEAD(发版基准点);非 Git 目录记 unversioned 且强制 -dirty,与镜像 Tag 同纪律。
-VERSION=''
-if [[ "$ACTION" == deploy ]]; then
-  GIT_SHA=$(git rev-parse --short=12 HEAD 2>/dev/null || echo unversioned)
-  if [[ "$GIT_SHA" == unversioned || -n "$(git status --porcelain 2>/dev/null)" ]]; then DIRTY=-dirty; else DIRTY=''; fi
-  VERSION="version_$(date -u +%Y%m%d%H%M%S)_${GIT_SHA}${DIRTY}"
-  if [[ "$ENV" == prod && "$DIRTY" == -dirty ]]; then
-    echo 'Refusing to deploy an uncommitted working tree version to prod' >&2
-    exit 3
-  fi
-fi
-
 # 部署目标一律经 SSH:dev 与 prod 各自必填,无本机缺省目标,不设宿主侧容器通道。
 if [[ "$ENV" == prod ]]; then
   SSH_DEST=${FF_PROD_SSH:-}
@@ -95,6 +82,19 @@ fi
 SSH_OPTS=(-o BatchMode=yes)
 SCP_OPTS=(-o BatchMode=yes)
 if [[ -n "$SSH_KEY" ]]; then SSH_OPTS+=(-i "$SSH_KEY"); SCP_OPTS+=(-i "$SSH_KEY"); fi
+
+# 版本号在发布时生成:version_<UTC yyyyMMddHHmmSS>_<git sha 前12位>[-dirty]。
+# hash 锚发布时工作区 HEAD(发版基准点);非 Git 目录记 unversioned 且强制 -dirty,与镜像 Tag 同纪律。
+VERSION=''
+if [[ "$ACTION" == deploy ]]; then
+  GIT_SHA=$(git rev-parse --short=12 HEAD 2>/dev/null || echo unversioned)
+  if [[ "$GIT_SHA" == unversioned || -n "$(git status --porcelain 2>/dev/null)" ]]; then DIRTY=-dirty; else DIRTY=''; fi
+  VERSION="version_$(date -u +%Y%m%d%H%M%S)_${GIT_SHA}${DIRTY}"
+  if [[ "$ENV" == prod && "$DIRTY" == -dirty ]]; then
+    echo 'Refusing to deploy an uncommitted working tree version to prod' >&2
+    exit 3
+  fi
+fi
 
 project_checks() {
   [[ -f .dockerignore ]] || { echo 'Missing .dockerignore; refuse sending unsanitized Docker build context' >&2; exit 3; }

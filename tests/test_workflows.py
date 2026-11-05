@@ -197,6 +197,10 @@ fi
 cd "$FAKE_RUNTIME_ROOT"
 exec "$REAL_BASH" -c "$*"
 """,
+            'curl': r"""#!/bin/bash
+{ printf curl; printf '\t%s' "$@"; printf '\n'; } >&2
+exit 0
+""",
             'scp': r"""#!/bin/bash
 { printf scp; printf '\t%s' "$@"; printf '\n'; } >&2
 src=''; dest=''
@@ -248,7 +252,7 @@ fi
             '  fi\n'
             '  "$REAL_BASH" "$@"\n'
             '}\n'
-            'for offline_tool in docker ssh scp uname; do\n'
+            'for offline_tool in docker ssh scp uname curl; do\n'
             '  resolved=$(type -P "$offline_tool")\n'
             '  [[ "$resolved" == "$OFFLINE_BIN/"* ]] || exit 90\n'
             'done\n')
@@ -419,10 +423,7 @@ fi
             d = Path(directory)
             env = self._offline_env(d)
             env.update(FF_DEV_SSH='tester@fakehost', FF_HEALTH_URL=health, FF_READY_TIMEOUT=ready)
-            # An HTTP probe must also stay offline.
-            curl = d / 'bin/curl'
-            _bash_write(curl, '#!/bin/sh\nexit 0\n')
-            curl.chmod(0o755)
+            # HTTP 探活走离线环境自带的 curl 桩（_offline_env 建，且被离线自检清单覆盖）。
             output = ''
             for action in ('deploy', 'status', 'rollback'):
                 args = [action, 'dev', 'demo'] + (['demo:release'] if action == 'deploy' else [])
@@ -458,9 +459,6 @@ fi
             env = self._offline_env(d)
             env['FAKE_SSH_ABSENT_IMAGE'] = '1'
             env.update(FF_DEV_SSH='tester@fakehost', FF_HEALTH_URL='http://127.0.0.1:8080/health')
-            curl = d / 'bin/curl'
-            _bash_write(curl, '#!/bin/sh\nexit 0\n')
-            curl.chmod(0o755)
             run = self._workflow(DEPLOY, d, env, 'deploy', 'dev', 'demo', 'demo:release')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertIn('docker\tpull\tdemo:release\n', run.stderr)
@@ -472,16 +470,16 @@ fi
             d = Path(directory)
             env = self._offline_env(d)
             env.update(FF_DEV_SSH='tester@fakedev', FF_HEALTH_URL='http://127.0.0.1:8080/health')
-            curl = d / 'bin/curl'
-            _bash_write(curl, '#!/bin/sh\nexit 0\n')
-            curl.chmod(0o755)
             _bash_write(d / '.env.prod', 'APP_ENV=prod\n')
-            # 版本级发布号取工作区 HEAD 且 prod 拒绝 -dirty:预先落一个干净 Git 基线(忽略运行产物)。
-            _bash_write(d / '.gitignore', '*\n!.gitignore\n')
+            # 工作区须全干净才能出非 -dirty 版本号：.env* 与运行产物全部忽略，
+            # 只把 .gitignore 提交为基线。
+            # 干净 Git 基线：空提交给出真实 SHA；status 不计未跟踪文件，
+            # 运行产物不致 dirty；.env* 始终未被跟踪，env_checks 才放行。
+            # 不依赖 .gitignore——它经 bash 落盘会被透明加密封密，git 读不到规则。
             subprocess.run(['git', 'init', '-q'], cwd=d, check=True)
-            subprocess.run(['git', 'add', '-A'], cwd=d, check=True)
             subprocess.run(['git', '-c', 'user.email=t@example.com', '-c', 'user.name=t',
                             'commit', '-q', '--allow-empty', '-m', 'baseline'], cwd=d, check=True)
+            subprocess.run(['git', 'config', 'status.showUntrackedFiles', 'no'], cwd=d, check=True)
             run = self._workflow(DEPLOY, d, env, 'deploy', 'dev', 'demo', 'demo:release')
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertRegex(run.stdout, 'DEV_RECEIPT=version_[0-9]{14}_[0-9a-f]{12}')
@@ -502,11 +500,13 @@ fi
                 fresh_env.update(FF_PROD_SSH='deployer@fakeprod')
                 _bash_write(fd / '.env.prod', 'APP_ENV=prod\n')
                 # 干净基线让 -dirty 门禁放行,专测收据门禁。
-                _bash_write(fd / '.gitignore', '*\n!.gitignore\n')
+                # 干净 Git 基线：空提交给出真实 SHA；status 不计未跟踪文件，
+                # 运行产物不致 dirty；.env* 始终未被跟踪，env_checks 才放行。
+                # 不依赖 .gitignore——它经 bash 落盘会被透明加密封密，git 读不到规则。
                 subprocess.run(['git', 'init', '-q'], cwd=fd, check=True)
-                subprocess.run(['git', 'add', '-A'], cwd=fd, check=True)
                 subprocess.run(['git', '-c', 'user.email=t@example.com', '-c', 'user.name=t',
                                 'commit', '-q', '--allow-empty', '-m', 'baseline'], cwd=fd, check=True)
+                subprocess.run(['git', 'config', 'status.showUntrackedFiles', 'no'], cwd=fd, check=True)
                 run = self._workflow(DEPLOY, fd, fresh_env, 'deploy', 'prod', 'demo', 'demo:release', '--approve-prod')
                 self.assertEqual(run.returncode, 3, run.stdout + run.stderr)
                 self.assertIn('receipt', run.stderr)
