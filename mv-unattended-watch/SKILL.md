@@ -54,7 +54,7 @@ description: 用户明确宣布离场并把后续事务全权交给 AI 时使用
 1. 不调用 AskUserQuestion；看到 Hook 注入的值守提醒按提醒执行，未看到提醒但 `gate.py status` 显示生效中时同样执行。
 2. 每项重要决策（方案选择、跳过的步骤、执行的写操作）追加一行到决策日志：`时间 | 决策 | 理由 | 可逆性 | 证据`，证据为命令、路径或输出摘要。
 3. 可逆的本地操作直接执行；不可逆/对外操作在 `boundaries.irreversible` 为 `defer` 时一律挂起：登记到日志「待确认」清单，继续其余工作，不空转等待；为 `allowed`（用户显式授权）时执行且必须留日志。
-4. 不降低各领域 skill 的既有红线：提交发布走 mv-git-publisher（先 pull、线性历史、AI 署名），出包打镜像走 mv-image-build、宿主直启调试走 mv-local-debug、部署晋级走 mv-container-deploy；无人值守不豁免任何「不可违反的原则」。
+4. 不降低各领域 skill 的既有红线：提交发布走 mv-git-publisher（先 pull、单 worktree 原子提交、线性历史、AI 署名），出包打镜像走 mv-image-build、宿主直启调试走 mv-local-debug、部署晋级走 mv-container-deploy；无人值守不豁免任何「不可违反的原则」。
 5. 遇到必须用户裁决且无最优解的情况（如 Git 冲突无法取舍），停止该事务、登记待确认，转向其余任务。
 
 ## 解除流程

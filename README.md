@@ -27,7 +27,7 @@
 
 把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 
-这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为 commit、push 前都先 pull 并解决冲突，保持线性历史、禁止 merge commit。
+这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则为默认发布序列走一颗 worktree（主树 `pull --rebase` → 显式路径原子 commit → push，树脏时在主树原地用 plumbing 临时索引），commit、push 前都先 pull 并解决冲突，保持线性历史、禁止 merge commit。
 
 ## 维护原则
 
