@@ -16,7 +16,7 @@ SKILLS = {
     'mv-container-deploy',
     'mv-git-publisher',
     'mv-java-backend-standards',
-    'mv-tech-stack-standards',
+    'mv-tech-stack-baseline',
     'mv-engineering-doc-writer',
     'mv-doc-figure-placement',
     'mv-diagram-drafter',

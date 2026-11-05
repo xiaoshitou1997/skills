@@ -14,7 +14,7 @@
 | `mv-container-deploy` | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
-| `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
+| `mv-tech-stack-baseline` | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `mv-doc-figure-placement` | 为 Markdown、Word、PPT 插入/替换配图并核验成品；图源与成品图由 mv-diagram-drafter 制备 |
 | `mv-diagram-drafter` | 绘制架构图、组网图与时序/流程等结构图：可编辑图源加本地渲染成品，图本身即交付物 |

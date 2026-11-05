@@ -1,6 +1,6 @@
 ---
 name: mv-toolchain-manager
-description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 工具链；按项目声明准备便携工具并只在当前会话激活。适用于缺少工具、Java class version 不匹配、EBADENGINE、Python 版本不符和明确的运行时版本请求；技术栈版本基线归 mv-tech-stack-standards，镜像构建本身归 mv-image-build。
+description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 工具链；按项目声明准备便携工具并只在当前会话激活。适用于缺少工具、Java class version 不匹配、EBADENGINE、Python 版本不符和明确的运行时版本请求；技术栈版本基线归 mv-tech-stack-baseline，镜像构建本身归 mv-image-build。
 ---
 
 # 工具链管理
