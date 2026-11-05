@@ -1,3 +1,0 @@
-interface:
-  display_name: "Unattended Watch"
-  short_description: "离场且全权委托后激活，回归或取消时解除；Hook 仅适用于 Claude Code。"

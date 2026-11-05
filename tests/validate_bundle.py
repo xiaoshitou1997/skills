@@ -17,13 +17,9 @@ SKILLS = {
     'mv-git-publisher',
     'mv-java-backend-standards',
     'mv-tech-stack-standards',
-    'mv-ui-style',
     'mv-engineering-doc-writer',
     'mv-doc-figure-placement',
     'mv-diagram-drafter',
-    'mv-unattended-watch',
-    'mv-business-use-case-modeler',
-    'mv-nfr-intake',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;

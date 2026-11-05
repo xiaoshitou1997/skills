@@ -1,7 +1,7 @@
 ---
 name: mv-engineering-doc-writer
 description: >-
-  编写、重写、评审和规范化软件工程文档时使用，覆盖 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产升级/部署 MOP（Method of Procedure）、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节等工程产物。需要产出可独立阅读、可评审、可实施、可运维、可归档的文档时适用；文档需要配图时由本 skill 编排内容与图文事实。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节，术语与决策全程一致；除非用户明确要求其他格式，默认产出仓库友好的 Markdown。提交信息、PR 描述等 Git 短文本归 mv-git-publisher，业务代码实现归 mv-java-backend-standards，非工程类文稿不适用。
+  编写、重写、评审和规范化软件工程文档时使用：写或改 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产变更 MOP、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节，需要产出可独立阅读、可评审、可实施、可运维、可归档的文档时适用。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节，术语与决策全程一致；默认产出仓库友好的 Markdown。提交信息、PR 描述等 Git 短文本归 mv-git-publisher，业务代码实现归 mv-java-backend-standards。
 ---
 
 # 工程文档写作
@@ -119,7 +119,7 @@ description: >-
 
 ## 产物组合
 
-用户明确要求 DOCX、PDF、幻灯片等渲染产物时，先用本 skill 确定内容与结构，再用相应的能力生成目标文件格式。写文档需要配图时，本 skill 编排内容并核对图文事实：绘图（可编辑图源与渲染成品）归 mv-diagram-drafter，插图、换图与文档内核验归 mv-doc-figure-placement；Markdown 正文中的内联 Mermaid 块属于正文写作，由本 skill 直接撰写。上游业务用例建模（端到端业务流程、规则与验证场景）归 mv-business-use-case-modeler，其落盘文档可作为 PRD/HLD 的业务输入。
+用户明确要求 DOCX、PDF、幻灯片等渲染产物时，先用本 skill 确定内容与结构，再用相应的能力生成目标文件格式。写文档需要配图时，本 skill 编排内容并核对图文事实：绘图（可编辑图源与渲染成品）归 mv-diagram-drafter，插图、换图与文档内核验归 mv-doc-figure-placement；Markdown 正文中的内联 Mermaid 块属于正文写作，由本 skill 直接撰写。上游业务梳理（端到端业务流程、规则与验证场景）由用户提供的材料承担，材料缺失处按 `TBD` 与 `Open Question` 标注，不自行编造业务流程。
 
 ## 参考
 

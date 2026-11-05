@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、非功能性需求采集、业务用例建模、编码规范、技术栈约定、界面风格设计语言、工程文档写作、工程制图与文档插图、离场无人值守的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、编码规范、技术栈约定、工程文档写作、工程制图与文档插图的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 十四个 skills
+## 十个 skills
 
 | Skill | 范围 |
 | --- | --- |
@@ -13,15 +13,11 @@
 | `mv-image-build` | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
-| `mv-nfr-intake` | 开工前采集确认规模/网络/部署等非功能性需求并落盘项目画像 |
-| `mv-business-use-case-modeler` | 从描述、文档或代码建模端到端业务用例：用例目录、生命周期与异常、E2E 测试场景与覆盖矩阵落盘 docs/business-use-cases/ |
 | `mv-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
 | `mv-tech-stack-standards` | 技术栈选型、版本基线、依赖引入与升级决策 |
-| `mv-ui-style` | 家族界面风格：全家族一套 tokens 与一套 logo 语言（结构+配色固定，对齐大厂公司级设计系统做法），建档推导并校验对比度与原创性 |
 | `mv-engineering-doc-writer` | PRD/HLD/LLD/RFC/API 文档与生产 MOP 的编写、重写和评审 |
 | `mv-doc-figure-placement` | 为 Markdown、Word、PPT 插入/替换配图并核验成品；图源与成品图由 mv-diagram-drafter 制备 |
 | `mv-diagram-drafter` | 绘制架构图、组网图与时序/流程等结构图：可编辑图源加本地渲染成品，图本身即交付物 |
-| `mv-unattended-watch` | 离场且全权委托时激活、回归或取消时解除；Claude Code 值守 Hook、保守决策与日志，其他 agent 降级为当前上下文模式 |
 
 命名规范：统一采用 `mv-` + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关），对象与职责词的选定走两步法与四条检查。职责词按技能的主体职责选定，与 description 和正文一致。具体规则见 [仓库结构规则](docs/structure-rules.md)。
 
@@ -80,10 +76,10 @@ FF_DEV_SSH=devops@dev.example.com bash "$SKILL_ROOT/scripts/deploy.sh" status de
 
 Docker/Compose 只在服务器侧，宿主不安装 Docker；部署目标一律经 SSH 交付。生产部署和回滚需要明确的用户请求与目标配置；`--approve-prod` 是脚本保护，不是授权证明。默认生产晋级要求同一镜像 ID 的 dev 健康验证收据。运行状态与发布历史保存在目标服务器侧 `~/.mv/` 下（包与构建记录 `~/.mv/image-build/`；发布历史 `~/.mv/container-deploy/`），dev 健康验证收据保存在执行部署的本机 `~/.mv/container-deploy/receipts/`。应用回滚不回滚数据库迁移或外部副作用。
 
-Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook；唯一例外是 mv-unattended-watch 的值守 Hook，由用户显式运行 `mv-unattended-watch/scripts/install_hooks.py` 安装到用户级 settings.json（`--remove` 可卸载；未安装或未正常运行时该 skill 仅在当前上下文内有效）。值守 Hook 机制依赖 Claude Code 的 Hook 事件（UserPromptSubmit/SessionStart/PreToolUse）与 `~/.claude/settings.json`，仅 Claude Code 上可安装；分发到其他 agent 时无法安装 Hook，该 skill 自动降级为仅当前上下文有效的值守模式。
+Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称扫描通过。`FF_REQUIRE_SECURITY_SCAN=1` 要求对应扫描器。本仓库分发不自动安装命令 Hook。团队控制由 agent 权限、项目 Hook、仓库分支保护和 CI 落实，skill 指令本身不是强制执行机制。
 
 ## 验证
 
-分发前运行 `python3 tests/validate_bundle.py`，检查十四个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
+分发前运行 `python3 tests/validate_bundle.py`，检查十个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
 
 description 路由用 `python3 tests/run_trigger_evals.py [skill]` 在临时 HOME/配置与仅含候选工作区 skills 的隔离环境评测，记录候选内容 SHA-256；不加载用户已安装 skills、Hook、MCP，仅允许 Skill 工具。合理的多 skill 协作按职责与用例判定，不因多个 skill 同时触发而告警。CLI 或隔离所需凭据缺失时明确 SKIP，人工核对不等于真实路由通过；详见 [触发契约评测](docs/structure-rules.md#触发契约评测)。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。

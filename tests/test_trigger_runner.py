@@ -30,7 +30,7 @@ class TriggerRunnerTests(unittest.TestCase):
         self.assertEqual(runner.verdict(case, ['mv-image-build', 'mv-container-deploy'])[0], 'PASS')
         self.assertEqual(runner.verdict(case, ['mv-container-deploy'])[0], 'FAIL')
         self.assertEqual(runner.verdict({'skill': 'mv-java-backend-standards', 'kind': 'positive'},
-                                        ['mv-nfr-intake', 'mv-java-backend-standards'])[0], 'PASS')
+                                        ['mv-toolchain-manager', 'mv-java-backend-standards'])[0], 'PASS')
 
     def test_environment_drops_host_modes_and_preserves_environment_auth(self):
         with patch.dict(os.environ, {'CLAUDECODE': '1', 'CLAUDE_CODE_PLUGIN_DIRS': '/old',

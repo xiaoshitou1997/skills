@@ -59,7 +59,7 @@
 ## 运行时目录
 
 - 本仓库 skills 的运行时状态根为 `~/.mv/`，子目录为 skill 目录名去掉 `mv-` 前缀（如 `mv-toolchain-manager` → `~/.mv/toolchain-manager/`）；根承载来源标识，与 `mv-` 前缀同构，整个 `~/.mv/` 可整体重置。
-- 目录路径常量必须有环境变量覆盖，命名统一 `MV_<子目录名大写、连字符转下划线>_HOME`（如 `MV_TOOLCHAIN_MANAGER_HOME`、`MV_UNATTENDED_WATCH_HOME`），供测试与隔离使用；该覆盖适用于状态落在本机（执行 skill 的机器）的场景。状态落在目标机（统一经 SSH 访问）时路径相对目标用户 HOME 解析，测试隔离经 `HOME` 重定向与 stub 实现，不另设覆盖变量。
+- 目录路径常量必须有环境变量覆盖，命名统一 `MV_<子目录名大写、连字符转下划线>_HOME`（如 `MV_TOOLCHAIN_MANAGER_HOME`），供测试与隔离使用；该覆盖适用于状态落在本机（执行 skill 的机器）的场景。状态落在目标机（统一经 SSH 访问）时路径相对目标用户 HOME 解析，测试隔离经 `HOME` 重定向与 stub 实现，不另设覆盖变量。
 - 状态不写入其他 skill 的子目录；跨 skill 依赖走产物与收据文件，不共享运行时目录。
 - 各 skill 的落点在本 skill 文档中写明，与脚本常量同源；执行侧本机与远端目标机写入同一 `~/.mv/<name>` 路径。
 - `~/.claude` 与 XDG 目录不是本仓库 skills 的状态落点；宿主自身的配置文件（如 `~/.claude/settings.json`）不受此条约束。
