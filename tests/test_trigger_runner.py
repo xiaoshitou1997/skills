@@ -10,7 +10,7 @@ from unittest.mock import patch
 import run_trigger_evals as runner
 
 
-def events(skill='mv-local-debug', plugins=None, result=True):
+def events(skill='mv-code-local-debug', plugins=None, result=True):
     output = [json.dumps({'type': 'system', 'subtype': 'init', 'tools': ['Skill'], 'plugins': plugins or [], 'mcp_servers': []})]
     output.append(json.dumps({'type': 'assistant', 'message': {'content': [
         {'type': 'tool_use', 'name': 'Skill', 'input': {'skill': skill}},
@@ -22,15 +22,15 @@ def events(skill='mv-local-debug', plugins=None, result=True):
 
 class TriggerRunnerTests(unittest.TestCase):
     def test_plugin_identity_is_not_stripped(self):
-        self.assertEqual(runner.skill_invocations(events('old:mv-local-debug')), ['old:mv-local-debug'])
-        self.assertEqual(runner.verdict({'skill': 'mv-local-debug', 'kind': 'positive'}, ['old:mv-local-debug'])[0], 'FAIL')
+        self.assertEqual(runner.skill_invocations(events('old:mv-code-local-debug')), ['old:mv-code-local-debug'])
+        self.assertEqual(runner.verdict({'skill': 'mv-code-local-debug', 'kind': 'positive'}, ['old:mv-code-local-debug'])[0], 'FAIL')
 
     def test_cooperation_and_required_set(self):
-        case = {'skill': 'mv-container-deploy', 'kind': 'positive', 'required': ['mv-image-build']}
-        self.assertEqual(runner.verdict(case, ['mv-image-build', 'mv-container-deploy'])[0], 'PASS')
-        self.assertEqual(runner.verdict(case, ['mv-container-deploy'])[0], 'FAIL')
-        self.assertEqual(runner.verdict({'skill': 'mv-java-backend-standards', 'kind': 'positive'},
-                                        ['mv-toolchain-manager', 'mv-java-backend-standards'])[0], 'PASS')
+        case = {'skill': 'mv-deploy-container-delivery', 'kind': 'positive', 'required': ['mv-build-image-builder']}
+        self.assertEqual(runner.verdict(case, ['mv-build-image-builder', 'mv-deploy-container-delivery'])[0], 'PASS')
+        self.assertEqual(runner.verdict(case, ['mv-deploy-container-delivery'])[0], 'FAIL')
+        self.assertEqual(runner.verdict({'skill': 'mv-code-java-backend-standards', 'kind': 'positive'},
+                                        ['mv-toolchain-manager', 'mv-code-java-backend-standards'])[0], 'PASS')
 
     def test_environment_drops_host_modes_and_preserves_environment_auth(self):
         with patch.dict(os.environ, {'CLAUDECODE': '1', 'CLAUDE_CODE_PLUGIN_DIRS': '/old',
@@ -55,7 +55,7 @@ class TriggerRunnerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source, snapshot, hashes = self.prepare(root)
-            (source / 'mv-local-debug/SKILL.md').write_text('later change', encoding='utf-8')
+            (source / 'mv-code-local-debug/SKILL.md').write_text('later change', encoding='utf-8')
 
             def fake_run(command, **kwargs):
                 project = kwargs['cwd']
@@ -68,11 +68,11 @@ class TriggerRunnerTests(unittest.TestCase):
                 self.assertTrue(settings['disableSkillShellExecution'])
                 self.assertTrue(settings['disableBundledSkills'])
                 self.assertEqual(json.loads(Path(command[command.index('--mcp-config') + 1]).read_text()), {'mcpServers': {}})
-                self.assertNotEqual((project / '.claude/skills/mv-local-debug/SKILL.md').read_text(encoding='utf-8'), 'later change')
+                self.assertNotEqual((project / '.claude/skills/mv-code-local-debug/SKILL.md').read_text(encoding='utf-8'), 'later change')
                 return subprocess.CompletedProcess(command, 0, events(), '')
 
             with patch.object(runner.subprocess, 'run', side_effect=fake_run):
-                self.assertEqual(runner.run_case('claude', '自然请求', snapshot, hashes), ['mv-local-debug'])
+                self.assertEqual(runner.run_case('claude', '自然请求', snapshot, hashes), ['mv-code-local-debug'])
 
     def test_invalid_session_cannot_pass_as_no_trigger(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -80,7 +80,7 @@ class TriggerRunnerTests(unittest.TestCase):
             failed_load = events() + '\n' + json.dumps({'type': 'user', 'message': {'content': [
                 {'type': 'tool_result', 'is_error': True, 'content': 'skill not found'},
             ]}})
-            for output in (events('old:mv-local-debug'), events(plugins=[{'name': 'old'}]), events(result=False), failed_load, ''):
+            for output in (events('old:mv-code-local-debug'), events(plugins=[{'name': 'old'}]), events(result=False), failed_load, ''):
                 with self.subTest(output=output), patch.object(runner.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, output, '')):
                     with self.assertRaises(RuntimeError):
                         runner.run_case('claude', '请求', snapshot, hashes)
@@ -90,7 +90,7 @@ class TriggerRunnerTests(unittest.TestCase):
             _, snapshot, hashes = self.prepare(Path(directory))
 
             def mutate(command, **kwargs):
-                (kwargs['cwd'] / '.claude/skills/mv-local-debug/SKILL.md').write_text('changed', encoding='utf-8')
+                (kwargs['cwd'] / '.claude/skills/mv-code-local-debug/SKILL.md').write_text('changed', encoding='utf-8')
                 return subprocess.CompletedProcess(command, 0, events(), '')
 
             with patch.object(runner.subprocess, 'run', side_effect=mutate):

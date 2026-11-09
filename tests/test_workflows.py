@@ -26,8 +26,8 @@ if not Path(BASH).exists():
     BASH = shutil.which('bash') or 'bash'
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
-IMAGE_BUILD = (ROOT / 'mv-image-build/scripts/image-build.sh').as_posix()
-DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
+IMAGE_BUILD = (ROOT / 'mv-build-image-builder/scripts/image-build.sh').as_posix()
+DEPLOY = (ROOT / 'mv-deploy-container-delivery/scripts/deploy.sh').as_posix()
 # 假 docker/假 ssh 返回的固定镜像 ID:满足 deploy.sh 对 sha256:<64 位十六进制> 的校验。
 MOCK_ID = 'sha256:' + '0123456789abcdef' * 4
 

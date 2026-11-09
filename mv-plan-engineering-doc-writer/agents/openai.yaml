@@ -1,0 +1,3 @@
+interface:
+  display_name: "Engineering Doc Writer"
+  short_description: "工程文档写作/评审与制图插图编排：PRD/HLD/MOP 等文档，架构/组网/时序等图件，Markdown/Word/PPT 插图与图文核验。"

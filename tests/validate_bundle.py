@@ -11,29 +11,27 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(sys.argv[1]).expanduser().resolve() if __name__ == '__main__' and len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SKILLS = {
     'mv-toolchain-manager',
-    'mv-image-build',
-    'mv-local-debug',
-    'mv-container-deploy',
     'mv-git-publisher',
-    'mv-java-backend-standards',
-    'mv-tech-stack-baseline',
-    'mv-engineering-doc-writer',
-    'mv-doc-figure-placement',
-    'mv-diagram-drafter',
+    'mv-plan-engineering-doc-writer',
+    'mv-plan-tech-stack-baseline',
+    'mv-code-java-backend-standards',
+    'mv-code-local-debug',
+    'mv-build-image-builder',
+    'mv-deploy-container-delivery',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
     ['mv-toolchain-manager/scripts/doctor.py',
-     'mv-local-debug/scripts/doctor.py'],
+     'mv-code-local-debug/scripts/doctor.py'],
     ['mv-git-publisher/scripts/quality-check.sh',
-     'mv-image-build/scripts/quality-check.sh',
-     'mv-java-backend-standards/scripts/quality-check.sh'],
+     'mv-build-image-builder/scripts/quality-check.sh',
+     'mv-code-java-backend-standards/scripts/quality-check.sh'],
     ['mv-git-publisher/scripts/security-scan.sh',
-     'mv-image-build/scripts/security-scan.sh'],
-    ['mv-image-build/templates/compose.delivery.yml',
-     'mv-container-deploy/templates/compose.delivery.yml'],
+     'mv-build-image-builder/scripts/security-scan.sh'],
+    ['mv-build-image-builder/templates/compose.delivery.yml',
+     'mv-deploy-container-delivery/templates/compose.delivery.yml'],
 ]
 
 
@@ -148,7 +146,7 @@ def local_link_errors(path, data, root):
 def cross_reference_errors(root, skills):
     """Resolve plain-text mv-* mentions against shipped skills.
 
-    Boundary sentences such as 「X 归 mv-diagram-drafter」 are prose, not
+    Boundary sentences such as 「X 归 mv-deploy-container-delivery」 are prose, not
     Markdown links, so the link check never sees them; checking them here
     surfaces rename drift at validate time. docs/ stays out of scope: the
     conventions document holds abstract placeholders such as mv-Y.

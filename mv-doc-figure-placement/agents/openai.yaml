@@ -1,3 +1,0 @@
-interface:
-  display_name: "Doc Figure Placement"
-  short_description: "为 Markdown、Word 与 PPT 插入或替换配图，并核验成品。"
