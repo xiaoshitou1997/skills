@@ -14,7 +14,7 @@ description: 宿主出包并在服务器构建容器镜像时使用：打镜像�
 | 镜像构建 | 服务器 | 按模块内 `Dockerfile.delivery` 执行 `docker build`，输出 `IMAGE=` 与 `IMAGE_ID=` |
 
 - 构建点与部署目标同侧：单机部署为部署机自身；集群部署为镜像仓库所在节点，其余节点经镜像仓库分发。
-- 构建点统一经 SSH 通道访问（`FF_BUILD_TARGET=user@host`），开发服务器与生产服务器同一待遇；不设宿主侧容器构建或载入通道，宿主不安装 Docker。
+- 构建点统一经 SSH 通道访问（`FF_BUILD_TARGET=user@host`），开发服务器与生产服务器同一待遇；不设宿主侧容器构建或载入通道，宿主不安装 Docker。构建点的实际位置不进入流程判断——即使恰为本机 WSL，出包上传、SHA-256 核对与 `docker build` 仍全部经 SSH 执行，不使用 `wsl.exe`、`\\wsl$` 等宿主旁路直访或拷贝。
 - 多模块项目：**每个模块独立定义、独立出镜像**，在目标模块目录执行；默认不建聚合的 `image-build` 模块。
 - 不运行镜像、不验证启动——证明镜像能跑是 `mv-deploy-container-delivery` 的 dev 交付职责。
 
