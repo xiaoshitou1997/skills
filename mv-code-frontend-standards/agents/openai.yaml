@@ -1,0 +1,3 @@
+interface:
+  display_name: "Frontend Standards"
+  short_description: "Next.js/React/TypeScript 前端编码规范：组件分层、数据获取、状态管理、服务端/客户端边界、构建环境变量与前端安全。"

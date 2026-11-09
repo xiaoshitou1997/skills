@@ -12,26 +12,27 @@ ROOT = Path(sys.argv[1]).expanduser().resolve() if __name__ == '__main__' and le
 SKILLS = {
     'mv-toolchain-manager',
     'mv-git-publisher',
-    'mv-plan-engineering-doc-writer',
-    'mv-plan-tech-stack-baseline',
-    'mv-code-java-backend-standards',
-    'mv-code-local-debug',
+    'mv-design-engineering-doc-writer',
+    'mv-design-tech-stack-baseline',
+    'mv-impl-java-backend-standards',
+    'mv-code-frontend-standards',
+    'mv-impl-local-debug',
     'mv-build-image-builder',
-    'mv-deploy-container-delivery',
+    'mv-delivery-container-deploy',
 }
 
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
     ['mv-toolchain-manager/scripts/doctor.py',
-     'mv-code-local-debug/scripts/doctor.py'],
+     'mv-impl-local-debug/scripts/doctor.py'],
     ['mv-git-publisher/scripts/quality-check.sh',
      'mv-build-image-builder/scripts/quality-check.sh',
-     'mv-code-java-backend-standards/scripts/quality-check.sh'],
+     'mv-impl-java-backend-standards/scripts/quality-check.sh'],
     ['mv-git-publisher/scripts/security-scan.sh',
      'mv-build-image-builder/scripts/security-scan.sh'],
     ['mv-build-image-builder/templates/compose.delivery.yml',
-     'mv-deploy-container-delivery/templates/compose.delivery.yml'],
+     'mv-delivery-container-deploy/templates/compose.delivery.yml'],
 ]
 
 
@@ -146,7 +147,7 @@ def local_link_errors(path, data, root):
 def cross_reference_errors(root, skills):
     """Resolve plain-text mv-* mentions against shipped skills.
 
-    Boundary sentences such as 「X 归 mv-deploy-container-delivery」 are prose, not
+    Boundary sentences such as 「X 归 mv-delivery-container-deploy」 are prose, not
     Markdown links, so the link check never sees them; checking them here
     surfaces rename drift at validate time. docs/ stays out of scope: the
     conventions document holds abstract placeholders such as mv-Y.

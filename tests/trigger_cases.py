@@ -114,6 +114,22 @@ CASES = [
     {'skill': 'mv-code-java-backend-standards', 'kind': 'negative', 'instead': 'mv-plan-tech-stack-baseline',
      'query': '新项目该选 MyBatis-Plus 还是 Spring Data JPA？'},
 
+    # --- mv-code-frontend-standards：前端编码/审查（Next.js/React/TS），不含选型、构建与本地启动 ---
+    {'skill': 'mv-code-frontend-standards', 'kind': 'positive',
+     'query': '在 Next.js 项目里新增一个订单列表页面，按规范做组件分层和类型定义'},
+    {'skill': 'mv-code-frontend-standards', 'kind': 'positive',
+     'query': '这个 React 组件里每次输入都直接发请求，按前端规范应该怎么改'},
+    {'skill': 'mv-code-frontend-standards', 'kind': 'positive',
+     'query': '审查这段 TypeScript 前端代码，状态管理和数据获取是否合规'},
+    {'skill': 'mv-code-frontend-standards', 'kind': 'positive',
+     'query': '前端要展示后端返回的错误码对应文案，按规范怎么接国际化'},
+    {'skill': 'mv-code-frontend-standards', 'kind': 'negative', 'instead': 'mv-plan-tech-stack-baseline',
+     'query': '新前端项目该用 Next.js 还是 Vite 加 React？帮我定技术栈'},
+    {'skill': 'mv-code-frontend-standards', 'kind': 'negative', 'instead': 'mv-code-local-debug',
+     'query': '本地把 Next.js dev server 跑起来，热更新没生效，帮我排查'},
+    {'skill': 'mv-code-frontend-standards', 'kind': 'negative', 'instead': 'mv-build-image-builder',
+     'query': '把前端构建出的 dist 打成 Docker 镜像，先不部署'},
+
     # --- mv-plan-tech-stack-baseline：选型/基线/依赖决策，不含写代码、装工具与部署 ---
     {'skill': 'mv-plan-tech-stack-baseline', 'kind': 'positive',
      'query': '新建一个后端服务，帮我定技术栈和版本基线'},
