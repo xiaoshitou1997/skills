@@ -1,6 +1,6 @@
 ---
 name: mv-git-publisher
-description: 用户要求提交并推送代码（commit&push 一体）、拆分原子 commit、创建 PR、查看 PR 检查结果，或仅起草、修改、评审 commit message 与 PR 标题/描述等 Git 短文本时使用。发布模式按独立逻辑变更精细暂存并审查最终 staged diff；短文本模式只输出文稿或评审意见，不暂存、commit、push 或创建 PR。仅解释 Git 概念无需加载完整发布流程，PRD/HLD/README 等工程文档归 mv-engineering-doc-writer。
+description: 用户要求提交、推送代码（两个动作可分开执行，各自先 pull --rebase）、拆分原子 commit、创建 PR、查看 PR 检查结果，或仅起草、修改、评审 commit message 与 PR 标题/描述等 Git 短文本时使用。发布模式按独立逻辑变更精细暂存并审查最终 staged diff；短文本模式只输出文稿或评审意见，不暂存、commit、push 或创建 PR。仅解释 Git 概念无需加载完整发布流程，PRD/HLD/README 等工程文档归 mv-engineering-doc-writer。
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 ---
 
@@ -13,7 +13,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 ## 任务模式
 
 - **短文本模式**：仅起草、修改或评审 commit message、PR 标题/描述时，先确认文本对应的变更范围。commit 文稿以明确指定的 diff 为依据（已暂存时优先最终 staged diff）；PR 文稿以相对目标分支的全部提交与 diff 为依据。仅有用户提供的材料时说明证据范围，不把计划写成已完成；输出文稿或评审意见后结束，不执行发布工作流中的 pull、暂存、commit、push 或创建 PR。
-- **发布模式**：用户要求提交、推送或创建 PR 时，按相应工作流执行；commit&push 一体规则只适用于该模式。仅查看 PR/检查结果时保持只读，不因此提交或推送。
+- **发布模式**：用户要求提交、推送或创建 PR 时，按相应工作流执行；下文发布纪律只适用于该模式。仅查看 PR/检查结果时保持只读，不因此提交或推送。
 
 ## 不可违反的原则
 
@@ -26,22 +26,22 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 5. 已有暂存内容时，先识别是谁暂存的、属于哪个逻辑变更集；未经允许不混入别的变更。精细分组只在主树内用临时 index 完成，原始 index 状态必须不丢失。
 6. 每次操作前确认所在仓库/分支；尤其注意单仓库父目录、多仓库目录、嵌套 Git、子模块。不得跨仓库混提交。
 7. 暂存状态不表示改动归属，IDE 或其他会话可能自动暂存。必要时同时审查 HEAD→index 和 index→工作区差异；`AM` 等状态意味着暂存版与最终文件不同。
-8. **`pull --rebase` 必须在 commit 之前完成，push 前确认远端未再前进。** 同步失败、冲突未解决或 rebase/merge 未结束时停止提交，不先 commit 再补同步。冲突解决不了时停止并交由用户处理，呈现两侧差异，不强行自动取舍。
-9. **默认发布序列是主树 `pull --rebase` → 显式路径原子 commit → push，全程一颗 worktree。** 不另开侧 worktree 提交后直推 SHA：那样远端指针前移而本地分支指针与工作树文件未跟随，表现为「已推送但暂存区还在」，此后基于本地 HEAD 的 diff、状态判断与回滚都指向错误基线。树脏时在主树原地用 plumbing 临时索引完成提交。
+8. **commit 与 push 是两个可分开执行的动作，各自开始前都先完成 `pull --rebase`。** 同步失败、冲突未解决或 rebase/merge 未结束时停止该动作，不先 commit 再补同步。冲突解决不了时停止并交由用户处理，呈现两侧差异，不强行自动取舍。
+9. **每个动作都从主树 `pull --rebase` 开始：commit 前 pull --rebase → 显式路径原子 commit；push 前重新 pull --rebase → push。全程只有一颗 worktree。** 不另开侧 worktree 提交后直推 SHA：那样远端指针前移而本地分支指针与工作树文件未跟随，表现为「已推送但暂存区还在」，此后基于本地 HEAD 的 diff、状态判断与回滚都指向错误基线。树脏时在主树原地用 plumbing 临时索引完成提交。
 10. **保持线性提交历史，禁止生成 merge commit。** 远端同步使用 rebase，不用 merge commit 解决分支分歧。
 11. **AI 参与生成或修改的提交和 PR 必须添加 AI 署名或归属行。** 署名行统一用 `Co-Authored-By: <工具名> <工具邮箱>` 置于提交信息或 PR 描述末尾；Claude Code 固定为 `Co-Authored-By: Claude Code <noreply@anthropic.com>`。
 
 ## 工作流
 
 1. 状态检查：`git status --short --branch`、`git diff --stat`、`git diff --cached --stat`、`git log -5 --oneline`。查看 untracked 文件与分支上游关系。
-2. 远端同步：按下文「远端同步与中间态」在主树内先 pull、解决冲突，再审查同步后的 diff。默认序列是 pull --rebase → 原子 commit → push；每组 commit 前均完成第 1 步检查。
+2. 远端同步：按下文「远端同步与中间态」在主树内先 pull、解决冲突，再审查同步后的 diff。commit 与 push 各自先走这一步；每组 commit 前均完成第 1 步检查。
 3. 形成 change-set 计划：每组写明**业务目的、文件/hunk 范围、type、关联测试、依赖顺序**。文件可能重叠，需要部分 hunk staging；用户已指定特性范围时不扩展到无关修改。
 4. 按依赖顺序逐组 `git add -- <explicit paths>`。同文件有多组修改时，交互式终端可用 `git add -p`；无人值守工具使用经过审查的 patch，`git apply --cached --check` 验证后再暂存。工作树脏到无法正常暂存时改走下文「树脏时的原地提交」。保留原始 index，审查最终暂存差异，不猜测修改边界。
 5. 逐组暂存审查：`git diff --cached --check`、`git diff --cached --name-status`、`git diff --cached --`，确认暂存内容**只**属于当前组。可运行 `python3 "${SKILL_ROOT}/scripts/stage_audit.py"` 检查常见 secret/大文件风险。
 6. 按涉及代码运行项目已有且可用的轻量检查（lint / typecheck / targeted tests）。没有配置的检查不虚构成功；失败时停止本组提交并报告。
 7. 提交信息采用用户或仓库约定的语言与格式。没有既有约定时默认中文 Conventional Commits，例如 `feat(auth): 增加短信登录验证码校验`。标题基于本组 staged diff，避免含糊通用信息。
 8. `git commit -m '...'` 后再次查看状态及 SHA。
-9. **commit&push 是一个整体动作：全部组提交完成后即执行一次安全普通 push**，不把 push 拆成需要用户再次显式请求的独立步骤。仅用户明确「只要 commit、不要 push」时停在本地。默认序列中 `git pull --rebase` 已在本组 commit 之前完成，push 后不再无条件再同步一次；push 被拒（非快进）说明 pull 之后窗口内远端又前进，本地提交无损，`git pull --rebase` 恢复后重试 push。上游缺失时先确认远端与分支再设置；推送失败如实报告，任何情况下不重试 `--force`。
+9. **commit 与 push 是两个独立动作，用户要求到哪步就做到哪步**：「提交」停在本地 commit；「推送」单独要求时也先完成 pull --rebase 再 push；「提交并推送」则依次连续完成两个动作。push 前重新执行第 2 步的 pull --rebase，即使刚提交完——远端可能已在此窗口前进；push 被拒（非快进）说明 pull 之后窗口内远端又前进，本地提交无损，`git pull --rebase` 恢复后重试 push。上游缺失时先确认远端与分支再设置；推送失败如实报告，任何情况下不重试 `--force`。
 10. 汇报每组提交的 hash、type、变更目的、检查情况、push 结果，以及明确保留的未提交内容。
 
 ## 同文件不同 Feature
@@ -52,7 +52,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 
 ## 远端同步与中间态
 
-- 固定顺序：`git fetch` → `git pull --rebase <remote> <branch>` → 解决冲突并完成 rebase → 审查、验证 → 显式路径原子 commit → push。同步与提交都在主树内完成，不另开侧 worktree。
+- 固定顺序对 commit 与 push 各自成立：`git fetch` → `git pull --rebase <remote> <branch>` → 解决冲突并完成 rebase → 审查、验证 → 执行该动作（显式路径原子 commit，或 push）。同步与提交都在主树内完成，不另开侧 worktree。
 - **树脏时的原地提交**：工作树脏到 `git pull --rebase` 无法进行时，先 `git fetch` 并以当前 HEAD 为基线构造提交——`GIT_INDEX_FILE=<临时索引> git read-tree HEAD` → `GIT_INDEX_FILE=<临时索引> git add -- <文件>` → `git write-tree` → `git commit-tree <tree> -p HEAD` → `git update-ref refs/heads/<分支> <新提交> <旧提交>`（带旧值校验，检出并发移动即中止）。临时索引与真实 index 分离，他人已暂存内容不受影响；update-ref 后用 `git add -- <同一批文件>` 让真实 index 对齐新 HEAD（文件内容已相同，不产生新差异），避免 HEAD 前移后暂存区仍显示旧差异。远端在此期间前进时 push 被拒（非快进），工作树已可 rebase 时 `git pull --rebase` 后重试 push。
 - 自动解决不了的冲突不硬解：停止操作并向用户呈现冲突文件与两侧内容，由用户裁决后继续；解决前不 commit、不 push。
 - remote/branch 使用已确认的上游，不猜测。项目指令与团队规则冲突时先明确冲突，不自行改用 merge commit。
