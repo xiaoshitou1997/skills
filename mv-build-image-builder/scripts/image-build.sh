@@ -6,7 +6,7 @@
 #   → SSH 上传到服务器 ~/.mv/image-build/packages/<app>/ → 服务器核对 SHA-256
 #   → 解包 docker build --pull(按需 trivy 门禁)→ 追加包清单 manifest.tsv。
 # 包与镜像同 Tag 一一对应,服务器侧常驻不自动清理;契约见 references/build-contract.md。
-# 与 mv-deploy-container-delivery 的接口:输出 IMAGE=<repo>:<tag> 与 IMAGE_ID=...,部署侧只消费该镜像引用。
+# 与 mv-delivery-container-deploy 的接口:输出 IMAGE=<repo>:<tag> 与 IMAGE_ID=...,部署侧只消费该镜像引用。
 set -euo pipefail
 umask 077
 

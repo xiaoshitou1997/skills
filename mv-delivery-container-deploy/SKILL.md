@@ -1,6 +1,6 @@
 ---
-name: mv-deploy-container-delivery
-description: 把已构建的容器镜像交付到各环境并验证时使用：部署或更新容器、部署到开发服务器、晋级生产、回滚版本、排查部署或启动失败、确认发布状态。容器操作一律在服务器侧执行并经 SSH 访问，宿主不安装 Docker；prod 晋级要求同一 Image ID 的 dev 健康验证收据与用户明确授权。宿主出包与镜像构建归 mv-build-image-builder，本机直启调试归 mv-code-local-debug。
+name: mv-delivery-container-deploy
+description: 把已构建的容器镜像交付到各环境并验证时使用：部署或更新容器、部署到开发服务器、晋级生产、回滚版本、排查部署或启动失败、确认发布状态。容器操作一律在服务器侧执行并经 SSH 访问，宿主不安装 Docker；prod 晋级要求同一 Image ID 的 dev 健康验证收据与用户明确授权。宿主出包与镜像构建归 mv-build-image-builder，本机直启调试归 mv-impl-local-debug。
 ---
 
 # 容器部署与晋级
@@ -10,7 +10,7 @@ description: 把已构建的容器镜像交付到各环境并验证时使用：�
 `deploy dev（开发服务器）→ 验证健康写收据 → 用户授权 → 同 Image ID 晋级 prod → 异常回滚`
 
 - 容器操作一律在服务器侧执行：单机部署即部署机自身；集群经镜像仓库分发到各节点。所有部署目标统一经 SSH 通道访问，宿主不安装 Docker，无宿主侧特例。
-- 本机直启调测（"本地跑一下"/debug/断点）归 `mv-code-local-debug`，在宿主前台直启；本 skill 的 dev 是容器部署目标（开发服务器），健康验证后写收据。
+- 本机直启调测（"本地跑一下"/debug/断点）归 `mv-impl-local-debug`，在宿主前台直启；本 skill 的 dev 是容器部署目标（开发服务器），健康验证后写收据。
 - 与 Git 独立，不暗中 commit；生产数据库迁移与外部副作用不随容器回滚。
 
 ## 硬性规范（无例外）
@@ -24,7 +24,7 @@ description: 把已构建的容器镜像交付到各环境并验证时使用：�
 - **晋级门禁**：prod 只能晋级已有 dev 收据的**同一** Image ID，不能仅凭相同 Git SHA 推断镜像一致；`--approve-prod` 只是脚本保护，不能代替用户对真实生产操作的授权。
 - **-dirty 拦截是命名约定**：脚本按 Tag 含 `-dirty` 拒绝向 prod 交付；标记由 mv-build-image-builder 出包时自动携带，在构建流程外手工重打干净 Tag 可绕过检测——属流程违规而非技术边界，交付镜像必须出自 mv-build-image-builder 流程。
 - **意图分流**：dev 目标是开发服务器，经 `FF_DEV_SSH` 指定；项目未声明开发服务器时向用户确认，不在宿主直接起容器；prod 只能明确指定 SSH 目标，且必须用户明确授权后执行，不因含糊的"跑起来"自动操作 prod。「在 WSL/容器里跑」是部署动作，归本 skill dev 交付，不走旁路。项目文档化的开发拓扑就是容器（如 compose 起全套依赖、宿主无法独立启动）时，"本地跑一下"按项目约定直接走本 skill 的 dev 交付。
-- **构建与调试边界**：镜像构建归 `mv-build-image-builder`（宿主出包、服务器构建，只构建不运行）；宿主直启调试归 `mv-code-local-debug`（不碰容器）；本 skill 拥有全部容器运行路径。
+- **构建与调试边界**：镜像构建归 `mv-build-image-builder`（宿主出包、服务器构建，只构建不运行）；宿主直启调试归 `mv-impl-local-debug`（不碰容器）；本 skill 拥有全部容器运行路径。
 
 ## 工具入口
 

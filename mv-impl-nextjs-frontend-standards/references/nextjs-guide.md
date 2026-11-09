@@ -41,4 +41,4 @@
 - `NEXT_PUBLIC_*` 只放无环境差异的公开常量（会被打进产物）；服务端专用变量不加公开前缀，且只在服务端代码读取。
 - 分环境 API 地址与开关走运行时注入或相对路径，不靠多套构建产物区分环境（与交付侧「同一产物跨环境」约束一致）。
 
-本文只覆盖 Next.js 工程条款；渲染模式对应的镜像构建与部署契约归 mv-build-image-builder 与 mv-delivery-container-delivery，本地 dev server 调试归 mv-code-local-debug。
+本文只覆盖 Next.js 工程条款；渲染模式对应的镜像构建与部署契约归 mv-build-image-builder 与 mv-delivery-container-deploy，本地 dev server 调试归 mv-impl-local-debug。

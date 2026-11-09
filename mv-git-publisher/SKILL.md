@@ -1,6 +1,6 @@
 ---
 name: mv-git-publisher
-description: 用户要求提交、推送代码（两个动作可分开执行，各自先 pull --rebase）、拆分原子 commit、创建 PR、查看 PR 检查结果，或仅起草、修改、评审 commit message 与 PR 标题/描述等 Git 短文本时使用。发布模式按独立逻辑变更精细暂存并审查最终 staged diff；短文本模式只输出文稿或评审意见，不暂存、commit、push 或创建 PR。仅解释 Git 概念无需加载完整发布流程，PRD/HLD/README 等工程文档归 mv-plan-engineering-doc-writer。
+description: 用户要求提交、推送代码（两个动作可分开执行，各自先 pull --rebase）、拆分原子 commit、创建 PR、查看 PR 检查结果，或仅起草、修改、评审 commit message 与 PR 标题/描述等 Git 短文本时使用。发布模式按独立逻辑变更精细暂存并审查最终 staged diff；短文本模式只输出文稿或评审意见，不暂存、commit、push 或创建 PR。仅解释 Git 概念无需加载完整发布流程，PRD/HLD/README 等工程文档归 mv-design-engineering-doc-writer。
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 ---
 

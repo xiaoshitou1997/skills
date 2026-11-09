@@ -92,7 +92,7 @@
 2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格、相关引用及同步脚本的 STALE 清单。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`，必要时补离线用例（假 docker/假 ssh stub 风格）；`test_workflows.py` 直接运行默认并行，支持 `-k <子串>` 筛选（可多次、任一命中），日常按改动精准跑对应用例，全套留给发布前。
 4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 在隔离环境评测该 skill 正反例；CLI 或凭据缺失时明确记为未执行，并按 `tests/trigger_cases.py` 人工核对，不能把人工核对写成真实路由通过。
-5. 「本地跑一下」条件分流（项目文档化开发拓扑为容器时归 `mv-deploy-container-delivery` dev 交付的例外）语义改动 → 同步修改 `mv-code-local-debug` 与 `mv-deploy-container-delivery` 两处表述并保持语义一致，再按第 4 条重跑两个 skill 的触发评测。
+5. 「本地跑一下」条件分流（项目文档化开发拓扑为容器时归 `mv-delivery-container-deploy` dev 交付的例外）语义改动 → 同步修改 `mv-impl-local-debug` 与 `mv-delivery-container-deploy` 两处表述并保持语义一致，再按第 4 条重跑两个 skill 的触发评测。
 6. 工作件收尾（调参页、演示页、一次性脚本等）→ 当轮归宿二选一：被 SKILL.md 或文档引用为正式工具，或当轮删除；跟踪文件零引用由 `python3 tests/test_no_orphan_files.py` 兜底，约定加载类别在该测试的 EXEMPT 清单登记。
 
 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部 skills 并清理改名/合并前旧版本；是否安装、装到哪台机器由使用者决定，不属于校验流程。旧版本清理名称仅维护在脚本内 STALE 清单，不写入文档。
@@ -100,8 +100,13 @@
 ## 命名先例
 
 - 统一 `mv-` 前缀标识来源（用户确认的来源标识）：skills 多来源混装时看名字即知出自本仓库；前缀不承载场景语义。
-- 本集合统一采用 `mv-` + 阶段 + 对象 + 职责词，如 `mv-plan-tech-stack-baseline`、`mv-build-image-builder`、`mv-code-java-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
-- 阶段词承载 SDLC 生命周期语义，取四个：`plan`（需求与方案设计——文档、图件、选型基线）、`code`（编码与本地验证）、`build`（构建与镜像）、`deploy`（发布、部署与回退）；阶段词取 SDLC/DevOps 既定术语，词表在本节一处维护，新增阶段先扩词表再命名。
+- 本集合统一采用 `mv-` + 阶段 + 对象 + 职责词，如 `mv-design-tech-stack-baseline`、`mv-build-image-builder`、`mv-impl-java-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
+- 阶段词是**受控词表**，一处维护于本节，改词先改表；不从任何单一方法论推导。取词只要求四点：语义罩住该阶段全部内容、词间不重叠、行业既定、逐词在下面申报锚点。当前四词：
+  - `design`：需求与方案设计（文档、图件、选型基线），覆盖经典 SDLC 的 Requirements + Design 两段；
+  - `impl`：编码实现与本地验证，Implementation 的工程既定缩写；
+  - `build`：构建与镜像，借 DevOps 环的 Build 位——构建/交付红线需要独立阶段名（申报偏差：经典六段无此独立阶段）；
+  - `delivery`：交付（部署、健康验证、收据、晋级、回退），Deployment 段的行业伞词（Continuous Delivery / delivery pipeline），覆盖 DevOps 环 Deploy + Release 两步（申报偏差：非 SDLC 阶段字面名）。
+- 阶段词争议按「词表定义 → 内容覆盖 → 层级 → 行业用法」裁决，不引用任何方法论标准作终审；新增阶段（如 `test`、`operate`）先扩词表再命名。
 - 无阶段前缀 = 全程横切、不限于单一生命周期阶段（`mv-git-publisher`、`mv-toolchain-manager`）；职责能落到单一阶段的 skill 不用横切形态，阶段语义不挤进对象词或职责词。
 - 命名按顺序走两步：
   1. 定职责：回答「删掉这个 skill，团队缺的哪一种产出或能力」——这就是主体职责，压缩成一个中文名词（如「管理」「交付」「规范」「写作」）。说不出一个、或说出几个并列的，说明 skill 该先拆分，命名放到拆分之后。

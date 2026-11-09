@@ -1,6 +1,6 @@
 ---
 name: mv-build-image-builder
-description: 宿主出包并在服务器构建容器镜像时使用：打镜像、出镜像包、构建交付镜像、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。宿主只编译二进制包，镜像一律由服务器侧 docker build 产出，构建点经 SSH 访问。镜像验证与部署归 mv-deploy-container-delivery，本机直启调试归 mv-code-local-debug。
+description: 宿主出包并在服务器构建容器镜像时使用：打镜像、出镜像包、构建交付镜像、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。宿主只编译二进制包，镜像一律由服务器侧 docker build 产出，构建点经 SSH 访问。镜像验证与部署归 mv-delivery-container-deploy，本机直启调试归 mv-impl-local-debug。
 ---
 
 # 镜像构建
@@ -16,7 +16,7 @@ description: 宿主出包并在服务器构建容器镜像时使用：打镜像�
 - 构建点与部署目标同侧：单机部署为部署机自身；集群部署为镜像仓库所在节点，其余节点经镜像仓库分发。
 - 构建点统一经 SSH 通道访问（`FF_BUILD_TARGET=user@host`），开发服务器与生产服务器同一待遇；不设宿主侧容器构建或载入通道，宿主不安装 Docker。构建点的实际位置不进入流程判断——即使恰为本机 WSL，出包上传、SHA-256 核对与 `docker build` 仍全部经 SSH 执行，不使用 `wsl.exe`、`\\wsl$` 等宿主旁路直访或拷贝。
 - 多模块项目：**每个模块独立定义、独立出镜像**，在目标模块目录执行；默认不建聚合的 `image-build` 模块。
-- 不运行镜像、不验证启动——证明镜像能跑是 `mv-deploy-container-delivery` 的 dev 交付职责。
+- 不运行镜像、不验证启动——证明镜像能跑是 `mv-delivery-container-deploy` 的 dev 交付职责。
 
 ## 硬性规范（无例外）
 
@@ -24,9 +24,9 @@ description: 宿主出包并在服务器构建容器镜像时使用：打镜像�
 - **镜像定义随模块**：各栈镜像基线写在模块内 `Dockerfile.delivery`（Node 静态前端可用本 skill 的 `templates/Dockerfile.web`），只复制产物不做编译；脚本与编排层不得另写一套镜像配置，否则镜像行为与模块配置脱节。
 - **镜像构建在服务器**：包上传至构建点并核对 SHA-256 后执行 `docker build`；核对不匹配按构建失败处理并如实报告，不静默降级。构建点容器环境不可用时明确报错请示，不改在宿主构建。
 - **包与镜像同 Tag**：包版本标识在出包时生成，与镜像共用同一 Tag，同一 Tag 只对应一个包，重出包产生新 Tag；包落服务器 `~/.mv/image-build/packages/<app>/` 并维护包清单（见 [构建契约](references/build-contract.md)）。
-- **只构建不运行**：本 skill 不 `docker run`、不起 compose 栈；「在容器里跑/验证镜像」走 `mv-deploy-container-delivery` 的 dev 交付。
+- **只构建不运行**：本 skill 不 `docker run`、不起 compose 栈；「在容器里跑/验证镜像」走 `mv-delivery-container-deploy` 的 dev 交付。
 - **包与镜像常驻**：构建包、构建镜像与拉取的基础镜像一律保留，任何流程不得删除包、`docker rmi`、`docker system prune`；存储不足时报告用户请示。
-- **意图分流**：「打镜像 / 出镜像包」= 本 skill；「本地跑一下 / debug / 断点 / 联调」= `mv-code-local-debug`（宿主直启）；「部署 dev / 在容器里跑 / 上生产 / 回滚」= `mv-deploy-container-delivery`。
+- **意图分流**：「打镜像 / 出镜像包」= 本 skill；「本地跑一下 / debug / 断点 / 联调」= `mv-impl-local-debug`（宿主直启）；「部署 dev / 在容器里跑 / 上生产 / 回滚」= `mv-delivery-container-deploy`。
 
 ## 工具入口
 
@@ -59,7 +59,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 - 区分编译、单元测试、mock 运行时联调和真实依赖联调，每项记录实际输入、命令及结果；签名桩或手工 classpath 的验证只覆盖该范围，不等同于项目完整构建或 CI。
 - 对机制问题沿"配置读取 → 业务传递 → 框架/依赖消费 → 实际副作用"追踪，结论附关键文件与行号。
-- 验收报告输出：Git SHA 与构建输入状态、宿主构建命令与产物路径、包名与 SHA-256、镜像 Tag 与 Image ID、未验证的风险。没有真实构建时明确写出未执行，不可虚构成功；**本 skill 不输出"镜像可以正常启动"类结论——那由 `mv-deploy-container-delivery` 的健康验证给出**。
+- 验收报告输出：Git SHA 与构建输入状态、宿主构建命令与产物路径、包名与 SHA-256、镜像 Tag 与 Image ID、未验证的风险。没有真实构建时明确写出未执行，不可虚构成功；**本 skill 不输出"镜像可以正常启动"类结论——那由 `mv-delivery-container-deploy` 的健康验证给出**。
 
 ## 常见故障
 
@@ -73,7 +73,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 - 包与瘦上下文只含产物与 Dockerfile，源码不出宿主；`.dockerignore` 必须显式排除 `.git` 与 `.env*`，秘密与 `.env` 不进上下文、Git 或命令日志。上传经 SSH 通道并做包密文头检查（透明加密环境防线），构建点核对 SHA-256，不匹配即删除损坏包并中止。`FF_REQUIRE_SECURITY_SCAN=1` 时由构建点 Trivy 把关；CI 应落实严格策略。
 - 编译出包在宿主完成、镜像构建在服务器执行是团队基线，不得把镜像构建改回宿主。Dockerfile 过于复杂时，可选用严格遵循同一环境契约的项目内 CI/CD。
-- 部署、晋级、回滚的授权与生产验证规则见 `mv-deploy-container-delivery`。
+- 部署、晋级、回滚的授权与生产验证规则见 `mv-delivery-container-deploy`。
 
 产物检测、包目录与清单、各栈 `Dockerfile.delivery` 基线、环境变量、镜像 TAG 公式与包版本管理读取 [镜像构建契约](references/build-contract.md)；构建期安全要点见 [安全模型](references/security-model.md)。
 

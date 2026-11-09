@@ -10,7 +10,7 @@
 - 产物检测与包版本管理
 - 环境变量
 - 上传与服务器构建
-- 镜像身份契约（与 mv-deploy-container-delivery 的接口）
+- 镜像身份契约（与 mv-delivery-container-deploy 的接口）
 - 限制
 
 
@@ -28,7 +28,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
 - 基镜像默认 `eclipse-temurin:21-jre`，非 root 用户 `10001`，端口 `8080`。
-- `Dockerfile.delivery` 可声明 HEALTHCHECK（指向 liveness 端点，`start_period` 覆盖启动期）；部署门禁仍以 `FF_HEALTH_URL`（readiness）探活为准，见 `mv-deploy-container-delivery` 交付契约。
+- `Dockerfile.delivery` 可声明 HEALTHCHECK（指向 liveness 端点，`start_period` 覆盖启动期）；部署门禁仍以 `FF_HEALTH_URL`（readiness）探活为准，见 `mv-delivery-container-deploy` 交付契约。
 - 需要 `RUN apt-get install` 一类构建期安装时，交付镜像只复制产物不做编译，应评估预装该依赖的基镜像或改用项目内 CI/CD。
 
 ## 非 Java 模块：模块内 Dockerfile.delivery
@@ -43,7 +43,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 - 默认**每个模块独立定义、独立出镜像**：镜像定义随各模块的 `Dockerfile.delivery`。
 - 在目标模块目录执行；多模块项目先定位目标模块再出包上传。
 - 默认不建聚合的 `image-build` 模块。只有确需集中管理多个模块的镜像时，才设聚合目录；聚合目录只承载编排（CI 任务、构建矩阵），镜像定义仍留在各模块内，不得在聚合处复制一份配置。
-- 各模块的 `APP` 名与 `FF_IMAGE_REPO` 必须可区分，避免不同模块打出同名镜像；APP 名即部署身份，同一目标机上跨项目不得撞名（多项目共用目标机时带项目前缀），唯一性规则见 `mv-deploy-container-delivery` 交付契约。
+- 各模块的 `APP` 名与 `FF_IMAGE_REPO` 必须可区分，避免不同模块打出同名镜像；APP 名即部署身份，同一目标机上跨项目不得撞名（多项目共用目标机时带项目前缀），唯一性规则见 `mv-delivery-container-deploy` 交付契约。
 
 ## 产物检测与包版本管理
 
@@ -70,11 +70,11 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 - 基础镜像由构建点拉取并常驻，任何流程不得 `rmi`/`prune`。
 - 构建完成后按引用确认镜像可寻址，再输出 `IMAGE_ID`；构建失败或 Image ID 缺失即失败，不输出未经校验的镜像身份，并把包名、校验和、镜像引用与 Image ID 写入包清单。
 
-## 镜像身份契约（与 mv-deploy-container-delivery 的接口）
+## 镜像身份契约（与 mv-delivery-container-deploy 的接口）
 
 - Tag 公式：`<git sha 前 12 位>[-dirty]-<UTC 时间戳 YYYYMMDDHHMMSS>`，时间戳取出包时刻；非 Git 目录记 `unversioned` 且强制 `-dirty`。包与镜像共用同一 Tag。
 - 构建输出两行证据：`IMAGE=<repo>:<tag>` 与 `IMAGE_ID=sha256:...`；完整镜像 Tag、Image ID 与所用包名、校验和必须如实转记进构建记录。
-- `mv-deploy-container-delivery` 只消费该镜像引用；`-dirty` 镜像会被部署侧拒绝晋级 prod，需干净工作区重新出包。
+- `mv-delivery-container-deploy` 只消费该镜像引用；`-dirty` 镜像会被部署侧拒绝晋级 prod，需干净工作区重新出包。
 - 构建不可重复生成同一 Tag（时间戳参与）；跨环境一致性由**同一 Image ID 晋级**保证，不靠重新构建。
 
 ## 限制

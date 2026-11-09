@@ -12,4 +12,4 @@
 
 ## 边界
 
-部署授权、生产验证与失败恢复规则归 `mv-deploy-container-delivery` 的安全模型；本 skill 不写部署收据。对服务器的写操作限于包目录（`~/.mv/image-build/packages/`）与镜像构建，不触碰目标机其他路径。
+部署授权、生产验证与失败恢复规则归 `mv-delivery-container-deploy` 的安全模型；本 skill 不写部署收据。对服务器的写操作限于包目录（`~/.mv/image-build/packages/`）与镜像构建，不触碰目标机其他路径。

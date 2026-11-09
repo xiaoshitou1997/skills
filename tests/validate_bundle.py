@@ -15,7 +15,7 @@ SKILLS = {
     'mv-design-engineering-doc-writer',
     'mv-design-tech-stack-baseline',
     'mv-impl-java-backend-standards',
-    'mv-code-frontend-standards',
+    'mv-impl-nextjs-frontend-standards',
     'mv-impl-local-debug',
     'mv-build-image-builder',
     'mv-delivery-container-deploy',

@@ -1,6 +1,6 @@
 ---
 name: mv-toolchain-manager
-description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 工具链；按项目声明准备便携工具并只在当前会话激活。适用于缺少工具、Java class version 不匹配、EBADENGINE、Python 版本不符和明确的运行时版本请求；技术栈版本基线归 mv-plan-tech-stack-baseline，镜像构建本身归 mv-build-image-builder。
+description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 工具链；按项目声明准备便携工具并只在当前会话激活。适用于缺少工具、Java class version 不匹配、EBADENGINE、Python 版本不符和明确的运行时版本请求；技术栈版本基线归 mv-design-tech-stack-baseline，镜像构建本身归 mv-build-image-builder。
 ---
 
 # 工具链管理
@@ -23,7 +23,7 @@ description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Ma
 - 不进行系统范围 sudo 安装，不修改注册表、`.bashrc`、`.zshrc` 或 PowerShell profile，除非用户明确授权。
 - 优先项目/用户态工具链，严格使用项目要求的 major/minor，不随意升级。
 - 自带便携安装器位于 `scripts/installer/`（`runtime_cli.py`），仅在第 3-4 步均无可用方案、且用户同意后使用。
-- `mv-build-image-builder` 的二进制包在宿主构建，宿主 JDK/Maven/Gradle/Node 工具链是出包前置条件；`mv-code-local-debug` 的宿主直启与调测也使用本 skill 准备的工具链。skill 自身脚本所需 Python 同样由本 skill 按需准备（`ensure --python`），不要求用户手工下载。
+- `mv-build-image-builder` 的二进制包在宿主构建，宿主 JDK/Maven/Gradle/Node 工具链是出包前置条件；`mv-impl-local-debug` 的宿主直启与调测也使用本 skill 准备的工具链。skill 自身脚本所需 Python 同样由本 skill 按需准备（`ensure --python`），不要求用户手工下载。
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 - 不按缓存内容拼 classpath：依赖解析与手工验证的完整条款见 [manual-classpath](references/manual-classpath.md)。
 
@@ -60,7 +60,7 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 
 ## 输出
 
-给出项目要求、当前版本、选择或准备的运行时、验证结果，并按意图提示调用 `mv-build-image-builder` 出镜像或 `mv-code-local-debug` 宿主直启调试（部署晋级归 `mv-deploy-container-delivery`）。
+给出项目要求、当前版本、选择或准备的运行时、验证结果，并按意图提示调用 `mv-build-image-builder` 出镜像或 `mv-impl-local-debug` 宿主直启调试（部署晋级归 `mv-delivery-container-deploy`）。
 
 ## 与项目自检配合
 

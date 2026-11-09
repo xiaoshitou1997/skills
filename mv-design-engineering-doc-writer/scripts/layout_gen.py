@@ -2,7 +2,7 @@
 """layout_gen.py — 声明式 spec 到自包含 HTML/SVG 的确定性布局生成器。
 
 结构类图的坐标不由人手摆：spec（JSON）进，成品 HTML 出，同 spec 必同输出。
-内置布局规则（与 mv-plan-engineering-doc-writer 的图例与标注约定一致）：
+内置布局规则（与 mv-design-engineering-doc-writer 的图例与标注约定一致）：
   坐标取 4px 网格；节点默认 168×64；行距=行内间距=64；每行居中、行内等距；
   正交走线（直落 / L / 同源总线 / 双机交叉双通道）；线段只走行间隙，不穿节点框；
   文字超宽断言失败，不缩字硬塞；分区框=成员包围盒外扩 24。

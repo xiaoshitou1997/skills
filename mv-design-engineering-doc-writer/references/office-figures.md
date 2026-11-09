@@ -9,7 +9,7 @@
 `SKILL_ROOT` 需显式赋值为本次加载的 skill 安装目录，并保持当前工作目录为用户文档项目。以下示例中的输入与输出路径必须不同，且输出路径不得已存在；检查成品后再决定是否将旧文件归档或替换。需要多个图时，每次以前一次输出为下一次输入，最终只交付验证过的文件。
 
 ```bash
-SKILL_ROOT="/实际绝对路径/mv-plan-engineering-doc-writer"
+SKILL_ROOT="/实际绝对路径/mv-design-engineering-doc-writer"
 python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 ```
 

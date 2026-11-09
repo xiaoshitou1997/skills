@@ -1,7 +1,7 @@
 ---
-name: mv-plan-engineering-doc-writer
+name: mv-design-engineering-doc-writer
 description: >-
-  编写、重写、评审和规范化软件工程文档时使用：写或改 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产变更 MOP、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节。绘制工程图并把图作为交付物时使用：架构图（应用/部署）、物理组网图（设备、机架、链路、端口、IP、带宽、可用区）、逻辑组网图（网络平面、安全域、网段/VLAN、流量路径）、时序图、流程图、状态图、ER 图、页面示意图，用户说画图、画架构图、画组网图、画拓扑图、出部署示意图等即触发。为 Markdown、Word（DOCX）、PowerPoint（PPTX）文档插入或替换配图、控制尺寸与位置、图文一致与文档内核验时使用。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节；产出可编辑图源与本地渲染成品，不管图最终进不进文档。提交信息、PR 描述等 Git 短文本归 mv-git-publisher，业务代码实现归 mv-code-java-backend-standards；数据图表与网络方案设计不归本 skill，不负责通用 Word/PPT 正文或幻灯片排版。
+  编写、重写、评审和规范化软件工程文档时使用：写或改 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产变更 MOP、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节。绘制工程图并把图作为交付物时使用：架构图（应用/部署）、物理组网图（设备、机架、链路、端口、IP、带宽、可用区）、逻辑组网图（网络平面、安全域、网段/VLAN、流量路径）、时序图、流程图、状态图、ER 图、页面示意图，用户说画图、画架构图、画组网图、画拓扑图、出部署示意图等即触发。为 Markdown、Word（DOCX）、PowerPoint（PPTX）文档插入或替换配图、控制尺寸与位置、图文一致与文档内核验时使用。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节；产出可编辑图源与本地渲染成品，不管图最终进不进文档。提交信息、PR 描述等 Git 短文本归 mv-git-publisher，业务代码实现归 mv-impl-java-backend-standards；数据图表与网络方案设计不归本 skill，不负责通用 Word/PPT 正文或幻灯片排版。
 ---
 
 # 工程文档与图件
@@ -17,7 +17,7 @@ description: >-
 `SKILL_ROOT` 必须显式设为本次加载的 skill 目录，不能假设环境已提供；脚本路径恒加引号。命令从用户项目目录执行，不在 skill 目录内产生运行时文件。
 
 ```bash
-SKILL_ROOT="/实际绝对路径/mv-plan-engineering-doc-writer"
+SKILL_ROOT="/实际绝对路径/mv-design-engineering-doc-writer"
 python3 "$SKILL_ROOT/scripts/layout_gen.py" --help
 bash "$SKILL_ROOT/scripts/render_diagram.sh" --help
 python3 "$SKILL_ROOT/scripts/office_figures.py" --help

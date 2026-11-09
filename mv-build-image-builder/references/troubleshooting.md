@@ -1,6 +1,6 @@
 # 镜像构建常见故障
 
-本文件收录 mv-build-image-builder 出包与镜像构建链路的高频故障与判定方法；构建停滞时先按症状对照本表，再用 `doctor.py` 复核环境。只覆盖出包与镜像构建范围；宿主直启调试故障见 `mv-code-local-debug`，部署与容器运行故障见 `mv-deploy-container-delivery`。
+本文件收录 mv-build-image-builder 出包与镜像构建链路的高频故障与判定方法；构建停滞时先按症状对照本表，再用 `doctor.py` 复核环境。只覆盖出包与镜像构建范围；宿主直启调试故障见 `mv-impl-local-debug`，部署与容器运行故障见 `mv-delivery-container-deploy`。
 
 ## 产物与包
 
@@ -20,6 +20,6 @@
 ## 构建点基础镜像拉取停滞
 
 - 在构建点侧检查基础镜像仓库域名解析、HTTPS 连通性与 Docker 代理，记录失败的拉取命令及输出；交付 Dockerfile 只复制宿主产物，不增加容器内依赖下载与编译步骤。
-- 已有兼容的常驻运行时镜像时，可用 `FF_RUNTIME_IMAGE` 指定后重试，记录镜像来源与构建结果；构建入口固定带 `--pull`，本地存在基础镜像不能保证离线构建成功。启动与健康验证仍交 `mv-deploy-container-delivery`。
+- 已有兼容的常驻运行时镜像时，可用 `FF_RUNTIME_IMAGE` 指定后重试，记录镜像来源与构建结果；构建入口固定带 `--pull`，本地存在基础镜像不能保证离线构建成功。启动与健康验证仍交 `mv-delivery-container-deploy`。
 
-故障不在本表时回到 SKILL.md 构建流程逐步取证；宿主直启问题移交 `mv-code-local-debug`，部署与容器运行问题移交 `mv-deploy-container-delivery`。
+故障不在本表时回到 SKILL.md 构建流程逐步取证；宿主直启问题移交 `mv-impl-local-debug`，部署与容器运行问题移交 `mv-delivery-container-deploy`。

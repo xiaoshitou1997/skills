@@ -1,6 +1,6 @@
 ---
-name: mv-code-frontend-standards
-description: 编写、修改、重构或审查前端代码时使用（Next.js、React、TypeScript 及其他前端框架），覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、服务端/客户端边界、错误与国际化文案、构建环境变量和前端安全；框架专属条款按项目实际框架应用。技术栈选型与版本基线归 mv-plan-tech-stack-baseline，本机运行调试归 mv-code-local-debug。
+name: mv-impl-nextjs-frontend-standards
+description: 编写、修改、重构或审查前端代码时使用（Next.js、React、TypeScript 及其他前端框架），覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、服务端/客户端边界、错误与国际化文案、构建环境变量和前端安全；框架专属条款按项目实际框架应用。技术栈选型与版本基线归 mv-design-tech-stack-baseline，本机运行调试归 mv-impl-local-debug。
 ---
 
 # 前端规范
@@ -24,7 +24,7 @@ description: 编写、修改、重构或审查前端代码时使用（Next.js、
 5. 状态管理：服务端数据与客户端 UI 状态分开；能靠 props、URL 或组件局部状态解决的不引入全局 store；引入状态库须说明理由并只在一处定义。
 6. 错误与文案：用户可见文案走项目国际化/文案资源，不在组件里硬编码；后端错误码的文案展示与后端错误码/i18n 体系对齐，不前端另造一套语义；错误边界兜底，不白屏、不吞错。
 7. 构建与环境变量：区分编译期固化与运行时注入——`NEXT_PUBLIC_*` 等前缀变量会被打进产物，不放环境差异配置、密钥或分环境 API 地址；跨环境配置走运行时注入或相对路径（与 mv-build-image-builder 的构建期固化条款同源）。
-8. 安全基线：不将未消毒内容注入 `dangerouslySetInnerHTML` 等等价通道；不把密钥、内网地址、调试开关打进前端包；新依赖先过 mv-plan-tech-stack-baseline 的依赖引入评估再进。
+8. 安全基线：不将未消毒内容注入 `dangerouslySetInnerHTML` 等等价通道；不把密钥、内网地址、调试开关打进前端包；新依赖先过 mv-design-tech-stack-baseline 的依赖引入评估再进。
 9. 样式与设计系统：样式方案（CSS Modules、Tailwind、styled 等按项目声明）同一项目不混用多套；间距、色彩走项目设计令牌，不散落魔法数值；视觉还原以设计稿为准，本规范不定义视觉风格。
 10. 最小变更与测试：改动现有系统保持最小必要变更，新产生的死代码、未用 import 一律删除；业务逻辑与行为改动写或更新对应测试（组件渲染/工具函数单测），使用项目现有测试框架，不为规范而更换框架；测试分层策略与覆盖口径按项目既有约定。
 
@@ -38,4 +38,4 @@ description: 编写、修改、重构或审查前端代码时使用（Next.js、
 
 ## 自动验证与边界
 
-优先运行项目已有检查（lint、typecheck、既有测试脚本）；没有配置的检查如实报告未执行，不虚构成功。本机把前端跑起来调试（dev server、热更新）归 mv-code-local-debug；出包与镜像构建归 mv-build-image-builder；技术栈选型与版本基线归 mv-plan-tech-stack-baseline；工程文档与图件归 mv-plan-engineering-doc-writer。静态规范和自动检查不能互相替代。
+优先运行项目已有检查（lint、typecheck、既有测试脚本）；没有配置的检查如实报告未执行，不虚构成功。本机把前端跑起来调试（dev server、热更新）归 mv-impl-local-debug；出包与镜像构建归 mv-build-image-builder；技术栈选型与版本基线归 mv-design-tech-stack-baseline；工程文档与图件归 mv-design-engineering-doc-writer。静态规范和自动检查不能互相替代。

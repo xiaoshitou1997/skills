@@ -11,14 +11,14 @@
 | `mv-design-engineering-doc-writer` | 工程文档写作/评审与制图插图编排：PRD/HLD/LLD/RFC/API 文档与生产 MOP，架构图/组网图/时序图等可编辑图源与渲染成品，Markdown/Word/PPT 插图与图文核验 |
 | `mv-design-tech-stack-baseline` | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-impl-java-backend-standards` | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
-| `mv-code-frontend-standards` | Next.js/React/TypeScript 前端规范：组件分层、数据获取、状态管理、服务端/客户端边界、构建环境变量与前端安全；框架条款按项目实际框架应用 |
+| `mv-impl-nextjs-frontend-standards` | Next.js/React/TypeScript 前端规范：组件分层、数据获取、状态管理、服务端/客户端边界、构建环境变量与前端安全；框架条款按项目实际框架应用 |
 | `mv-impl-local-debug` | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零容器、零镜像） |
 | `mv-build-image-builder` | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-delivery-container-deploy` | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
 | `mv-git-publisher` | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-toolchain-manager` | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发 |
 
-命名规范：统一采用 `mv-` + 阶段 + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关）；阶段词承载 SDLC 生命周期语义：`plan`（需求与方案设计）、`code`（编码与本地验证）、`build`（构建与镜像）、`deploy`（发布部署与回退），无阶段前缀即全程横切（mv-git-publisher、mv-toolchain-manager）。对象与职责词的选定走两步法与四条检查。具体规则见 [仓库结构规则](docs/structure-rules.md)。
+命名规范：统一采用 `mv-` + 阶段 + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关）；阶段词为受控词表：`design`（需求与方案设计）、`impl`（编码实现）、`build`（构建）、`delivery`（交付部署），无阶段前缀即全程横切（mv-git-publisher、mv-toolchain-manager）。对象与职责词的选定走两步法与四条检查。具体规则见 [仓库结构规则](docs/structure-rules.md)。
 
 把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 

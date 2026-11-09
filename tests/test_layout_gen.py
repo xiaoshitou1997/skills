@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-_script = ROOT / "mv-plan-engineering-doc-writer" / "scripts" / "layout_gen.py"
+_script = ROOT / "mv-design-engineering-doc-writer" / "scripts" / "layout_gen.py"
 _spec = importlib.util.spec_from_file_location("layout_gen", _script)
 layout_gen = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(layout_gen)

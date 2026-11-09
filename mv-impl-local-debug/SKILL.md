@@ -1,20 +1,20 @@
 ---
-name: mv-code-local-debug
-description: 在本机（宿主）把 Java（Gradle/Maven）/Node 项目直接跑起来调测时统一使用本 skill：宿主直启、debug/断点、热更新、本机联调、宿主构建或启动失败排查。触发场景：本地跑一下、启动应用、断点调试、热更新不起作用、排查宿主构建或启动失败。核心原则：直启一律在用户可见前台 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；只加载项目允许的开发环境设置，绝不默认连生产；宿主直启不产生镜像、不写部署收据。构建出包与镜像归 mv-build-image-builder，容器部署归 mv-deploy-container-delivery（dev 目标是开发服务器，经 SSH 交付）。
+name: mv-impl-local-debug
+description: 在本机（宿主）把 Java（Gradle/Maven）/Node 项目直接跑起来调测时统一使用本 skill：宿主直启、debug/断点、热更新、本机联调、宿主构建或启动失败排查。触发场景：本地跑一下、启动应用、断点调试、热更新不起作用、排查宿主构建或启动失败。核心原则：直启一律在用户可见前台 shell 运行（实时日志、Ctrl-C 可停），禁止后台静默；只加载项目允许的开发环境设置，绝不默认连生产；宿主直启不产生镜像、不写部署收据。构建出包与镜像归 mv-build-image-builder，容器部署归 mv-delivery-container-deploy（dev 目标是开发服务器，经 SSH 交付）。
 ---
 
 # 本机（宿主）调测
 
-本 skill 只回答一个问题：**这份代码在宿主上直接跑，行为对不对？** 宿主直启是本地运行的默认且唯一方式——不打镜像、不起容器；「在 WSL/容器里跑」是部署动作，归 `mv-deploy-container-delivery`（dev 目标是开发服务器，经 SSH 交付）。
+本 skill 只回答一个问题：**这份代码在宿主上直接跑，行为对不对？** 宿主直启是本地运行的默认且唯一方式——不打镜像、不起容器；「在 WSL/容器里跑」是部署动作，归 `mv-delivery-container-deploy`（dev 目标是开发服务器，经 SSH 交付）。
 
 `确认启动方式（项目约定优先）→ 前台可见直启 → 观测日志/断点/热更新 → 如实记录证据`
 
 ## 硬性规范（无例外）
 
 - **前台可见**：直启必须打开**新终端窗口**运行（用户桌面上的独立终端窗口），启动过程实时可见、用户可随时 Ctrl-C 或直接关窗停止；不在 agent 终端面板内嵌执行，禁止 `start /b`、`&`/`nohup` 后台化、隐藏窗口、把输出整体重定向到日志文件等静默运行。可见性约束只适用于直启的服务进程：构建、测试、Git 等一次性命令在 agent 会话内执行即可，不为它们打开可见窗口。收尾时如实交代仍在运行的进程与其所在窗口。
-- **启动方式分层**：项目 README/文档写明启动方式时，命令、参数、profile 与 env 以项目为准，本 skill 的默认命令清单只是项目未文档化时的兜底；但运行形态受本 skill 硬约束——项目文档要求后台静默启动时仍按前台可见执行，并向用户说明偏差。项目文档化的开发拓扑就是容器（如 compose 起全套依赖、宿主无法独立启动）时，「本地跑一下」按项目约定交 `mv-deploy-container-delivery` 的 dev 交付，不需用户再显式点名。
+- **启动方式分层**：项目 README/文档写明启动方式时，命令、参数、profile 与 env 以项目为准，本 skill 的默认命令清单只是项目未文档化时的兜底；但运行形态受本 skill 硬约束——项目文档要求后台静默启动时仍按前台可见执行，并向用户说明偏差。项目文档化的开发拓扑就是容器（如 compose 起全套依赖、宿主无法独立启动）时，「本地跑一下」按项目约定交 `mv-delivery-container-deploy` 的 dev 交付，不需用户再显式点名。
 - **环境边界**：只加载 `.env.local` 或项目已允许的开发环境设置，不自动复用 `.env.prod`、密钥或服务器配置；确认 API 请求目标为本地/dev，绝不默认连生产数据库或对生产数据做写操作。
-- **证据口径**：宿主直启记录为"宿主直启"（命令、执行者、结果）；它不产生镜像验证结论、不写部署收据，不能作为生产晋级依据——晋级依据是 `mv-deploy-container-delivery` 的同一 Image ID dev 健康收据。
+- **证据口径**：宿主直启记录为"宿主直启"（命令、执行者、结果）；它不产生镜像验证结论、不写部署收据，不能作为生产晋级依据——晋级依据是 `mv-delivery-container-deploy` 的同一 Image ID dev 健康收据。
 
 ## 工具入口
 
@@ -40,7 +40,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 ## 边界
 
-- 构建出包与镜像构建归 `mv-build-image-builder`；需要镜像或在 WSL/容器里跑，走 `mv-build-image-builder` 出镜像后交 `mv-deploy-container-delivery` 部署（默认 dev 目标是开发服务器，经 SSH 交付）。
+- 构建出包与镜像构建归 `mv-build-image-builder`；需要镜像或在 WSL/容器里跑，走 `mv-build-image-builder` 出镜像后交 `mv-delivery-container-deploy` 部署（默认 dev 目标是开发服务器，经 SSH 交付）。
 - 宿主工具链安装与切换归 `mv-toolchain-manager`；提交发布归 `mv-git-publisher`。
 - 签名桩或手工 classpath 的验证只覆盖该范围；仅 mock 联调通过时明确外部系统尚未验证，不虚构成功。
 

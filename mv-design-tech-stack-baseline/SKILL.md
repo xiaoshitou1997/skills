@@ -1,6 +1,6 @@
 ---
-name: mv-plan-tech-stack-baseline
-description: 新建项目技术选型、确定或调整项目技术栈基线、评估依赖引入与版本升级、盘点项目现有技术栈时使用。编写业务代码的规范归 mv-code-java-backend-standards，版本对应的本机安装切换归 mv-toolchain-manager。
+name: mv-design-tech-stack-baseline
+description: 新建项目技术选型、确定或调整项目技术栈基线、评估依赖引入与版本升级、盘点项目现有技术栈时使用。编写业务代码的规范归 mv-impl-java-backend-standards，版本对应的本机安装切换归 mv-toolchain-manager。
 ---
 
 # 技术栈基线
@@ -16,7 +16,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | 类别 | 基线 | 说明 |
 | --- | --- | --- |
 | Java 版本 | JDK 21（LTS） |  |
-| Java 框架 | Spring Boot 3.5.x | 框架条款见 mv-code-java-backend-standards |
+| Java 框架 | Spring Boot 3.5.x | 框架条款见 mv-impl-java-backend-standards |
 | 构建工具 | Maven | 优先 mvnw 锁版本 |
 | 镜像基线 | 基镜像 eclipse-temurin:21-jre、非 root 用户 10001、端口 8080 | 各栈 Dockerfile.delivery 基线，镜像定义随模块，编排见 mv-build-image-builder |
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
@@ -28,7 +28,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | 对象存储 | MinIO（S3 兼容） | 统一用 S3 兼容客户端接入 |
 | 文件传输 | SFTPGo（SFTP） | 不使用明文 FTP |
 | AI 能力接入 | magpie 网关 | `baseUrl` `http://127.0.0.1:3425/v1`、`apiKey` `magpie`，不向用户另行索取；用户或项目文档明确给出其他连接信息时以所给为准 |
-| 前端 | Next.js（Node LTS） | 工具链安装见 mv-toolchain-manager |
+| 前端 | Next.js（Node LTS） | 工具链安装见 mv-toolchain-manager，编码规范见 mv-impl-nextjs-frontend-standards |
 
 新项目从基线默认选起，偏离基线记录理由并产出简版 ADR；选型决策要点与 ADR 模板见 [references/baseline-template.md](references/baseline-template.md)，基线未覆盖的类别按同一流程补齐。
 
@@ -43,4 +43,4 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 
 ## 边界
 
-编码规范、分层与写法归 mv-code-java-backend-standards；本机工具链检测安装归 mv-toolchain-manager；构建出包与镜像归 mv-build-image-builder，容器部署归 mv-deploy-container-delivery；基线与项目实际冲突时项目优先。
+编码规范、分层与写法归 mv-impl-java-backend-standards（后端）与 mv-impl-nextjs-frontend-standards（前端）；本机工具链检测安装归 mv-toolchain-manager；构建出包与镜像归 mv-build-image-builder，容器部署归 mv-delivery-container-deploy；基线与项目实际冲突时项目优先。
