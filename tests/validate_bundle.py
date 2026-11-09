@@ -12,27 +12,42 @@ ROOT = Path(sys.argv[1]).expanduser().resolve() if __name__ == '__main__' and le
 SKILLS = {
     'mv-toolchain-manager',
     'mv-git-publisher',
-    'mv-design-engineering-doc-writer',
-    'mv-design-tech-stack-baseline',
-    'mv-impl-java-backend-standards',
-    'mv-impl-nextjs-frontend-standards',
-    'mv-impl-local-debug',
-    'mv-build-image-builder',
-    'mv-delivery-container-deploy',
+    'mv-engineering-doc-writer',
+    'mv-tech-stack-baseline',
+    'mv-java-backend-standards',
+    'mv-nextjs-frontend-standards',
+    'mv-local-debug',
+    'mv-image-builder',
+    'mv-container-deploy',
 }
+
+# SDLC stage ownership for the division-of-labor vocabulary (structure-rules 命名先例);
+# stages are declared metadata, deliberately absent from skill names.
+STAGES = {
+    'mv-engineering-doc-writer': 'design',
+    'mv-tech-stack-baseline': 'design',
+    'mv-java-backend-standards': 'impl',
+    'mv-nextjs-frontend-standards': 'impl',
+    'mv-local-debug': 'impl',
+    'mv-image-builder': 'build',
+    'mv-container-deploy': 'delivery',
+    'mv-git-publisher': 'cross-cutting',
+    'mv-toolchain-manager': 'cross-cutting',
+}
+STAGE_VALUES = {'design', 'impl', 'build', 'delivery', 'cross-cutting'}
 
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
     ['mv-toolchain-manager/scripts/doctor.py',
-     'mv-impl-local-debug/scripts/doctor.py'],
+     'mv-local-debug/scripts/doctor.py'],
     ['mv-git-publisher/scripts/quality-check.sh',
-     'mv-build-image-builder/scripts/quality-check.sh',
-     'mv-impl-java-backend-standards/scripts/quality-check.sh'],
+     'mv-image-builder/scripts/quality-check.sh',
+     'mv-java-backend-standards/scripts/quality-check.sh'],
     ['mv-git-publisher/scripts/security-scan.sh',
-     'mv-build-image-builder/scripts/security-scan.sh'],
-    ['mv-build-image-builder/templates/compose.delivery.yml',
-     'mv-delivery-container-deploy/templates/compose.delivery.yml'],
+     'mv-image-builder/scripts/security-scan.sh'],
+    ['mv-image-builder/templates/compose.delivery.yml',
+     'mv-container-deploy/templates/compose.delivery.yml'],
 ]
 
 
@@ -147,7 +162,7 @@ def local_link_errors(path, data, root):
 def cross_reference_errors(root, skills):
     """Resolve plain-text mv-* mentions against shipped skills.
 
-    Boundary sentences such as 「X 归 mv-delivery-container-deploy」 are prose, not
+    Boundary sentences such as 「X 归 mv-container-deploy」 are prose, not
     Markdown links, so the link check never sees them; checking them here
     surfaces rename drift at validate time. docs/ stays out of scope: the
     conventions document holds abstract placeholders such as mv-Y.
@@ -180,6 +195,11 @@ def validate():
     found = {p.name for p in ROOT.iterdir() if p.is_dir() and (p / 'SKILL.md').is_file()}
     if found != SKILLS:
         error(f'expected skills {sorted(SKILLS)}, found {sorted(found)}')
+    if set(STAGES) != SKILLS:
+        error(f'STAGES registry must cover exactly the skill set: missing {sorted(SKILLS - set(STAGES))}, extra {sorted(set(STAGES) - SKILLS)}')
+    bad_stages = sorted({v for v in STAGES.values()} - STAGE_VALUES)
+    if bad_stages:
+        error(f'unknown stage values: {bad_stages}')
     for name in sorted(SKILLS & found):
         path = ROOT / name / 'SKILL.md'
         data = path.read_text(encoding='utf-8')

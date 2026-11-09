@@ -6,7 +6,7 @@
 
 按顺序执行；本节只定操作顺序，细则见对应章节。
 
-1. 定阶段、定职责、按两步法命名，候选名过四条检查（「命名先例」）。
+1. 定职责与阶段归属、按两步法命名，候选名过四条检查（「命名先例」）。
 2. 写 frontmatter：`name`、`description`（触发场景、表述关键词、负向边界）、可选 `allowed-tools` 只读预授权（「Frontmatter」）。
 3. 写正文：定位语、SKILL_ROOT 段、任务步骤、硬约束、输出（「正文（SKILL.md）」与「章节骨架与句式」）。
 4. 超出正文的细节下沉 references，单主题一文件（「正文（SKILL.md）」）。
@@ -58,7 +58,7 @@
 
 ## 运行时目录
 
-- 本仓库 skills 的运行时状态根为 `~/.mv/`，根承载来源标识，与 `mv-` 前缀同构，整个 `~/.mv/` 可整体重置。子目录名是脚本内声明的稳定标识，不机械派生自 skill 目录名；skill 改名时既有落点不变（如 `mv-build-image-builder` 仍落 `~/.mv/image-build/`），避免已部署环境的既有状态随改名迁移。
+- 本仓库 skills 的运行时状态根为 `~/.mv/`，根承载来源标识，与 `mv-` 前缀同构，整个 `~/.mv/` 可整体重置。子目录名派生自 skill 目录名（去 `mv-` 前缀，如 `mv-container-deploy` → `~/.mv/container-deploy/`），不保留旧名别名映射；skill 改名时脚本常量、文档与既有落点同步更名，并在提交说明给出一次性迁移命令（本机 `mv`、目标机经 SSH `mv`），迁移前如实确认目标机上是否存在待迁移状态。
 - 目录路径常量必须有环境变量覆盖，命名统一 `MV_<子目录名大写、连字符转下划线>_HOME`（如 `MV_TOOLCHAIN_MANAGER_HOME`），供测试与隔离使用；该覆盖适用于状态落在本机（执行 skill 的机器）的场景。状态落在目标机（统一经 SSH 访问）时路径相对目标用户 HOME 解析，测试隔离经 `HOME` 重定向与 stub 实现，不另设覆盖变量。
 - 状态不写入其他 skill 的子目录；跨 skill 依赖走产物与收据文件，不共享运行时目录。
 - 各 skill 的落点在本 skill 文档中写明，与脚本常量同源；执行侧本机与远端目标机写入同一 `~/.mv/<name>` 路径。
@@ -74,7 +74,7 @@
 - **上传与校验**：宿主经 SSH 通道上传二进制包；服务器侧先校验包完整性（SHA-256 与出包时计算值一致）再进入镜像构建，不匹配按构建失败处理并如实报告，不静默降级。
 - **包版本管理**：
   - 版本标识在宿主出包时生成，沿用镜像 Tag 公式 `<git sha 前 12 位>[-dirty]-<UTC 时间戳 YYYYMMDDHHMMSS>`（时间戳取出包时刻；非 Git 目录记 `unversioned` 且强制 `-dirty`）；包与镜像同 Tag 对应，同一 Tag 只对应一个包，重出包产生新 Tag。
-  - 包落服务器侧 `~/.mv/image-build/packages/<app>/`，同目录维护包清单：包文件名、SHA-256、来源（Git SHA 与工作区状态）、构建所得镜像引用与 Image ID、上传与构建时间。
+  - 包落服务器侧 `~/.mv/image-builder/packages/<app>/`，同目录维护包清单：包文件名、SHA-256、来源（Git SHA 与工作区状态）、构建所得镜像引用与 Image ID、上传与构建时间。
   - 镜像构建证据写明所用包名与校验和；部署收据按 Image ID 关联镜像与包版本，沿 Tag 与 Image ID 可回溯到包。
   - 包与镜像常驻、不自动清理；确需清理由用户明确指示并记录。
 
@@ -89,10 +89,10 @@
 改动后必须全部过一遍：
 
 1. `python3 tests/validate_bundle.py`：skill 集合；frontmatter 标量子集结构、字段唯一、必填元数据、名称格式/限长及目录一致；description 非空/限长；SKILL.md 正文行数（不含 frontmatter）；所有 Markdown 的显式本地链接目标存在性（不验证锚点）；skill 正文与 README 纯文本提及的 `mv-*` 名称解析到已发布 skill（改名漂移兜底，docs/ 的抽象占位不在扫描范围）；正文脚本/模板路径与 SKILL_ROOT 声明；复制脚本一致性；`agents/openai.yaml` 存在时 `display_name` 与 `short_description` 非空引号字符串且短描述 ≤200 字符（弱校验，不比对与 description 的措辞一致，SKILL.md description 为准）；Bash/Python 语法。
-2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格、相关引用及同步脚本的 STALE 清单。
+2. 新增/改名 skill → `tests/validate_bundle.py` 的 `SKILLS` 集合、`README.md` 表格、相关引用及同步脚本的 STALE 清单；改名涉及运行时子目录时同步脚本常量与文档，并给出一次性迁移命令。
 3. 行为类改动 → `tests/test_workflows.py`、`tests/test_enhancements.py`，必要时补离线用例（假 docker/假 ssh stub 风格）；`test_workflows.py` 直接运行默认并行，支持 `-k <子串>` 筛选（可多次、任一命中），日常按改动精准跑对应用例，全套留给发布前。
 4. description 或触发边界改动 → `python3 tests/run_trigger_evals.py <skill>` 在隔离环境评测该 skill 正反例；CLI 或凭据缺失时明确记为未执行，并按 `tests/trigger_cases.py` 人工核对，不能把人工核对写成真实路由通过。
-5. 「本地跑一下」条件分流（项目文档化开发拓扑为容器时归 `mv-delivery-container-deploy` dev 交付的例外）语义改动 → 同步修改 `mv-impl-local-debug` 与 `mv-delivery-container-deploy` 两处表述并保持语义一致，再按第 4 条重跑两个 skill 的触发评测。
+5. 「本地跑一下」条件分流（项目文档化开发拓扑为容器时归 `mv-container-deploy` dev 交付的例外）语义改动 → 同步修改 `mv-local-debug` 与 `mv-container-deploy` 两处表述并保持语义一致，再按第 4 条重跑两个 skill 的触发评测。
 6. 工作件收尾（调参页、演示页、一次性脚本等）→ 当轮归宿二选一：被 SKILL.md 或文档引用为正式工具，或当轮删除；跟踪文件零引用由 `python3 tests/test_no_orphan_files.py` 兜底，约定加载类别在该测试的 EXEMPT 清单登记。
 
 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部 skills 并清理改名/合并前旧版本；是否安装、装到哪台机器由使用者决定，不属于校验流程。旧版本清理名称仅维护在脚本内 STALE 清单，不写入文档。
@@ -100,17 +100,18 @@
 ## 命名先例
 
 - 统一 `mv-` 前缀标识来源（用户确认的来源标识）：skills 多来源混装时看名字即知出自本仓库；前缀不承载场景语义。
-- 本集合统一采用 `mv-` + 阶段 + 对象 + 职责词，如 `mv-design-tech-stack-baseline`、`mv-build-image-builder`、`mv-impl-java-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
-- 阶段词是**受控词表**，一处维护于本节，改词先改表；不从任何单一方法论推导。取词只要求四点：语义罩住该阶段全部内容、词间不重叠、行业既定、逐词在下面申报锚点。当前四词：
+- 本集合统一采用 `mv-` + 对象 + 职责词，如 `mv-tech-stack-baseline`、`mv-image-builder`、`mv-java-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
+- SDLC 阶段归属是**受控词表**，承载分工而不进名字，一处维护于本节，改词先改表；不从任何单一方法论推导。取词只要求四点：语义罩住该阶段全部内容、词间不重叠、行业既定、逐词申报锚点。当前归属值：
   - `design`：需求与方案设计（文档、图件、选型基线），覆盖经典 SDLC 的 Requirements + Design 两段；
   - `impl`：编码实现与本地验证，Implementation 的工程既定缩写；
-  - `build`：构建与镜像，借 DevOps 环的 Build 位——构建/交付红线需要独立阶段名（申报偏差：经典六段无此独立阶段）；
-  - `delivery`：交付（部署、健康验证、收据、晋级、回退），Deployment 段的行业伞词（Continuous Delivery / delivery pipeline），覆盖 DevOps 环 Deploy + Release 两步（申报偏差：非 SDLC 阶段字面名）。
-- 阶段词争议按「词表定义 → 内容覆盖 → 层级 → 行业用法」裁决，不引用任何方法论标准作终审；新增阶段（如 `test`、`operate`）先扩词表再命名。
-- 无阶段前缀 = 全程横切、不限于单一生命周期阶段（`mv-git-publisher`、`mv-toolchain-manager`）；职责能落到单一阶段的 skill 不用横切形态，阶段语义不挤进对象词或职责词。
+  - `build`：构建与镜像，借 DevOps 环的 Build 位——构建/交付红线需要独立阶段（申报偏差：经典六段无此独立阶段）；
+  - `delivery`：交付（部署、健康验证、收据、晋级、回退），Deployment 段的行业伞词（Continuous Delivery / delivery pipeline），覆盖 DevOps 环 Deploy + Release 两步（申报偏差：非 SDLC 阶段字面名）；
+  - `cross-cutting`：全程横切、不限于单一生命周期阶段（如 `mv-git-publisher`、`mv-toolchain-manager`）；职责能落到单一阶段的 skill 不用横切归属。
+- 归属声明落在两处：README 表格的阶段列与 `validate_bundle` 的 `STAGES` 注册（机器兜底集合一致与取值合法）；阶段语义不挤进对象词或职责词。
+- 阶段归属争议按「词表定义 → 内容覆盖 → 层级 → 行业用法」裁决，不引用任何方法论标准作终审；新增阶段（如 `test`、`operate`）先扩词表再登记。
 - 命名按顺序走两步：
   1. 定职责：回答「删掉这个 skill，团队缺的哪一种产出或能力」——这就是主体职责，压缩成一个中文名词（如「管理」「交付」「规范」「写作」）。说不出一个、或说出几个并列的，说明 skill 该先拆分，命名放到拆分之后。
-  2. 定名字：职责词与对象词取领域既定术语——所选词在对应工程或行业领域有独立于本仓库的既定含义与用法（形态可以是职位名、工序名、工具命令名或标准术语），并能给出仓外用法证据；中文口语词的字典直译与仓内临时生造的搭配不作选词来源。合成 `mv-[阶段-]<对象>-<职责词>`。
+  2. 定名字：职责词与对象词取领域既定术语——所选词在对应工程或行业领域有独立于本仓库的既定含义与用法（形态可以是职位名、工序名、工具命令名或标准术语），并能给出仓外用法证据；中文口语词的字典直译与仓内临时生造的搭配不作选词来源。合成 `mv-<对象>-<职责词>`。
 - 候选名字过四条检查，术语来源不过回第 2 步换词，其余不过回第 1 步重定职责：
   1. 代入检验——「负责 <对象> 的 <职责>」是对主体职责的准确概括，语义不变形。
   2. 自解释——职责词单独出现即能传达职责；`handler`、`processor`、`helper` 这类与任何对象都能搭配的万能词不合格。

@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "mv-design-engineering-doc-writer" / "scripts" / "office_figures.py"
+SCRIPT = ROOT / "mv-engineering-doc-writer" / "scripts" / "office_figures.py"
 EMU = 914400
 NS = {
     "w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main",

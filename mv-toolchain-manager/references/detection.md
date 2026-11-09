@@ -49,7 +49,7 @@ JDK 一律按**主版本（feature version）**匹配，安装时取该主版本
 | uv | 2 | `pyproject.toml` 的 `[tool.uv]` | 使用最新稳定 uv |
 | uv | 3 | `uv.lock` | 使用最新稳定 uv |
 
-Python 是项目运行时的一部分，也用于运行本 skill 与 `mv-build-image-builder` 的辅助脚本。其便携来源、布局和启动约束见 [python](python.md)。
+Python 是项目运行时的一部分，也用于运行本 skill 与 `mv-image-builder` 的辅助脚本。其便携来源、布局和启动约束见 [python](python.md)。
 
 ## npm、pnpm 与 Yarn
 

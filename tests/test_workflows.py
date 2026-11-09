@@ -26,8 +26,8 @@ if not Path(BASH).exists():
     BASH = shutil.which('bash') or 'bash'
 GIT_AUDIT = (ROOT / 'mv-git-publisher/scripts/stage_audit.py').as_posix()
 DETECT = (ROOT / 'mv-toolchain-manager/scripts/detect.py').as_posix()
-IMAGE_BUILD = (ROOT / 'mv-build-image-builder/scripts/image-build.sh').as_posix()
-DEPLOY = (ROOT / 'mv-delivery-container-deploy/scripts/deploy.sh').as_posix()
+IMAGE_BUILD = (ROOT / 'mv-image-builder/scripts/image-build.sh').as_posix()
+DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
 # 假 docker/假 ssh 返回的固定镜像 ID:满足 deploy.sh 对 sha256:<64 位十六进制> 的校验。
 MOCK_ID = 'sha256:' + '0123456789abcdef' * 4
 
@@ -121,7 +121,7 @@ class WorkflowTests(unittest.TestCase):
             # 包与清单常驻构建点 packages/<app>/。行内容不在本机断言:假服务器上 bash
             # 新写的清单会被端点透明加密改写,读回即密文;IMAGE_ID= 在服务器侧清单
             # 落盘之后输出,本身即是清单写成功的证据。
-            packages = Path(env['FAKE_RUNTIME_ROOT']) / '.mv/image-build/packages/demo'
+            packages = Path(env['FAKE_RUNTIME_ROOT']) / '.mv/image-builder/packages/demo'
             self.assertTrue((packages / stdout['PACKAGE']).is_file(), '包应常驻服务器包目录')
             self.assertTrue((packages / 'manifest.tsv').is_file())
 
@@ -192,7 +192,7 @@ shift
 { printf ssh; printf '\t%s' "$@"; printf '\n'; } >&2
 if [[ -n "${FAKE_SSH_ABSENT_IMAGE:-}" && "$*" == *inspect* && "$*" != *format* ]]; then exit 1; fi
 if [[ -n "${FAKE_SSH_TAMPER:-}" && "$*" == *'cat >'* ]]; then
-  exec "$REAL_BASH" -c "$*; for f in \"\$HOME\"/.mv/image-build/packages/*/*.tgz; do printf X >> \"\$f\"; done"
+  exec "$REAL_BASH" -c "$*; for f in \"\$HOME\"/.mv/image-builder/packages/*/*.tgz; do printf X >> \"\$f\"; done"
 fi
 cd "$FAKE_RUNTIME_ROOT"
 exec "$REAL_BASH" -c "$*"
@@ -376,7 +376,7 @@ fi
             self.assertNotEqual(run.returncode, 0)
             self.assertIn('SHA-256', run.stderr)
             self.assertNotIn('IMAGE_ID=', run.stdout)
-            packages = Path(env['FAKE_RUNTIME_ROOT']) / '.mv/image-build/packages/demo'
+            packages = Path(env['FAKE_RUNTIME_ROOT']) / '.mv/image-builder/packages/demo'
             # 损坏包删除与清单不落盘:删除动作在本机假服务器上受安全软件干扰无法断言,
             # 清单不创建是服务器侧拒绝的直接证据。
             self.assertFalse((packages / 'manifest.tsv').exists())
