@@ -21,6 +21,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | 镜像基线 | 基镜像 eclipse-temurin:21-jre、非 root 用户 10001、端口 8080 | 各栈 Dockerfile.delivery 基线，镜像定义随模块，编排见 mv-image-builder |
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
 | JSON 序列化 | Jackson | 禁止 fastjson、gson |
+| 工具类库 | JDK 标准库、Spring 自带工具类与 Apache Commons | 禁止 Hutool |
 | 数据库 | PostgreSQL | dev/prod 统一，开发联调直连远程 |
 | SQLite | 仅限单测、临时验证 | 不作开发联调库，无双方言兼容要求 |
 | 缓存与分布式锁 | Redis | 共用设施 |

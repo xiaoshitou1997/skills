@@ -81,6 +81,7 @@ shop-common/
 - Java 代码缩进一般 4 空格，行宽参考项目 Checkstyle/Spotless，不强制与既有格式化配置冲突；避免注释掉的旧实现。
 - DTO/Entity/VO 转换优先显式代码或项目既有 MapStruct；避免未受控的反射拷贝造成字段漏填/泄露。
 - JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 等配置遵循项目既有约定。
+- 工具方法优先 JDK 标准库、Spring 自带工具类与 Apache Commons（判空、集合、断言、IO 等）；不引入 Hutool（团队基线）。
 - 有状态组件按职责命名，避免伪装成工具类。使用 Lombok 等注解时检查嵌套类型是否遮蔽注解名。重复出现的拼写错误使用限定范围的扫描或重命名工具校验，并以编译结果确认引用完整。
 - 禁止通配符导入（`import xxx.*`），按类显式列出依赖；禁止在代码正文中使用全限定名（如 `java.util.List`），统一通过 `import` 语句引用，避免与同包同名类混淆并保持 import 顺序稳定。
 
