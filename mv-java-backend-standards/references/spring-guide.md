@@ -49,7 +49,8 @@
 
 ## LLM 集成
 
-- LLM 集成统一使用 Spring AI（团队基线），Spring AI Alibaba 可作编排增强（如 Graph 多智能体）：模型调用经 `ChatClient` 等声明式能力对接，结构化输出用其类型化转换，不自研 HTTP 客户端直连模型 API，不重复实现其已有的鉴权包络、重试与流式解析。
+- LLM 集成统一使用 Spring AI（团队基线）：对话补全、流式输出、结构化输出（`.entity()` 类型化映射）、Function/Tool Calling、RAG（Embedding、VectorStore、Advisor）等一切模型调用都从 `ChatClient` 起步，不自研 HTTP 客户端直连模型 API，不重复实现其已有的鉴权包络、重试与流式解析。
+- 不引入 Spring AI Alibaba（团队基线）；多步编排优先用 Spring AI 自身能力（`ChatClient` 链、Advisor 链、工具调用组合）实现，编排逻辑随业务代码维护，不引入平行编排栈。
 - 模型接线统一用 OpenAI 兼容 starter（`spring-ai-starter-model-openai`）指向网关或各家 OpenAI 兼容端点，不引入 provider 专属 starter 或 SDK（如 ollama、dashscope）；换模型只改配置（base-url、model、api-key），不改代码。
 - 连接信息（baseUrl、apiKey 等）按「配置绑定与多环境」经配置文件注入，不硬编码；模型与参数随配置切换，不写死在代码。
 - 模型响应按外部系统对待：结构校验不过按业务失败处理并记日志，不静默降级。
