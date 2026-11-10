@@ -13,6 +13,11 @@
 - 用户可见文案统一维护在 `messages*.properties`，经 MessageSource 或 ErrorCode 关联的 messageKey 获取；国际化细则见下方「国际化」。
 - 路由用绑定具体 HTTP 方法的注解（`@GetMapping`、`@PostMapping` 等），不用未指定方法的 `@RequestMapping`。
 
+## 外部 HTTP 调用
+
+- Spring 应用统一用 RestClient（团队基线），复用项目 Jackson 转换器与既有拦截器；RestTemplate 已是维护模式，不用于新代码；WebClient 仅响应式栈。
+- 非 Spring 场景用 JDK 原生 HttpClient（`java.net.http.HttpClient`）。
+
 ## 国际化
 
 - 国际化是系统基本要求，不是可选项：任意系统最低支持双语——`zh-CN`（默认）与 `en-US`，从第一个对外接口起落地，不接受「先中文、后补英文」。

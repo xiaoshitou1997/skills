@@ -22,6 +22,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
 | JSON 序列化 | Jackson | 禁止 fastjson、gson |
 | 工具类库 | JDK 标准库、Spring 自带工具类与 Apache Commons | 禁止 Hutool |
+| HTTP 客户端 | Spring 应用用 RestClient、非 Spring 场景用 JDK 原生 HttpClient | 不用 RestTemplate（维护模式）；WebClient 仅响应式栈 |
 | 数据库 | PostgreSQL | dev/prod 统一，开发联调直连远程 |
 | SQLite | 仅限单测、临时验证 | 不作开发联调库，无双方言兼容要求 |
 | 缓存与分布式锁 | Redis | 共用设施 |
