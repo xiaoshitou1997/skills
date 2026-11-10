@@ -27,7 +27,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | SQLite | 仅限单测、临时验证 | 不作开发联调库，无双方言兼容要求 |
 | 缓存与分布式锁 | Redis | 共用设施 |
 | 消息队列 | RabbitMQ | 其他中间件按需引入，先过「依赖引入」 |
-| 对象存储 | MinIO（S3 兼容） | 统一用 S3 兼容客户端接入 |
+| 对象存储 | RustFS（S3 兼容） | 统一用 S3 兼容客户端接入 |
 | 文件传输 | SFTPGo（SFTP） | 不使用明文 FTP |
 | AI 能力接入 | magpie 网关 | `baseUrl` `http://127.0.0.1:3425/v1`、`apiKey` `magpie`，不向用户另行索取；用户或项目文档明确给出其他连接信息时以所给为准 |
 | LLM 应用框架 | Spring AI | LLM 集成统一用 Spring AI（`ChatClient` 等声明能力），不自研 HTTP 客户端直连模型 API |
