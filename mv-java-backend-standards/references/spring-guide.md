@@ -12,10 +12,14 @@
 - 输入校验用 Bean Validation（`@Valid`/`@Validated`），业务规则同时在 Service 层确认；避免直接相信 Controller 层入参。
 - 用户可见文案统一维护在 `messages*.properties`，经 MessageSource 或 ErrorCode 关联的 messageKey 获取；国际化细则见下方「国际化」。
 - 路由用绑定具体 HTTP 方法的注解（`@GetMapping`、`@PostMapping` 等），不用未指定方法的 `@RequestMapping`。
+- 响应按统一包络返回（基线 `code`/`message`/`data`，项目既有包络优先）：成功路径 Controller 直接返回 VO，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
 
 ## 外部 HTTP 调用
 
 - Spring 应用统一用 RestClient（团队基线），复用项目 Jackson 转换器与既有拦截器；RestTemplate 已是维护模式，不用于新代码；WebClient 仅响应式栈。
+- 外部 HTTP 调用优先声明式（Spring HTTP Interface）：接口方法标 `@HttpExchange` 系注解（`@GetExchange`、`@PostExchange` 等），`HttpServiceProxyFactory` 配 `RestClientAdapter` 生成实现，引擎仍是 RestClient；不引 OpenFeign、Retrofit。
+- 仅当必须编程实现时用编程式 RestClient：动态 URL、运行时才能确定请求形态的调用（如通用网关转发）等固定接口签名覆盖不了的场景。
+- 对接第三方平台按平台一接口；签名、公共头、错误码归一等公共逻辑放 RestClient 拦截器（`ClientHttpRequestInterceptor`）或 `ExchangeFilterFunction`，不写进业务方法。
 - 非 Spring 场景用 JDK 原生 HttpClient（`java.net.http.HttpClient`）。
 
 ## 国际化
