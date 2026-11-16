@@ -46,8 +46,6 @@ DUPLICATE_GROUPS = [
      'mv-backend-standards/scripts/quality-check.sh'],
     ['mv-git-publisher/scripts/security-scan.sh',
      'mv-image-builder/scripts/security-scan.sh'],
-    ['mv-image-builder/templates/compose.delivery.yml',
-     'mv-container-deploy/templates/compose.delivery.yml'],
 ]
 
 
