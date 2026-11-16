@@ -35,7 +35,7 @@
 | `-spring-boot-starter` | 技术组件自动装配 | 库；按 Spring 官方惯例命名 |
 | `-domain` | 实体、仓储、业务用例 | 库；业务逻辑出现第二个可运行消费者才拆 |
 | `-service` | 可运行后端入口，唯一含 main | 应用 |
-| `-web` / `-mp` / `-mobile` | 浏览器前端 / 小程序 / App | 前端工程，不进后端聚合 pom |
+| `-web` / `-mp` / `-mobile` | 浏览器前端 / 小程序 / App | 前端工程，不进后端聚合 pom；命名带端词切片（如 `shop-user-web`、`shop-admin-web`、`shop-user-mp`、`shop-user-mobile`） |
 
 切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切；接入层端入口（`user`/`admin` 切片）与领域服务（域词切片）属两个功能层级，微服务双端项目可同时存在，端入口聚合域服务对外。
 
