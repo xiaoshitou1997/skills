@@ -37,7 +37,7 @@
 | `-service` | 可运行后端入口，唯一含 main | 应用 |
 | `-web` / `-mp` / `-mobile` | 浏览器前端 / 小程序 / App | 前端工程，不进后端聚合 pom |
 
-切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切。
+切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切；接入层端入口（`user`/`admin` 切片）与领域服务（域词切片）属两个功能层级，微服务双端项目可同时存在，端入口聚合域服务对外。
 
 **模块名与目录名逐字相同**：无论 Maven、Gradle 还是其他构建工具，工具侧定义的模块名必须与所在文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name`，都直接取目录名；根工程（父 POM、根 settings）的项目名与仓库根目录名同理。按本节公式命名的模块，目录同名（如 `shop-order-service/`）。
 

@@ -4,26 +4,49 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合 mv-project
 
 ## 单仓多模块布局
 
-默认目录形态（端按项目需要裁剪）：
+默认目录形态（端按项目需要裁剪；目录名即模块名，后缀取闭集）：
 
 ```text
 <project>/
-├── server/                  后端聚合工程（Maven 多模块）
-│   ├── <project>-common/
-│   ├── <project>-api/       跨端契约：服务接口 + DTO（有外部集成方才拆）
-│   ├── <project>-domain/    实体、仓储、业务用例（第二个可运行消费者出现前可并入 service）
-│   └── <project>-service/   可运行入口（单入口时 controller/admin/ 与 controller/uc/ 分包）
-├── admin/                   管理端（shadcn-admin 衍生，Vite SPA）
-├── user-web/                用户 PC 端（Vite SPA；SSR 需求按选型评 Next.js）
-├── mobile/                  Taro H5/小程序端（按需）
+├── pom.xml                  根父 POM：聚合后端模块，项目名 = 仓库根目录名
+├── <project>-common/        库：通用异常、常量、工具
+├── <project>-api/           库：跨端契约：服务接口 + DTO（有外部集成方才拆）
+├── <project>-service/       可运行入口：controller/admin/ 与 controller/uc/ 分包
+├── <project>-domain/        可选：第二个可运行消费者出现才拆，默认并入 service 分包
+├── <project>-admin-web/     管理端（shadcn-admin 衍生，Vite SPA）
+├── <project>-user-web/      用户 PC 端（Vite SPA；SSR 需求按选型评 Next.js）
+├── <project>-mp/            Taro H5/小程序端（按需，一工程双编译目标）
 ├── compose.dev.yml          本地/联调基础设施编排
 ├── .env.example             环境变量样例（占位值）
 └── .github/workflows/       CI 样例
 ```
 
-- 目录名即模块名逐字相同（Maven artifactId、npm name 均取目录名），命名闭集细节见 mv-backend-standards 模块命名条款。
+- 目录名即模块名逐字相同（Maven artifactId、npm name 均取目录名），后缀闭集与切片词规则见 mv-backend-standards 模块命名条款。
 - 前端工程不进后端聚合 pom；后端模块不引用前端目录。
 - 多仓拆分判据见正文「仓库布局判据」；多仓时契约经 `-api` 模块发包共享，不复制 DTO 源码。
+
+### 双端微服务完整形态
+
+用户端 + 管理端 + 多域微服务的完整形态（域按业务裁剪）：
+
+```text
+<project>/
+├── <project>-user-service/      接入层：用户端入口，聚合各域服务
+├── <project>-admin-service/     接入层：管理端入口
+├── <project>-task-service/      定时任务与消息消费进程
+├── <project>-order-service/     服务层：订单域微服务
+├── <project>-member-service/    服务层：会员域微服务
+├── <project>-product-service/   服务层：商品域微服务
+├── <project>-order-domain/      仅跨服务共享实现的域才拆
+├── <project>-common/  <project>-api/
+├── <project>-user-web/          用户端网页（Vite SPA）
+├── <project>-mp/                用户端小程序 + 移动端 H5（Taro 一工程双目标）
+├── <project>-mobile/            用户端 App（技术栈按项目选型；用 Taro React Native 时可并入 -mp）
+├── <project>-admin-web/         管理端（shadcn-admin 衍生）
+└── compose.dev.yml  .env.example  .github/workflows/
+```
+
+接入层（端词切片的入口）与领域服务层（域词切片）是两个功能层级：端入口聚合域服务、对外提供 `/uc` 与 `/admin` 契约，域服务不对公网暴露；两者共存不构成「同一层级混用按端切与按域切」。用户端四形态的归属：网页走 `-user-web`；移动端 H5 与小程序是 `-mp` 的两个编译目标，一份代码两个部署物；App 走 `-mobile`。
 
 ## 共享契约与类型同步
 
