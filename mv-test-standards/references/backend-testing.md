@@ -18,12 +18,12 @@
 
 ## 集成测试（Testcontainers）
 
-- 持久层与事务链路用真实数据库验证：Testcontainers 起 PostgreSQL 容器（团队基线库），容器随测试会话复用，不为每个用例重启容器。
+- 持久层与事务链路用真实数据库验证：具备受控容器运行时的 CI 或测试服务器可用 Testcontainers 起 PostgreSQL，容器随测试会话复用；宿主不安装或操作 Docker。运行时不可用时使用开发服务器上专供测试的隔离数据库，独立凭据与数据、迁移及清理，禁止连接生产；记录执行位置与隔离方式。
 - schema 经版本化迁移脚本建立（Flyway/Liquibase 随应用启动执行），集成测试不手工建表、不用 `ddl-auto` 生成生产 schema。
-- 集成测试入口按范围选切片：持久层 `@DataJpaTest` + Testcontainers；跨层业务回环用 `@SpringBootTest` + 随机端口（`WebEnvironment.RANDOM_PORT`），经真实 HTTP 客户端从入口请求到数据库回环验证。
+- 集成测试入口按范围选切片：持久层用 `@DataJpaTest` 与隔离数据库；跨层业务回环用 `@SpringBootTest` + 随机端口（`WebEnvironment.RANDOM_PORT`），经真实 HTTP 客户端从入口请求到数据库回环验证。
 - 用例内自建自清数据：前置数据经被测 API 或仓储构造，清理按用例隔离（事务回滚或显式删除），用例间不依赖执行顺序；不共享可变夹具实例。
 - 涉及认证上下文的集成测试设置真实主体对象，不用静态 mock 替代认证链路。
-- 中间件集成（Redis、RabbitMQ）同样经 Testcontainers 起真实实例；网络协议与外部交互用真实客户端做回环验证，端口动态分配避免冲突。
+- 中间件集成（Redis、RabbitMQ）使用隔离的真实实例，受控测试服务器或 CI 可用 Testcontainers；网络协议与外部交互用真实客户端做回环验证，端口动态分配避免冲突。
 
 ## 外部依赖替身
 

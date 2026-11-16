@@ -17,6 +17,8 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 
 ## 仓库布局判据
 
+系统形态（单体、按端切、按域切、微服务）按 mv-architecture-standards 判定；本节只负责把选定形态落成目录与模块。
+
 1. 单仓多模块为默认：后端与各端模块目录同仓平铺（后端 `-common`/`-service` 与按端契约 `-user-api`/`-admin-api`，前端 `-admin-web`/`-user-web`/`-user-mp` 按需），小团队同迭代发布优先。
 2. 出现独立团队、独立发布节奏或独立访问控制的模块才拆多仓，不为「看起来干净」拆仓。
 3. 模块与目录命名按 mv-backend-standards 模块命名闭集执行：目录名即模块名，端词固定占用 `admin`（管理端）、`user`（用户端），不与域词混用。
@@ -29,7 +31,7 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 3. admin 端：以 shadcn-admin 为基线起步（Vite + React SPA + TanStack + Tailwind），衍生清理（faker 演示数据、Clerk 认证替换、示例路由）按 mv-frontend-standards 的 Vite SPA 条款执行；对接后端包络与 RBAC 权限点。
 4. user PC 端（按需）：Vite SPA 与 admin 同底座起步；页面级 SEO/SSR 需求先回 mv-tech-stack-baseline 评 Next.js，不在 SPA 内变通。
 5. H5/小程序端（按需）：Taro（React 语法）初始化，编译目标 weapp + h5；工程条款见 mv-frontend-standards 的 Taro 条款。
-6. 环境配置：`compose.dev.yml` 起本地/联调基础设施（PostgreSQL 必选，Redis/RabbitMQ/RustFS 按确认范围，固定版本 Tag）；`.env.example` 样例落位且真实 env 文件保持未跟踪（样例用占位值，不含真实密钥）；`.gitignore` 覆盖 `.env*`。
+6. 环境配置：`compose.dev.yml` 描述开发服务器上的联调基础设施（PostgreSQL 必选，Redis/RabbitMQ/RustFS 按确认范围，固定版本 Tag），服务器经 SSH 访问；`.env.example` 使用占位值并纳入版本控制，真实 env 文件保持未跟踪。`.gitignore` 忽略 `.env*` 并以 `!.env.example` 放行样例。
 7. 首次迁移与种子数据：V1 脚本含 RBAC 权限点与菜单种子数据（幂等 upsert），与代码同版本发布。
 8. CI 样例：PR 触发「编译 + lint + 单测」工作流样例（GitHub Actions），作为项目最小门禁起点，按项目演进调整。
 9. 本地验证：宿主前台直启跑通后端与各端（前台可见窗口运行、Ctrl-C 可停），记录「编译/启动/首屏」证据后收尾。
@@ -37,7 +39,7 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 ## 硬约束
 
 - **版本与依赖一律取自 mv-tech-stack-baseline 基线**，不引入基线外依赖；确需偏离先走选型流程产出简版 ADR。
-- **环境变量样例不含真实密钥**，占位值即可；真实凭据经运行时注入，不进仓库。
+- **环境变量样例不含真实密钥**，占位值即可；真实凭据经运行时注入，不进仓库；数据分级与凭据要求按 mv-security-standards 落位。
 - **初始化不连生产**：全流程只接触本地与开发环境。
 - 首次提交为空提交，不夹带文件。
 
@@ -47,7 +49,7 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 
 ## 边界
 
-技术栈选型与版本基线归 mv-tech-stack-baseline；初始化后的业务编码规范归 mv-backend-standards 与 mv-frontend-standards；镜像构建归 mv-image-builder，容器部署归 mv-container-deploy；测试分层与写法归 mv-test-standards。
+技术栈选型与版本基线归 mv-tech-stack-baseline；系统形态、服务边界与集成方式归 mv-architecture-standards；安全政策、数据分级与凭据治理归 mv-security-standards；初始化后的业务编码规范归 mv-backend-standards 与 mv-frontend-standards；镜像构建归 mv-image-builder，容器部署归 mv-container-deploy；测试分层与写法归 mv-test-standards。
 
 ## 参考
 

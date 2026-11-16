@@ -1,6 +1,6 @@
 ---
 name: mv-image-builder
-description: 宿主出包并在服务器构建容器镜像时使用：打镜像、出镜像包、构建交付镜像、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。宿主只编译二进制包，镜像一律由服务器侧 docker build 产出，构建点经 SSH 访问。镜像验证与部署归 mv-container-deploy。
+description: 宿主出包并在服务器构建容器镜像时使用：打镜像、出镜像包、构建交付镜像、构建期镜像扫描、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。宿主只编译二进制包，镜像一律由服务器侧 docker build 产出，构建点经 SSH 访问。镜像验证与部署归 mv-container-deploy。
 ---
 
 # 镜像构建
@@ -71,7 +71,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 ## 安全要点
 
-- 包与瘦上下文只含产物与 Dockerfile，源码不出宿主；`.dockerignore` 必须显式排除 `.git` 与 `.env*`，秘密与 `.env` 不进上下文、Git 或命令日志。上传经 SSH 通道并做包密文头检查（透明加密环境防线），构建点核对 SHA-256，不匹配即删除损坏包并中止。`FF_REQUIRE_SECURITY_SCAN=1` 时由构建点 Trivy 把关；CI 应落实严格策略。
+- 包与瘦上下文只含产物与 Dockerfile，源码不出宿主；`.dockerignore` 必须显式排除 `.git` 与 `.env*`，秘密与 `.env` 不进上下文、Git 或命令日志。上传经 SSH 通道并做包密文头检查（透明加密环境防线），构建点核对 SHA-256，不匹配即删除损坏包并中止。`FF_REQUIRE_SECURITY_SCAN=1` 时由构建点 Trivy 把关；CI 应落实严格策略。跨栈安全政策、数据分级与供应链处置见 mv-security-standards，本节只保留构建与上传侧控制。
 - 编译出包在宿主完成、镜像构建在服务器执行是团队基线，不得把镜像构建改回宿主。Dockerfile 过于复杂时，可选用严格遵循同一环境契约的项目内 CI/CD。
 - 部署、晋级、回滚的授权与生产验证规则见 `mv-container-deploy`。
 

@@ -53,7 +53,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 ## 远端同步与中间态
 
 - 固定顺序对 commit 与 push 各自成立：`git fetch` → `git pull --rebase <remote> <branch>` → 解决冲突并完成 rebase → 审查、验证 → 执行该动作（显式路径原子 commit，或 push）。同步与提交都在主树内完成，不另开侧 worktree。
-- **树脏时的原地提交**：工作树脏到 `git pull --rebase` 无法进行时，先 `git fetch` 并以当前 HEAD 为基线构造提交——`GIT_INDEX_FILE=<临时索引> git read-tree HEAD` → `GIT_INDEX_FILE=<临时索引> git add -- <文件>` → `git write-tree` → `git commit-tree <tree> -p HEAD` → `git update-ref refs/heads/<分支> <新提交> <旧提交>`（带旧值校验，检出并发移动即中止）。临时索引与真实 index 分离，他人已暂存内容不受影响；update-ref 后用 `git add -- <同一批文件>` 让真实 index 对齐新 HEAD（文件内容已相同，不产生新差异），避免 HEAD 前移后暂存区仍显示旧差异。远端在此期间前进时 push 被拒（非快进），工作树已可 rebase 时 `git pull --rebase` 后重试 push。
+- **树脏时的原地提交**：先完成同步；`pull --rebase` 因工作树状态失败时停止，不以本地 HEAD 提交绕过同步。同步后确需临时索引时，以已同步 HEAD 构造并审查目标变更；提交前核对真实 index、工作树及所选 hunk，确保 HEAD 更新后能够保留其余暂存内容。不得对含其他暂存改动或仅部分提交的文件执行整文件 `git add` 来对齐 index；无法证明无损保留时停止并报告。更新分支引用须带旧值校验，并在操作后核对 HEAD、index 和工作树。
 - 自动解决不了的冲突不硬解：停止操作并向用户呈现冲突文件与两侧内容，由用户裁决后继续；解决前不 commit、不 push。
 - remote/branch 使用已确认的上游，不猜测。项目指令与团队规则冲突时先明确冲突，不自行改用 merge commit。
 - 未配置上游时先检查远端并确认同步目标。纯本地仓库或尚无对应远端分支的首次提交，明确记录没有可 pull 的目标，不伪称同步成功。
@@ -81,6 +81,6 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 
 ## 可用增强工具
 
-- `bash "${SKILL_ROOT}/scripts/security-scan.sh" source .`：调用已有 Gitleaks（可选；缺失应如实报告）。
+- `bash "${SKILL_ROOT}/scripts/security-scan.sh" source .`：调用已有 Gitleaks（可选；缺失应如实报告）。跨栈安全政策与供应链处置见 mv-security-standards，本 skill 只做提交前 secret 检查。
 - 本 skill 不安装自动 Hook。平台保护和项目自身 Hook 按原有约定运行。
 - 仓库保护、CODEOWNERS、PR 审查和 CI 由 Git 平台管理，不在 skill 内重新实现。

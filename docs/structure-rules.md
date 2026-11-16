@@ -100,14 +100,14 @@
 ## 命名先例
 
 - 统一 `mv-` 前缀标识来源（用户确认的来源标识）：skills 多来源混装时看名字即知出自本仓库；前缀不承载场景语义。
-- 本集合统一采用 `mv-` + 对象 + 职责词，如 `mv-tech-stack-baseline`、`mv-image-builder`、`mv-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
+- 本集合统一采用 `mv-` + 对象 + 职责词，如 `mv-tech-stack-baseline`、`mv-architecture-standards`、`mv-image-builder`、`mv-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
 - SDLC 阶段归属是**受控词表**，承载分工而不进名字，一处维护于本节，改词先改表；不从任何单一方法论推导。取词只要求四点：语义罩住该阶段全部内容、词间不重叠、行业既定、逐词申报锚点。当前归属值：
   - `design`：需求与方案设计（文档、图件、选型基线），覆盖经典 SDLC 的 Requirements + Design 两段；
   - `impl`：编码实现与本地验证，Implementation 的工程既定缩写；
   - `build`：构建与镜像，借 DevOps 环的 Build 位——构建/交付红线需要独立阶段（申报偏差：经典六段无此独立阶段）；
   - `delivery`：交付（部署、健康验证、收据、晋级、回退），Deployment 段的行业伞词（Continuous Delivery / delivery pipeline），覆盖 DevOps 环 Deploy + Release 两步（申报偏差：非 SDLC 阶段字面名）；
   - `operate`：交付后的稳态运维（观测、备份、巡检、老化治理），覆盖 DevOps 环 Operate + Monitor 两步（申报偏差：非 SDLC 阶段字面名）；与 `delivery` 的分界是部署动作本身：部署、晋级、回滚归 `delivery`，部署完成后的持续状态治理归 `operate`；
-  - `cross-cutting`：全程横切、不限于单一生命周期阶段（如 `mv-git-publisher`、`mv-toolchain-manager`）；职责能落到单一阶段的 skill 不用横切归属。
+  - `cross-cutting`：全程横切、不限于单一生命周期阶段（如 `mv-git-publisher`、`mv-toolchain-manager`、`mv-security-standards`）；职责能落到单一阶段的 skill 不用横切归属。
 - 归属声明落在两处：README 表格的阶段列与 `validate_bundle` 的 `STAGES` 注册（机器兜底集合一致与取值合法）；阶段语义不挤进对象词或职责词。
 - 阶段归属争议按「词表定义 → 内容覆盖 → 层级 → 行业用法」裁决，不引用任何方法论标准作终审；新增阶段（如 `test`）先扩词表再登记。
 - 命名按顺序走两步：

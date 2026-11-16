@@ -1,27 +1,42 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、镜像构建与容器部署、容器编排规范、工具链管理、编码规范与测试规范、项目脚手架、稳态运维、技术栈约定、工程文档写作（含工程制图与插图编排）的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、镜像构建与容器部署、容器编排规范、工具链管理、编码规范与测试规范、项目脚手架、稳态运维、技术栈约定、系统架构决策、应用安全与数据保护、工程文档写作（含工程制图与插图编排）的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 十二个 skills
+## 十四个 skills
 
 | Skill | 阶段 | 范围 |
 | --- | --- | --- |
-| `mv-engineering-doc-writer` | design | 工程文档写作/评审与制图插图编排：PRD/HLD/LLD/RFC/API 文档与生产 MOP，架构图/组网图/时序图等可编辑图源与渲染成品，Markdown/Word/PPT 插图与图文核验 |
+| `mv-engineering-doc-writer` | design | 工程文档写作/评审与制图插图编排：需求澄清、PRD/HLD/LLD/RFC/API 文档与生产 MOP，架构图/组网图/时序图等可编辑图源与渲染成品，Markdown/Word/PPT 插图与图文核验 |
 | `mv-tech-stack-baseline` | design | 技术栈选型、版本基线、依赖引入与升级决策 |
+| `mv-architecture-standards` | design | 系统架构决策与评审：单体/按端/按域/微服务判据、模块与服务边界、同步/异步与一致性、多租户与数据隔离、集成模式、ADR 与架构评审 |
 | `mv-backend-standards` | impl | Java 后端规范（基线 Spring Boot + JDK 21）：分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按基线栈应用 |
-| `mv-frontend-standards` | impl | React/TypeScript 前端规范（含 shadcn-admin 后台管理类项目）：组件分层、数据获取、状态管理、路由、构建环境变量、前端安全与页面交互体验基线（布局层级、表单容错、异常态、键盘可达）；Vite SPA 与 shadcn-admin、Next.js 条款按项目实际栈应用 |
-| `mv-test-standards` | impl | 测试分层与测试代码规范：单测/集成/E2E 各层范围与覆盖率口径，JUnit/Testcontainers、Vitest/Testing Library/Playwright 与 Taro 端写法 |
+| `mv-frontend-standards` | impl | React/TypeScript 前端规范（含 shadcn-admin 后台管理类项目）：组件分层、数据获取、状态管理、路由、构建环境变量、前端安全、页面交互体验基线、可访问性与性能预算；Vite SPA 与 shadcn-admin、Next.js 条款按项目实际栈应用 |
+| `mv-test-standards` | impl | 测试分层与测试代码规范：单测/集成/E2E 各层范围与覆盖率口径、性能与负载测试，JUnit/Testcontainers、Vitest/Testing Library/Playwright 与 Taro 端写法 |
 | `mv-project-scaffold` | impl | 新项目从零初始化：仓库布局与模块划分、Spring Boot 后端骨架、shadcn-admin 管理端、Vite SPA 用户端、Taro H5/小程序端，compose.dev/env 样例/Dockerfile.delivery/CI 样例落位 |
 | `mv-image-builder` | build | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | delivery | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
 | `mv-orchestration-standards` | delivery | 容器编排规范：一项目一 stack/ns、环境即栈、禁共享基础设施；compose 编写细则、探针判定树、凭证分级与资源日志限额，k3s/k8s 映射 |
-| `mv-ops-standards` | operate | 交付后稳态运维：日志轮转、Actuator/Micrometer 指标、告警判据、数据库备份与恢复演练、镜像老化重扫与例行巡检 |
+| `mv-ops-standards` | operate | 交付后稳态运维：日志轮转、Actuator/Micrometer 指标、告警判据、数据库备份与恢复演练、镜像老化重扫、例行巡检与事故响应 |
 | `mv-git-publisher` | 横切 | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-toolchain-manager` | 横切 | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发 |
+| `mv-security-standards` | 横切 | 应用安全与数据保护基线：威胁建模、认证授权原则、数据分级与脱敏、凭据与供应链、安全评审与测试、漏洞响应 |
 
 命名规范：统一采用 `mv-` + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关）；SDLC 阶段归属由受控词表承载（design 需求与方案设计、impl 编码实现、build 构建、delivery 交付部署、operate 交付后稳态运维、横切不限单一阶段），体现在上表阶段列与校验注册，不进名字。对象与职责词的选定走两步法与四条检查。具体规则见 [仓库结构规则](docs/structure-rules.md)。
+
+## 组合场景
+
+按项目实际裁剪，不为流程完整强行加载全部 skill：
+
+| 场景 | 加载顺序 |
+| --- | --- |
+| 新项目从零 | `mv-tech-stack-baseline` → `mv-architecture-standards` → `mv-project-scaffold` → `mv-backend-standards` / `mv-frontend-standards` → `mv-test-standards` → `mv-image-builder` → `mv-container-deploy` → `mv-ops-standards` |
+| 新功能或变更 | `mv-architecture-standards`（涉及边界、集成或数据隔离时）→ `mv-backend-standards` / `mv-frontend-standards` → `mv-test-standards` → `mv-security-standards`（新入口、敏感数据或第三方集成时）→ `mv-git-publisher` |
+| 存量项目接管 | `mv-architecture-standards`（现状与边界评估）→ `mv-security-standards`（安全评审）→ 对应端规范 → `mv-test-standards` → `mv-git-publisher` |
+| 自托管第三方栈 | `mv-orchestration-standards` → `mv-ops-standards` |
+| 生产事故 | `mv-ops-standards`（事故响应）→ `mv-container-deploy`（回滚）→ `mv-engineering-doc-writer`（复盘文档） |
+| 文档与图件 | `mv-engineering-doc-writer`（写作、制图、插图编排） |
 
 把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 
@@ -82,6 +97,6 @@ Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称�
 
 ## 验证
 
-分发前运行 `python3 tests/validate_bundle.py`，检查十二个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
+分发前运行 `python3 tests/validate_bundle.py`，检查十四个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
 
 description 路由用 `python3 tests/run_trigger_evals.py [skill]` 在临时 HOME/配置与仅含候选工作区 skills 的隔离环境评测，记录候选内容 SHA-256；不加载用户已安装 skills、Hook、MCP，仅允许 Skill 工具。合理的多 skill 协作按职责与用例判定，不因多个 skill 同时触发而告警。CLI 或隔离所需凭据缺失时明确 SKIP，人工核对不等于真实路由通过；详见 [触发契约评测](docs/structure-rules.md#触发契约评测)。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。

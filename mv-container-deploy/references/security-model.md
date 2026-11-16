@@ -13,4 +13,4 @@
 
 ## 部署前提
 
-dev 与 prod 使用不同的 SSH 目标和隔离的应用目录。主机密钥按 SSH 的 `known_hosts` 机制验证，不禁用该检查。限制 Docker daemon 的访问权限，查看 `docker compose config` 时避免输出秘密信息；不将不可信的镜像名或环境值传入部署命令。
+dev 与 prod 使用不同的 SSH 目标和隔离的应用目录。主机密钥按 SSH 的 `known_hosts` 机制验证，不禁用该检查。限制 Docker daemon 的访问权限，查看 `docker compose config` 时避免输出秘密信息；不将不可信的镜像名或环境值传入部署命令。跨栈安全政策、数据分级与漏洞响应归 `mv-security-standards`，本文件只保留 Docker 交付与部署侧控制。

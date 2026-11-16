@@ -14,6 +14,7 @@ SKILLS = {
     'mv-git-publisher',
     'mv-engineering-doc-writer',
     'mv-tech-stack-baseline',
+    'mv-architecture-standards',
     'mv-backend-standards',
     'mv-frontend-standards',
     'mv-image-builder',
@@ -22,6 +23,7 @@ SKILLS = {
     'mv-test-standards',
     'mv-project-scaffold',
     'mv-ops-standards',
+    'mv-security-standards',
 }
 
 # SDLC stage ownership for the division-of-labor vocabulary (structure-rules 命名先例);
@@ -29,6 +31,7 @@ SKILLS = {
 STAGES = {
     'mv-engineering-doc-writer': 'design',
     'mv-tech-stack-baseline': 'design',
+    'mv-architecture-standards': 'design',
     'mv-backend-standards': 'impl',
     'mv-frontend-standards': 'impl',
     'mv-test-standards': 'impl',
@@ -39,6 +42,7 @@ STAGES = {
     'mv-ops-standards': 'operate',
     'mv-git-publisher': 'cross-cutting',
     'mv-toolchain-manager': 'cross-cutting',
+    'mv-security-standards': 'cross-cutting',
 }
 STAGE_VALUES = {'design', 'impl', 'build', 'delivery', 'operate', 'cross-cutting'}
 

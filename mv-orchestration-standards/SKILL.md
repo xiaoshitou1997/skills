@@ -23,7 +23,7 @@ description: 编写、审查或整改容器编排文件时使用：写 Docker Co
 2. 一个项目一个目录：`{栈名}/docker-compose.yaml` 与项目配置文件同目录；部署命令 `cd {栈名} && docker compose up -d`。
 3. 显式声明网络 `networks.default.name: {栈名}-net`，随栈名同步；跨栈通信走共享 external 网络，禁止经宿主机发布端口或 `localhost` 绕行；目标是宿主机原生进程时才允许 `host.docker.internal` 并声明 `extra_hosts`，不为「将来可能用」保留投机映射。
 4. 端口判定逐服务自上而下：反代终结 TLS → 后端只发布 HTTP 端口；栈内数据库/中间件 → 不发布端口，映射以注释声明；官方文档有 host 端口示例 → 取示例值；无示例 → host 端口 = 容器内官方监听端口；同一 compose 内多服务端口冲突 → 后者 +1 递增；跨栈重复不处理，按需启停。偏离必须行内注释写明原因，无注释偏离即违规。
-5. 镜像固定具体版本，禁 `latest`/`main`/无标签；有 Alpine 变体一律用 Alpine（glibc 依赖或 C 扩展本地编译不兼容时退 `-slim`/官方变体并注释）；同项目多环境镜像版本一致；上游仅维护 latest 的镜像允许 latest，EOL 镜像继续使用须行内注释登记理由与评估日期。
+5. 镜像固定具体版本，禁 `latest`/`main`/无标签；有 Alpine 变体一律用 Alpine（glibc 依赖或 C 扩展本地编译不兼容时退 `-slim`/官方变体并注释）；晋级使用已验证的同一镜像身份，验证、发布和回滚期间环境可暂时运行不同版本；上游仅维护 latest 的镜像允许 latest，EOL 镜像继续使用须行内注释登记理由与评估日期。
 6. healthcheck 必须证明「服务在履职」：专用健康端点 > 官方探针/脚本 > 不配；纯 TCP 探测与根路径探针是假绿，禁止作为手段；探针工具与端点都须实测核实，无法确认即按「不配」处理——假红探针比没有探针更糟。判定树与 start_period 初始值见 [references/healthcheck-probes.md](references/healthcheck-probes.md)。
 7. 启动顺序用 `depends_on` + `condition: service_healthy`；被依赖方无探针时退 `service_started`；一次性初始化容器不配探针、restart 省略，依赖方用 `service_completed_successfully` fail-closed；每服务 `restart: unless-stopped`（初始化容器除外）。
 8. YAML 写法：`command` 内联列表、`environment` map、`volumes`/`ports` 列表；service 键按 image→privileged→command→environment→volumes→ports→networks→extra_hosts→init→shm_size→stop_grace_period→secrets→healthcheck→depends_on→logging→restart→deploy 排列，顶层键 volumes→networks→secrets→services；删除注释掉的配置行，偏离注释与分块标题保留。
@@ -41,7 +41,7 @@ description: 编写、审查或整改容器编排文件时使用：写 Docker Co
 
 ## 边界
 
-自研应用的交付管线动作（出包、镜像构建、dev/prod 收据晋级、回滚）归 mv-container-deploy，其落到目标机的 compose 文件同样遵守本规范；交付后稳态运维（日志聚合、备份演练、巡检）归 mv-ops-standards；镜像构建期扫描与包版本管理归 mv-image-builder。运行期故障排查时探针语义与健康日志核验归本规范，容器操作本身归 mv-container-deploy。
+自研应用的交付管线动作（出包、镜像构建、dev/prod 收据晋级、回滚）归 mv-container-deploy，其落到目标机的 compose 文件同样遵守本规范；交付后稳态运维（日志聚合、备份演练、巡检）归 mv-ops-standards；镜像构建期扫描与包版本管理归 mv-image-builder；跨栈凭据生命周期、数据保护与安全评审归 mv-security-standards。运行期故障排查时探针语义与健康日志核验归本规范，容器操作本身归 mv-container-deploy。
 
 ## 参考
 

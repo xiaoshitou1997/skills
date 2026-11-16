@@ -1,6 +1,6 @@
 # 凭证生成与注入
 
-mv-orchestration-standards 关键规则 10 的展开：分类型生成规则、.env 注入机制与轮换周期。基线：**凭据不进 Git**——真实值不入版本控制；生产/CI 环境用 secrets manager（Vault、Kubernetes Secrets、云厂商 Secrets Manager 等），本地开发环境 .env 可明文保存。
+mv-orchestration-standards 关键规则 10 的展开：分类型生成规则、.env 注入机制与轮换周期。基线：**凭据不进 Git**——真实值不入版本控制；生产/CI 环境用 secrets manager（Vault、Kubernetes Secrets、云厂商 Secrets Manager 等），本地开发环境 .env 可明文保存。跨栈凭据生命周期、泄露处置与数据保护政策见 mv-security-standards 的 credentials；本文件只定编排侧生成与注入。
 
 ## 分类型生成表
 

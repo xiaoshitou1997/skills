@@ -1,6 +1,6 @@
 ---
 name: mv-ops-standards
-description: 应用交付后的稳态运维时使用：定日志采集与轮转策略、暴露运行指标（Actuator/Micrometer）、设告警判据、定数据库与数据卷备份恢复策略、安排镜像与依赖老化重扫、例行巡检，或排查运行期劣化。部署、晋级、回滚动作归 mv-container-deploy；镜像构建归 mv-image-builder。
+description: 应用交付后的稳态运维时使用：定日志采集与轮转策略、暴露运行指标（Actuator/Micrometer）、设告警判据、定数据库与数据卷备份恢复策略、安排镜像与依赖老化重扫、例行巡检、生产事故响应与复盘，或排查运行期劣化。部署、晋级、回滚动作归 mv-container-deploy；镜像构建归 mv-image-builder。
 ---
 
 # 稳态运维规范
@@ -25,15 +25,17 @@ description: 应用交付后的稳态运维时使用：定日志采集与轮转�
 6. 老化治理：镜像与基础镜像定期重扫（Trivy），HIGH/CRITICAL 新增漏洞安排升级窗口；依赖漏洞响应走 mv-tech-stack-baseline 升级流程。
 7. 巡检节奏：dev 环境随发布巡检，prod 环境固定周期巡检（健康端点、磁盘、备份完成状态、容器重启次数）；巡检结果记录在案，异常按告警判据升级。
 8. 观测变更与业务变更同样最小化：调整日志级别、指标暴露面、告警阈值先在 dev 验证，prod 变更留记录。
+9. 事故响应：按影响分级启动，先止损后定位；回滚与恢复动作归 mv-container-deploy，安全事件与 mv-security-standards 联动；复盘文档格式归 mv-engineering-doc-writer，复盘结论回填巡检与告警判据。
 
 ## 输出
 
-运维产出四类记录：巡检记录（时间、环境、检查项、结果）、备份与恢复演练记录（备份集、恢复到哪个时间点、验证方式）、告警处置记录（判据命中、动作、结果）、老化重扫记录（扫描范围、新增漏洞、处置窗口）。未执行的检查如实写「未执行」。
+运维产出五类记录：巡检记录（时间、环境、检查项、结果）、备份与恢复演练记录（备份集、恢复到哪个时间点、验证方式）、告警处置记录（判据命中、动作、结果）、老化重扫记录（扫描范围、新增漏洞、处置窗口）、事故记录（分级、时间线、处置、复盘链接）。未执行的检查如实写「未执行」。
 
 ## 边界
 
-部署、晋级、回滚与失败自动恢复归 mv-container-deploy；镜像构建期安全扫描归 mv-image-builder；依赖升级决策归 mv-tech-stack-baseline；监控平台与告警通道的产品选型按项目走 mv-tech-stack-baseline 选型流程。应用回滚不回滚数据库与外部副作用，数据恢复经备份流程。
+部署、晋级、回滚与失败自动恢复归 mv-container-deploy；镜像构建期安全扫描归 mv-image-builder；依赖升级决策归 mv-tech-stack-baseline；安全事件的分级、数据保护与漏洞响应归 mv-security-standards；监控平台与告警通道的产品选型按项目走 mv-tech-stack-baseline 选型流程。应用回滚不回滚数据库与外部副作用，数据恢复经备份流程。
 
 ## 参考
 
 - references/ops-playbook.md — 日志轮转、指标暴露、备份与恢复演练、巡检清单的具体做法
+- references/incident-response.md — 事故分级、角色、沟通、时间线与复盘要求

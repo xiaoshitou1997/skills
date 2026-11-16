@@ -44,7 +44,7 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod [--
 
 ## 交付流程
 
-1. 交付前检查：`compose.delivery.yml` 或 `templates/compose.delivery.yml`、`.env.<env>`（未跟踪、`APP_ENV` 匹配）、`.dockerignore`；脚本内 `project_checks`/`env_checks` 与 `deploy-preflight.sh` 会先做只读预检（静态配置 + SSH 连通与目标机 Compose v2）。
+1. 交付前检查：`compose.delivery.yml` 或 `templates/compose.delivery.yml`、`.env.<env>`（未跟踪、`APP_ENV` 匹配）、`.dockerignore`；脚本内 `project_checks`/`env_checks` 与 `deploy-preflight.sh` 会先做只读预检（静态配置 + SSH 连通与目标机 Compose v2）。生产变更核对项目要求的验收证据、未关闭风险与发布决定；涉及 schema 时核对迁移目标版本和执行结果、旧版本兼容性、恢复点与失败处置责任人，迁移未完成或兼容性未确认时停止交付。以上为人工交接检查，不视为脚本自动门禁。
 2. `deploy dev`：目标为 `FF_DEV_SSH` 指定的开发服务器。生成版本号（`version_<UTC 时间戳>_<sha12>[-dirty]`）后，compose 声明的全部镜像在目标机分发就位——已有直接使用，缺失经镜像仓库 `docker pull` 并核对 Image ID，不经宿主直传；随后启动 Compose、轮询 readiness（`FF_HEALTH_URL` 指向 readiness 端点；Docker HEALTHCHECK 属 liveness 观测位）。
 3. dev 健康验证通过（`VERIFIED_HEALTH=strong`）后：目标机快照版本清单写入 `versions/<版本>.tsv`（全服务 `服务\t镜像\tImage ID`）并前移 `current-version`；本机（执行部署的工作机）按清单逐 Image ID 在 `~/.mv/container-deploy/receipts/<app>/` 写 dev 收据。仅 `running-only`、`liveness-only` 不产生可晋级收据。
 4. `deploy prod`：要求用户明确授权、`FF_PROD_SSH` 目标、晋级门禁两段核对 dev 收据（上传前主镜像按目标机 Image ID，启动前经 `plan` 按完整镜像清单逐镜像，并拒绝 `-dirty`；`FF_REQUIRE_DEV_PROOF=0` 仅限风险评估后的显式应急）。生产必须有真实健康信号，仅 `running` 不算健康。
@@ -75,6 +75,6 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod [--
 
 ## 安全要点
 
-- 禁止以开发命令或本地容器冒充 dev/prod 部署成功；禁止生产 Debug Agent、明文输出 secret、无确认修改数据库 schema。应用回滚不回滚数据库迁移或外部副作用。
+- 禁止以开发命令或本地容器冒充 dev/prod 部署成功；禁止生产 Debug Agent、明文输出 secret、无确认修改数据库 schema。应用回滚不回滚数据库迁移或外部副作用。跨栈安全政策、数据分级与供应链处置见 mv-security-standards，本节只保留部署侧控制。
 - `.env.<env>` 与私钥不得进入 Git 或命令日志；配置与 Compose 文件一律经 SSH 通道传输到目标机，落盘即按 600 收口。主机密钥按 SSH `known_hosts` 机制验证，不禁用该检查；不将不可信的镜像名或环境值传入部署命令。
 - 出包与镜像构建的安全基线（出包、上传校验、扫描）见 `mv-image-builder`。

@@ -1,13 +1,13 @@
 ---
 name: mv-backend-standards
-description: 编写、修改、重构或审查 Java 后端代码时使用，团队基线为 Spring Boot + JDK 21（Spring Framework 7、JPA、PostgreSQL），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 专属条款见 spring-guide。技术栈选型与版本基线归 mv-tech-stack-baseline。
+description: 编写、修改、重构或审查 Java 后端代码时使用，团队基线为 Spring Boot + JDK 21（Spring Framework 7、JPA、PostgreSQL），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、认证与权限（RBAC）、集合并发和测试；Spring Boot 专属条款见 spring-guide。技术栈选型与版本基线归 mv-tech-stack-baseline。
 ---
 
 # Java 后端规范
 
 ## 作用与优先级
 
-这是**规范型 Skill**，在 Agent 编码、审查、测试期间引用；不负责编排 Spec/Plan/Tasks，不直接启动、Commit 或部署。团队 Java 后端基线为 Spring Boot（见 mv-tech-stack-baseline）：通用条款为 Java 后端通用工程条款，Spring Boot 与 JPA 专属条款按基线栈应用；项目偏离基线时项目规范优先并记录理由。
+这是**规范型 Skill**，在 Agent 编码、审查、测试期间引用；不负责编排 Spec/Plan/Tasks，不直接启动、Commit 或部署。团队 Java 后端基线为 Spring Boot（见 mv-tech-stack-baseline）：通用条款为 Java 后端通用工程条款，Spring Boot 与 JPA 专属条款按基线栈应用；项目偏离基线时项目规范优先并记录理由。系统边界、集成与一致性决策归 mv-architecture-standards；安全政策、数据分级与威胁建模归 mv-security-standards；本规范只管编码实现层条款。
 
 优先级：用户明确需求和项目已正式采纳的规范 / ADR → 本规范 → 框架默认约定。
 
@@ -82,7 +82,7 @@ description: 编写、修改、重构或审查 Java 后端代码时使用，团�
 
 ## 详细参考
 
-框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)（含 JPA 数据访问条款）；schema 迁移与大表 DDL 执行策略见 [references/schema-migrations.md](references/schema-migrations.md)。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
+框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)（含 JPA 数据访问条款）；schema 迁移与大表 DDL 执行策略见 [references/schema-migrations.md](references/schema-migrations.md)。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。安全政策与安全评审清单见 mv-security-standards，系统架构与集成决策见 mv-architecture-standards。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
 
 ## 输出
 

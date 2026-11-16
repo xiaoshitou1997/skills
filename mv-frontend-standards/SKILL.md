@@ -1,6 +1,6 @@
 ---
 name: mv-frontend-standards
-description: 编写、修改、重构或审查前端代码时使用（React、TypeScript 及其他前端框架；含 shadcn-admin 后台管理类项目与 Taro H5/小程序端），覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、路由、错误与国际化文案、构建环境变量、前端安全和页面交互体验基线；框架与脚手架专属条款按项目实际栈应用。技术栈选型与版本基线归 mv-tech-stack-baseline。
+description: 编写、修改、重构或审查前端代码时使用（React、TypeScript 及其他前端框架；含 shadcn-admin 后台管理类项目与 Taro H5/小程序端），覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、路由、错误与国际化文案、构建环境变量、前端安全、页面交互体验基线、可访问性与性能预算；框架与脚手架专属条款按项目实际栈应用。技术栈选型与版本基线归 mv-tech-stack-baseline。
 ---
 
 # 前端规范
@@ -24,14 +24,14 @@ description: 编写、修改、重构或审查前端代码时使用（React、Ty
 5. 表单与校验：表单用受控校验库承载（react-hook-form + zod 等按项目脚手架），schema 与类型契约同源；前置校验错误标在字段旁，高危操作确认并留撤销或操作日志，细则见交互基线。
 6. 错误与文案：国际化是系统基本要求——文案资源最低双语 `zh-CN`（默认）与 `en-US`，项目初始化即引入双语骨架，不在组件里硬编码任何语言的句子；前端只翻译自己生成的界面文案，响应中系统生成的描述性文案与枚举展示名由后端按 locale 给出译文、前端原样展示，不按 key 二次翻译（生成方判据与 key 生命周期以 mv-backend-standards spring-guide「国际化」为唯一全文源）；枚举取值全集（筛选、下拉）走枚举字典端点取得，不维护「取值 → 展示名」映射表；`code` 走前端文案资源映射通用描述；错误边界兜底，不白屏、不吞错。
 7. 构建与环境变量：区分编译期固化与运行时注入——`VITE_*`、`TARO_APP_*` 等前端前缀变量会被打进产物，不放环境差异配置、密钥或分环境 API 地址；跨环境配置走运行时注入或相对路径（与 mv-image-builder 的构建期固化条款同源）。
-8. 安全基线：不将未消毒内容注入 `dangerouslySetInnerHTML` 等等价通道；不把密钥、内网地址、调试开关打进前端包；新依赖先过 mv-tech-stack-baseline 的依赖引入评估再进。
+8. 安全基线：不将未消毒内容注入 `dangerouslySetInnerHTML` 等等价通道；不把密钥、内网地址、调试开关打进前端包；新依赖先过 mv-tech-stack-baseline 的依赖引入评估再进。跨栈安全政策、数据分级与安全评审见 mv-security-standards，本节只保留前端实现边界。
 9. 样式与设计系统：样式方案同一项目不混用多套；shadcn/ui 项目经 CLI 增改组件、走 CSS 变量主题令牌（语义色、间距），不硬编码色值绕开令牌；间距、色彩走项目设计令牌，不散落魔法数值；视觉还原以设计稿为准，本规范不定义视觉风格。
 10. 交互与体验基线：页面布局范式稳定、信息层级清晰；交互元素状态完整、操作即时反馈；空/错/加载异常页面完备；用词全站统一；色彩用于区分状态而非装饰；键盘可达并按项目约定适配多分辨率。页面级条款见 [references/ux-interaction-guide.md](references/ux-interaction-guide.md)。
 11. 最小变更与测试：改动现有系统保持最小必要变更，新产生的死代码、未用 import 一律删除；业务逻辑与行为改动写或更新对应测试（组件渲染/工具函数单测），使用项目现有测试框架，不为规范而更换框架；测试分层策略与覆盖口径按 mv-test-standards 关键规则执行，组件与交互测试写法见其 frontend-testing。
 
 ## 详细参考
 
-框架中立主体见 [references/frontend-guide.md](references/frontend-guide.md)；Vite SPA 与 shadcn-admin 衍生项目并读 [references/vite-spa-guide.md](references/vite-spa-guide.md)；Taro H5/小程序端并读 [references/taro-guide.md](references/taro-guide.md)；使用 Next.js 时并读 [references/nextjs-guide.md](references/nextjs-guide.md)；涉及页面布局、交互流程、表单容错、异常态与可访问性时并读 [references/ux-interaction-guide.md](references/ux-interaction-guide.md)。规范中的举例和阈值不应覆盖项目实际框架版本、性能特征或已确立基线。
+框架中立主体见 [references/frontend-guide.md](references/frontend-guide.md)；Vite SPA 与 shadcn-admin 衍生项目并读 [references/vite-spa-guide.md](references/vite-spa-guide.md)；Taro H5/小程序端并读 [references/taro-guide.md](references/taro-guide.md)；使用 Next.js 时并读 [references/nextjs-guide.md](references/nextjs-guide.md)；涉及页面布局、交互流程、表单容错、异常态与可访问性时并读 [references/ux-interaction-guide.md](references/ux-interaction-guide.md)；涉及可访问性验收与性能预算时并读 [references/accessibility-performance.md](references/accessibility-performance.md)。规范中的举例和阈值不应覆盖项目实际框架版本、性能特征或已确立基线。
 
 ## 输出
 
@@ -39,4 +39,4 @@ description: 编写、修改、重构或审查前端代码时使用（React、Ty
 
 ## 自动验证与边界
 
-优先运行项目已有检查（lint、typecheck、既有测试脚本）；没有配置的检查如实报告未执行，不虚构成功。出包与镜像构建归 mv-image-builder；技术栈选型与版本基线归 mv-tech-stack-baseline；工程文档与图件归 mv-engineering-doc-writer。静态规范和自动检查不能互相替代。
+优先运行项目已有检查（lint、typecheck、既有测试脚本）；没有配置的检查如实报告未执行，不虚构成功。出包与镜像构建归 mv-image-builder；技术栈选型与版本基线归 mv-tech-stack-baseline；系统架构与集成决策归 mv-architecture-standards；安全政策与安全评审归 mv-security-standards；工程文档与图件归 mv-engineering-doc-writer。静态规范和自动检查不能互相替代。

@@ -17,7 +17,7 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合 mv-project
 ├── <project>-admin-web/     管理端（shadcn-admin 衍生，Vite SPA）
 ├── <project>-user-web/      用户 PC 端（Vite SPA；SSR 需求按选型评 Next.js）
 ├── <project>-user-mp/       Taro H5/小程序端（按需，一工程双编译目标）
-├── compose.dev.yml          本地/联调基础设施编排
+├── compose.dev.yml          开发服务器联调基础设施编排
 ├── .env.example             环境变量样例（占位值）
 └── .github/workflows/       CI 样例
 ```
@@ -57,6 +57,7 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合 mv-project
 
 ## compose.dev 拓扑
 
+- 基础设施运行在经 SSH 访问的开发服务器，不在宿主安装或运行 Docker；宿主直启的业务进程通过项目配置连接开发服务器。
 - 基础设施固定版本 Tag（不用 `latest`）：PostgreSQL 必选；Redis、RabbitMQ、RustFS 按项目确认范围启停；数据卷命名带项目前缀防串。
 - 端口约定：同一开发服务器多项目共存时，宿主映射端口按项目分配区间并记录在项目 README，避免冲突；容器内端口用各组件默认值。
 - `compose.dev.yml` 只含基础设施与联调依赖；业务服务本地在宿主前台直启，不进 dev 编排（项目文档化开发拓扑为容器时除外，归 mv-container-deploy 的 dev 交付）。

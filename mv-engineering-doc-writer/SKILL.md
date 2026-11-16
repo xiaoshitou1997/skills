@@ -46,6 +46,10 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 
 只要能安全产出有用的草稿，就不为缺失细节反复追问；用 `TBD`、`Assumption`、`Open Question` 或显式占位符代替编造取值。
 
+### 需求澄清
+
+需求输入不完整时，先按 [需求澄清](references/requirements-analysis.md) 补干系人、领域术语、业务流程与规则、验收标准；仍缺失的标 `Open Question`，不把推测写成需求。需求澄清只补事实与约束，不改写用户已确认的目标。
+
 ### 来源忠实
 
 当源文件、截图、工单、会议纪要、代码或用户提供的文本是文档依据时：
@@ -105,6 +109,10 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 #### MOP
 
 升级/部署 MOP 是可执行的生产变更操作文件，不是泛泛的升级介绍。仅在已确认时包含前置条件、变更范围、准备项、备份、逐步命令/动作、检查点、成功标准、回滚触发条件、回滚步骤、变更后验证和责任人。加载 `references/mop-guide.md`。
+
+#### ADR
+
+架构决策记录的内容判据与模板归 mv-architecture-standards；本 skill 只在 ADR 作为交付文档时负责结构与文风，不另造决策模板。
 
 ### 局部修订行为
 
@@ -193,6 +201,7 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 写作模式：
 
 - [references/document-types.md](references/document-types.md)：PRD、HLD、LLD、RFC、API、MOP 等类型的结构与章节要求。
+- [references/requirements-analysis.md](references/requirements-analysis.md)：需求澄清、干系人、领域术语、业务流程与验收标准。
 - [references/quality-rules.md](references/quality-rules.md)：反虚构、可追溯、术语、文风与 Markdown 规则。
 - [references/mop-guide.md](references/mop-guide.md)：生产 MOP 的详细要求、检查点、回滚与验证规则。
 - [references/self-check.md](references/self-check.md)：交付前的最终质量门。

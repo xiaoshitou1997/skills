@@ -9,6 +9,8 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 
 这是**基线型 Skill**，约束技术栈选型、基线维护与依赖演进决策。优先级：用户明确需求和项目已采纳的规范 / ADR → 本基线 → 生态默认推荐。
 
+系统形态、服务边界、一致性与集成方式归 mv-architecture-standards；安全政策、数据分级与供应链处置归 mv-security-standards。本基线只管选型与版本。
+
 升级是独立决策，先评估影响面再列迁移计划，不搭车业务变更。
 
 ## 团队基线
@@ -18,7 +20,7 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | Java 版本 | JDK 21（LTS） |  |
 | Java 框架 | Spring Boot 4.0.x（Spring Framework 7、Jackson 3、Tomcat 11） | 框架条款见 mv-backend-standards；Boot 3 存量项目按项目基线维护，升级走「依赖引入与升级」流程 |
 | 构建工具 | Maven | 优先 mvnw 锁版本 |
-| 镜像基线 | 基镜像 eclipse-temurin:21-jre、非 root 用户 10001、端口 8080 | 各栈 Dockerfile.delivery 基线，镜像定义随模块，编排见 mv-image-builder |
+| 镜像基线 | 基镜像 eclipse-temurin:21-jre、非 root 用户 10001、端口 8080 | 各栈 Dockerfile.delivery 基线，镜像定义随模块；构建见 mv-image-builder，编排见 mv-orchestration-standards |
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
 | JSON 序列化 | Jackson | 禁止 fastjson、gson |
 | 统一响应包络 | code/message/data 三段：code 为业务错误码枚举（一场景一码）；message 走 i18n messageKey；data 为强类型 VO | 新项目默认；项目既有包络优先；存量接口不擅自改造；HTTP 状态码保持语义，不一律 200 |
@@ -35,11 +37,11 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 | LLM 应用框架 | Spring AI | 不引入 Spring AI Alibaba；模型接线统一用 OpenAI 兼容 starter（`spring-ai-starter-model-openai`），不引入 provider 专属 starter/SDK，不自研 HTTP 客户端直连模型 API；换模型只改配置 |
 | 前端形态与脚手架 | admin 端以 shadcn-admin（Vite + React SPA + TanStack Router/Query/Table + Tailwind）为基线起步，衍生定制后维护；user PC 端默认 Vite SPA 与 admin 同底座，页面级 SEO/SSR 需求先评估 Next.js；H5/小程序端用 Taro（React 语法），编译目标 weapp + h5 | 纯展示/官网等其他前端形态按项目选型；工具链安装见 mv-toolchain-manager，编码规范见 mv-frontend-standards（三端条款分框架应用），项目初始化见 mv-project-scaffold；React、TypeScript、shadcn/ui 为前端基线技术 |
 
-新项目从基线默认选起，偏离基线记录理由并产出简版 ADR；选型决策要点与 ADR 模板见 [references/baseline-template.md](references/baseline-template.md)，基线未覆盖的类别按同一流程补齐。
+新项目从基线默认选起，偏离基线记录理由并产出简版 ADR；选型决策要点见 [references/baseline-template.md](references/baseline-template.md)，基线未覆盖的类别按同一流程补齐。
 
 ## 依赖引入与升级
 
-- 新增依赖版本对齐项目既有依赖管理（BOM / version catalog），不在构建文件散落单点版本号；优先复用已用库的既有能力，引入新库说明理由、维护状态与退出成本，License 与安全核对后再进。
+- 新增依赖版本对齐项目既有依赖管理（BOM / version catalog），不在构建文件散落单点版本号；优先复用已用库的既有能力，引入新库说明理由、维护状态与退出成本，License 与安全核对后再进，供应链扫描与漏洞处置按 mv-security-standards 执行。
 - 升级安全补丁与 LTS 优先；破坏性升级独立分支，先评估 API、依赖与数据迁移影响并列迁移与回滚计划；升级后按项目管线验证（出包、部署、回归）。
 
 ## 输出
@@ -48,4 +50,4 @@ description: 新建项目技术选型、确定或调整项目技术栈基线、�
 
 ## 边界
 
-编码规范、分层与写法归 mv-backend-standards（后端）与 mv-frontend-standards（前端）；测试分层与写法归 mv-test-standards；新项目初始化归 mv-project-scaffold；本机工具链检测安装归 mv-toolchain-manager；构建出包与镜像归 mv-image-builder，容器部署归 mv-container-deploy，交付后稳态运维归 mv-ops-standards；基线与项目实际冲突时项目优先。
+编码规范、分层与写法归 mv-backend-standards（后端）与 mv-frontend-standards（前端）；测试分层与写法归 mv-test-standards；新项目初始化归 mv-project-scaffold；本机工具链检测安装归 mv-toolchain-manager；构建出包与镜像归 mv-image-builder，容器部署归 mv-container-deploy，交付后稳态运维归 mv-ops-standards；系统架构与集成决策归 mv-architecture-standards，安全政策与供应链处置归 mv-security-standards；基线与项目实际冲突时项目优先。

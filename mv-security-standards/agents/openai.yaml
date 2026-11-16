@@ -1,0 +1,3 @@
+interface:
+  display_name: "Security Standards"
+  short_description: "应用安全与数据保护规范：威胁建模、认证授权原则、数据分级、凭据与供应链、安全评审与测试。"
