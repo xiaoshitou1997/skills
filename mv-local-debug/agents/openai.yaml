@@ -1,3 +1,0 @@
-interface:
-  display_name: "Local Debug"
-  short_description: "本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障。"

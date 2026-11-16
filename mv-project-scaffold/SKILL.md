@@ -32,7 +32,7 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 6. 环境配置：`compose.dev.yml` 起本地/联调基础设施（PostgreSQL 必选，Redis/RabbitMQ/RustFS 按确认范围，固定版本 Tag）；`.env.example` 样例落位且真实 env 文件保持未跟踪（样例用占位值，不含真实密钥）；`.gitignore` 覆盖 `.env*`。
 7. 首次迁移与种子数据：V1 脚本含 RBAC 权限点与菜单种子数据（幂等 upsert），与代码同版本发布。
 8. CI 样例：PR 触发「编译 + lint + 单测」工作流样例（GitHub Actions），作为项目最小门禁起点，按项目演进调整。
-9. 本地验证：按 mv-local-debug 宿主直启跑通后端与各端，记录「编译/启动/首屏」证据后收尾。
+9. 本地验证：宿主前台直启跑通后端与各端（前台可见窗口运行、Ctrl-C 可停），记录「编译/启动/首屏」证据后收尾。
 
 ## 硬约束
 
@@ -47,7 +47,7 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 
 ## 边界
 
-技术栈选型与版本基线归 mv-tech-stack-baseline；初始化后的业务编码规范归 mv-backend-standards 与 mv-frontend-standards；本机直启验证归 mv-local-debug；镜像构建归 mv-image-builder，容器部署归 mv-container-deploy；测试分层与写法归 mv-test-standards。
+技术栈选型与版本基线归 mv-tech-stack-baseline；初始化后的业务编码规范归 mv-backend-standards 与 mv-frontend-standards；镜像构建归 mv-image-builder，容器部署归 mv-container-deploy；测试分层与写法归 mv-test-standards。
 
 ## 参考
 

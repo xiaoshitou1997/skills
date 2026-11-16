@@ -61,4 +61,4 @@
 - 测试栈沿用脚手架（Vitest + 浏览器模式）或项目既有约定，不为统一而更换框架；路由与 Query 相关测试用内存路由与假服务层，不发真实请求。
 - 关键交互（表单提交、权限守卫、错误态渲染）有对应测试；快照测试不替代行为断言；测试分层与覆盖口径按 mv-test-standards 执行。
 
-本文只覆盖 Vite SPA 与 shadcn-admin 工程条款；渲染模式对应的镜像构建与部署契约归 mv-image-builder 与 mv-container-deploy，本地 dev server 调试归 mv-local-debug，技术栈选型归 mv-tech-stack-baseline。
+本文只覆盖 Vite SPA 与 shadcn-admin 工程条款；渲染模式对应的镜像构建与部署契约归 mv-image-builder 与 mv-container-deploy，技术栈选型归 mv-tech-stack-baseline。

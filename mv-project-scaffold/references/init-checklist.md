@@ -38,6 +38,6 @@ mv-project-scaffold 初始化步骤的逐端展开；执行顺序按正文编号
 1. `compose.dev.yml` 与 `.env.example`：见 repo-layout 拓扑条款；env 样例只含占位值。
 2. `.gitignore` 覆盖 `.env*`、`node_modules`、构建产物目录。
 3. CI 样例入仓（见 repo-layout CI 条款）。
-4. 全端收尾：按 mv-local-debug 宿主直启逐端验证并记录证据。
+4. 全端收尾：宿主前台直启逐端验证并记录证据。
 
 本文是初始化期的操作展开；初始化完成后的持续开发规范归 mv-backend-standards、mv-frontend-standards 与 mv-test-standards。

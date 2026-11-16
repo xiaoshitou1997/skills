@@ -1,6 +1,6 @@
 ---
 name: mv-frontend-standards
-description: 编写、修改、重构或审查前端代码时使用（React、TypeScript 及其他前端框架；含 shadcn-admin 后台管理类项目与 Taro H5/小程序端），覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、路由、错误与国际化文案、构建环境变量、前端安全和页面交互体验基线；框架与脚手架专属条款按项目实际栈应用。技术栈选型与版本基线归 mv-tech-stack-baseline，本机运行调试归 mv-local-debug。
+description: 编写、修改、重构或审查前端代码时使用（React、TypeScript 及其他前端框架；含 shadcn-admin 后台管理类项目与 Taro H5/小程序端），覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、路由、错误与国际化文案、构建环境变量、前端安全和页面交互体验基线；框架与脚手架专属条款按项目实际栈应用。技术栈选型与版本基线归 mv-tech-stack-baseline。
 ---
 
 # 前端规范
@@ -39,4 +39,4 @@ description: 编写、修改、重构或审查前端代码时使用（React、Ty
 
 ## 自动验证与边界
 
-优先运行项目已有检查（lint、typecheck、既有测试脚本）；没有配置的检查如实报告未执行，不虚构成功。本机把前端跑起来调试（dev server、热更新）归 mv-local-debug；出包与镜像构建归 mv-image-builder；技术栈选型与版本基线归 mv-tech-stack-baseline；工程文档与图件归 mv-engineering-doc-writer。静态规范和自动检查不能互相替代。
+优先运行项目已有检查（lint、typecheck、既有测试脚本）；没有配置的检查如实报告未执行，不虚构成功。出包与镜像构建归 mv-image-builder；技术栈选型与版本基线归 mv-tech-stack-baseline；工程文档与图件归 mv-engineering-doc-writer。静态规范和自动检查不能互相替代。

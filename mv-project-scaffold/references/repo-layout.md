@@ -59,7 +59,7 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合 mv-project
 
 - 基础设施固定版本 Tag（不用 `latest`）：PostgreSQL 必选；Redis、RabbitMQ、RustFS 按项目确认范围启停；数据卷命名带项目前缀防串。
 - 端口约定：同一开发服务器多项目共存时，宿主映射端口按项目分配区间并记录在项目 README，避免冲突；容器内端口用各组件默认值。
-- `compose.dev.yml` 只含基础设施与联调依赖；业务服务本地经 mv-local-debug 宿主直启，不进 dev 编排（项目文档化开发拓扑为容器时除外，归 mv-container-deploy 的 dev 交付）。
+- `compose.dev.yml` 只含基础设施与联调依赖；业务服务本地在宿主前台直启，不进 dev 编排（项目文档化开发拓扑为容器时除外，归 mv-container-deploy 的 dev 交付）。
 
 ## CI 样例
 

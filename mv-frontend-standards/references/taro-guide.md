@@ -28,4 +28,4 @@
 - 主包只放核心页面与公共资源，非核心业务分包加载；分包边界按业务域划分并在 `app.config` 显式声明。
 - 静态资源进 CDN 或对象存储，不打包进小程序包体；包体超限先减资源再谈分包重构。
 
-本文只覆盖 Taro 工程条款；渲染目标对应的镜像构建与部署契约归 mv-image-builder 与 mv-container-deploy，本地调试归 mv-local-debug，技术栈选型归 mv-tech-stack-baseline。
+本文只覆盖 Taro 工程条款；渲染目标对应的镜像构建与部署契约归 mv-image-builder 与 mv-container-deploy，技术栈选型归 mv-tech-stack-baseline。

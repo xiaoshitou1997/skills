@@ -28,24 +28,6 @@ CASES = [
     {'skill': 'mv-toolchain-manager', 'kind': 'negative', 'instead': 'mv-image-builder',
      'query': '前端已在宿主出包，工具链正常，把 dist 打成瘦运行时镜像，只构建不运行'},
 
-    # --- mv-local-debug：本机（宿主）直启调试，零容器零镜像，不含构建出包、容器与部署 ---
-    {'skill': 'mv-local-debug', 'kind': 'positive',
-     'query': '这次改动在本地跑一下，我要打断点调试接口'},
-    {'skill': 'mv-local-debug', 'kind': 'positive',
-     'query': '不要走容器，直接在本机把服务跑起来，我开着终端看日志'},
-    {'skill': 'mv-local-debug', 'kind': 'positive',
-     'query': '宿主构建报 Unable to establish loopback connection，帮我排查一下'},
-    {'skill': 'mv-local-debug', 'kind': 'positive',
-     'query': '本地起 dev server 联调前端，热更新好像没生效'},
-    {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-toolchain-manager',
-     'query': '本机缺 Java 17，帮我装一个'},
-    {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-image-builder',
-     'query': '帮我把这个项目打成 Docker 镜像'},
-    {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-container-deploy',
-     'query': '在 WSL 容器里把这个镜像跑起来看看'},
-    {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-git-publisher',
-     'query': '把这些改动提交并推送'},
-
     # --- mv-image-builder：宿主出包 + 服务器构建镜像（各栈模块内 Dockerfile.delivery，出包→上传→服务器构建统一流程），只构建不运行 ---
     {'skill': 'mv-image-builder', 'kind': 'positive',
      'query': '帮我把这个项目打成 Docker 镜像，出个包'},
@@ -61,7 +43,7 @@ CASES = [
      'query': '多模块项目里只有 order-service 这个 Java 模块要出镜像，其他模块不要动'},
     {'skill': 'mv-image-builder', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '在 WSL 容器里验证一下这个镜像能不能正常启动'},
-    {'skill': 'mv-image-builder', 'kind': 'negative', 'instead': 'mv-local-debug',
+    {'skill': 'mv-image-builder', 'kind': 'negative',
      'query': '不走容器，直接在本机跑起来调试'},
     {'skill': 'mv-image-builder', 'kind': 'negative', 'instead': 'mv-toolchain-manager',
      'query': '把本机开发用的 JDK 切到 21'},
@@ -125,7 +107,7 @@ CASES = [
      'query': '前端要展示后端返回的错误码对应文案，按规范怎么接国际化'},
     {'skill': 'mv-frontend-standards', 'kind': 'negative', 'instead': 'mv-tech-stack-baseline',
      'query': '新后台管理项目前端怎么起步？shadcn-admin 和其他方案帮我定一下技术栈'},
-    {'skill': 'mv-frontend-standards', 'kind': 'negative', 'instead': 'mv-local-debug',
+    {'skill': 'mv-frontend-standards', 'kind': 'negative',
      'query': '本地把 Next.js dev server 跑起来，热更新没生效，帮我排查'},
     {'skill': 'mv-frontend-standards', 'kind': 'negative', 'instead': 'mv-image-builder',
      'query': '把前端构建出的 dist 打成 Docker 镜像，先不部署'},
@@ -196,7 +178,7 @@ CASES = [
      'query': '这个模块的测试该怎么分层？哪些必须集成测试哪些单测就够，覆盖率口径是多少'},
     {'skill': 'mv-test-standards', 'kind': 'negative', 'instead': 'mv-backend-standards',
      'query': '这个拦截器里的权限判断写法符合后端规范吗，帮我审查'},
-    {'skill': 'mv-test-standards', 'kind': 'negative', 'instead': 'mv-local-debug',
+    {'skill': 'mv-test-standards', 'kind': 'negative',
      'query': '本地把服务跑起来，我手动点一遍下单流程看看'},
 
     # --- mv-project-scaffold：新项目从零初始化与新增端起步，不含选型定版与业务编码 ---
@@ -232,8 +214,6 @@ CASES = [
     {'skill': 'mv-git-publisher', 'kind': 'positive',
      'query': '评审这个 PR 标题和描述，只修改文稿，不创建 PR'},
     {'skill': 'mv-container-deploy', 'kind': 'positive',
-     'query': '项目 README 规定开发时必须用 Compose 起全套，宿主无法独立运行，按这个方式在本地跑一下'},
-    {'skill': 'mv-local-debug', 'kind': 'negative', 'instead': 'mv-container-deploy',
      'query': '项目 README 规定开发时必须用 Compose 起全套，宿主无法独立运行，按这个方式在本地跑一下'},
 
 ]

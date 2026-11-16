@@ -1,6 +1,6 @@
 ---
 name: mv-image-builder
-description: 宿主出包并在服务器构建容器镜像时使用：打镜像、出镜像包、构建交付镜像、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。宿主只编译二进制包，镜像一律由服务器侧 docker build 产出，构建点经 SSH 访问。镜像验证与部署归 mv-container-deploy，本机直启调试归 mv-local-debug。
+description: 宿主出包并在服务器构建容器镜像时使用：打镜像、出镜像包、构建交付镜像、给 Spring Boot 模块打镜像、非 Java 模块交付镜像、排查镜像构建失败。宿主只编译二进制包，镜像一律由服务器侧 docker build 产出，构建点经 SSH 访问。镜像验证与部署归 mv-container-deploy。
 ---
 
 # 镜像构建
@@ -26,7 +26,7 @@ description: 宿主出包并在服务器构建容器镜像时使用：打镜像�
 - **包与镜像同 Tag**：包版本标识在出包时生成，与镜像共用同一 Tag，同一 Tag 只对应一个包，重出包产生新 Tag；包落服务器 `~/.mv/image-builder/packages/<app>/` 并维护包清单（见 [构建契约](references/build-contract.md)）。
 - **只构建不运行**：本 skill 不 `docker run`、不起 compose 栈；「在容器里跑/验证镜像」走 `mv-container-deploy` 的 dev 交付。
 - **包与镜像常驻**：构建包、构建镜像与拉取的基础镜像一律保留，任何流程不得删除包、`docker rmi`、`docker system prune`；存储不足时报告用户请示。
-- **意图分流**：「打镜像 / 出镜像包」= 本 skill；「本地跑一下 / debug / 断点 / 联调」= `mv-local-debug`（宿主直启）；「部署 dev / 在容器里跑 / 上生产 / 回滚」= `mv-container-deploy`。
+- **意图分流**：「打镜像 / 出镜像包」= 本 skill；「部署 dev / 在容器里跑 / 上生产 / 回滚」= `mv-container-deploy`。
 
 ## 工具入口
 

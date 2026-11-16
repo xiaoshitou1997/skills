@@ -16,7 +16,6 @@ SKILLS = {
     'mv-tech-stack-baseline',
     'mv-backend-standards',
     'mv-frontend-standards',
-    'mv-local-debug',
     'mv-image-builder',
     'mv-container-deploy',
     'mv-test-standards',
@@ -31,7 +30,6 @@ STAGES = {
     'mv-tech-stack-baseline': 'design',
     'mv-backend-standards': 'impl',
     'mv-frontend-standards': 'impl',
-    'mv-local-debug': 'impl',
     'mv-test-standards': 'impl',
     'mv-project-scaffold': 'impl',
     'mv-image-builder': 'build',
@@ -45,8 +43,6 @@ STAGE_VALUES = {'design', 'impl', 'build', 'delivery', 'operate', 'cross-cutting
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
-    ['mv-toolchain-manager/scripts/doctor.py',
-     'mv-local-debug/scripts/doctor.py'],
     ['mv-git-publisher/scripts/quality-check.sh',
      'mv-image-builder/scripts/quality-check.sh',
      'mv-backend-standards/scripts/quality-check.sh'],

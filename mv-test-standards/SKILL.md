@@ -1,6 +1,6 @@
 ---
 name: mv-test-standards
-description: 规划、编写、审查或补齐软件测试时使用：确定单测/集成/E2E 测试分层与各层范围、设定覆盖率口径、设计必测场景、写后端测试（JUnit、Testcontainers）、前端组件与交互测试（Vitest、Testing Library）、E2E 冒烟（Playwright）、Taro 端测试，或评审测试范围与用例分布。产品代码本身的分层与写法归 mv-backend-standards 与 mv-frontend-standards；本机把应用跑起来人工调测归 mv-local-debug。
+description: 规划、编写、审查或补齐软件测试时使用：确定单测/集成/E2E 测试分层与各层范围、设定覆盖率口径、设计必测场景、写后端测试（JUnit、Testcontainers）、前端组件与交互测试（Vitest、Testing Library）、E2E 冒烟（Playwright）、Taro 端测试，或评审测试范围与用例分布。产品代码本身的分层与写法归 mv-backend-standards 与 mv-frontend-standards。
 ---
 
 # 测试规范
@@ -34,7 +34,7 @@ description: 规划、编写、审查或补齐软件测试时使用：确定单�
 
 ## 边界
 
-产品代码分层、DTO、事务写法见 mv-backend-standards；组件与服务层写法见 mv-frontend-standards。本机把应用跑起来人工调测（含联调请求构造）归 mv-local-debug。测试的构建期执行通道（CI 步骤、流水线）由项目承担，本 skill 只定测试内容与底线。
+产品代码分层、DTO、事务写法见 mv-backend-standards；组件与服务层写法见 mv-frontend-standards。测试的构建期执行通道（CI 步骤、流水线）由项目承担，本 skill 只定测试内容与底线。
 
 ## 参考
 
