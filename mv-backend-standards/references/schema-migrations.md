@@ -28,12 +28,14 @@ migrate 由流水线自动执行，人工只参与审批，不手工逐库执行
 
 ### 方言等价写法
 
-| 操作 | MySQL 8 | PostgreSQL | Oracle | SQL Server |
+团队基线为 PostgreSQL（首列）；其余方言服务存量项目与工单治理场景，不作为新项目选型依据。
+
+| 操作 | PostgreSQL | MySQL 8 | Oracle | SQL Server |
 |---|---|---|---|---|
-| 秒级加列 | `ALGORITHM=INSTANT` | 常量默认值即秒级（11+） | 天然元数据级 | 天然元数据级（2014+） |
-| 在线建索引 | `ALGORITHM=INPLACE, LOCK=NONE` | `CREATE INDEX CONCURRENTLY`（迁移须关闭事务） | `CREATE INDEX ... ONLINE` | `WITH (ONLINE = ON)`（仅企业版） |
-| 收紧约束 | 先回填再变更 | `NOT VALID` + `VALIDATE` 两步 | `NOVALIDATE` + `VALIDATE` | 新列+回填+切换 |
-| 重建类兜底 | gh-ost / pt-osc | pg_repack / reshape | `DBMS_REDEFINITION` | expand–contract |
+| 秒级加列 | 常量默认值即秒级（11+） | `ALGORITHM=INSTANT` | 天然元数据级 | 天然元数据级（2014+） |
+| 在线建索引 | `CREATE INDEX CONCURRENTLY`（迁移须关闭事务） | `ALGORITHM=INPLACE, LOCK=NONE` | `CREATE INDEX ... ONLINE` | `WITH (ONLINE = ON)`（仅企业版） |
+| 收紧约束 | `NOT VALID` + `VALIDATE` 两步 | 先回填再变更 | `NOVALIDATE` + `VALIDATE` | 新列+回填+切换 |
+| 重建类兜底 | pg_repack / reshape | gh-ost / pt-osc | `DBMS_REDEFINITION` | expand–contract |
 
 TiDB/OceanBase 原生在线 DDL，无需此类声明；MariaDB 兼容 `ALGORITHM` 语法但支持矩阵与 MySQL 有差异、且无 `EXPLAIN ALTER`，不照抄。
 

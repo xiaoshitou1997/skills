@@ -49,7 +49,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 
 1. 出包前检查：宿主工具链就绪（见 `mv-toolchain-manager`）、Maven/Gradle Wrapper、Node lockfile；目标模块已按 [构建契约](references/build-contract.md) 备好 `Dockerfile.delivery`；`.dockerignore` 显式排除 `.git` 与 `.env*`。用户自有规范优先。
 2. 检查版本与前端环境变量是否编译期固化：Vite 构建期嵌入不同 API 地址就不能宣称跨环境同一镜像，必须改为相对路径或运行时配置注入，或明确例外。
-3. 宿主出包：按项目约定在宿主执行构建，记录实际命令、退出状态与产物路径；构建失败不进入上传。构建基于当前工作区时明确 staged、unstaged、untracked 和删除项的范围，如实记录构建输入不是纯 Git SHA。Windows 宿主出包前一律预设 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'`（daemon、test fork 与全部子 JVM 自动拾取；只改 `java.io.tmpdir` 无效），构建报 `Unable to establish loopback connection` 即该预设未生效，核查环境变量覆盖源后重试。
+3. 宿主出包：按项目约定在宿主执行构建，记录实际命令、退出状态与产物路径；构建失败不进入上传。构建基于当前工作区时明确 staged、unstaged、untracked 和删除项的范围，如实记录构建输入不是纯 Git SHA。Windows 宿主出包前一律预设 Windows JDK loopback 参数 `JAVA_TOOL_OPTIONS`（预设内容与排查见 `mv-toolchain-manager`「Windows 宿主 JDK 预设」），构建报 `Unable to establish loopback connection` 即预设未生效，核查环境变量覆盖源后重试。
 4. 生成包版本并上传：出包时按 Tag 公式生成包 Tag（见 [构建契约](references/build-contract.md)），包上传至构建点 `~/.mv/image-builder/packages/<app>/`，上传与构建统一经 SSH（`FF_BUILD_TARGET`）。
 5. 服务器构建镜像：构建点核对上传包 SHA-256 与出包时计算值一致后，按模块 `Dockerfile.delivery` 组装瘦上下文（只含包与 Dockerfile，源码不出宿主）执行 `docker build`；输出 `IMAGE` 与 `IMAGE_ID` 如实转记作为镜像身份证据，并把包名、校验和、镜像引用写入包清单。核对不匹配或构建失败不输出镜像身份。
 6. 出包前可先跑宿主侧检查 `bash "${SKILL_ROOT}/scripts/quality-check.sh" quick` 或 `full`；安全扫描 `bash "${SKILL_ROOT}/scripts/security-scan.sh" source .` 用已有 Gitleaks；`FF_REQUIRE_SECURITY_SCAN=1` 时由构建点侧 Trivy 做镜像门禁，构建点缺 Trivy 即在构建前失败。缺扫描器不能宣称扫描通过。

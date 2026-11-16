@@ -41,8 +41,8 @@ description: 编写、修改、重构或审查 Java 后端代码时使用，团�
 22. 配置与 Secret 分离：敏感信息经运行时环境变量或 Secret Store 注入，不硬编码密钥。
 23. `.env.prod` 等生产配置不提交 Git。
 24. 配置支持按 profile 环境差异化。
-25. 业务逻辑与行为改动必须写单元测试，高风险逻辑另加必要的集成测试。
-26. 测试覆盖正常路径、边界条件、异常和并发/事务场景。
+25. 业务逻辑与行为改动必须写单元测试，高风险逻辑另加必要的集成测试；测试分层与覆盖率口径按 mv-test-standards 关键规则执行。
+26. 测试覆盖正常路径、边界条件、异常和并发/事务场景；测试代码写法与替身规则见 mv-test-standards 的 backend-testing。
 27. 使用项目现有 JUnit/Mockito/Testcontainers 等工具，不为规范而更换框架。
 28. 改动现有系统时保持最小必要变更，优先遵从项目已有模块、依赖版本与兼容性约束。
 29. 不引入未使用的 import，新产生的多余 import、代码块与类一律删除。
@@ -82,7 +82,7 @@ description: 编写、修改、重构或审查 Java 后端代码时使用，团�
 
 ## 详细参考
 
-框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)；持久层条款见 [references/persistence-jpa.md](references/persistence-jpa.md)；schema 迁移与大表 DDL 执行策略见 [references/schema-migrations.md](references/schema-migrations.md)。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
+框架中立主体见 [references/java-guide.md](references/java-guide.md)；使用 Spring Boot 时并读 [references/spring-guide.md](references/spring-guide.md)（含 JPA 数据访问条款）；schema 迁移与大表 DDL 执行策略见 [references/schema-migrations.md](references/schema-migrations.md)。编写或审查设计、接口文档时读取 java-guide 中的文档条款。文件仅为工程规则，不是独立 Reviewer/Quality Gate Skill。规范中的举例和阈值（如覆盖率门槛、主键策略）不应覆盖项目实际库版本、性能特征或已确立基线。
 
 ## 输出
 

@@ -27,6 +27,10 @@ description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Ma
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 - 不按缓存内容拼 classpath：依赖解析与手工验证的完整条款见 [manual-classpath](references/manual-classpath.md)。
 
+## Windows 宿主 JDK 预设
+
+Windows 宿主启动或 fork JVM 前统一预设 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'`（daemon、test fork 与应用主进程全部 JVM 自动拾取；只改 `java.io.tmpdir` 无效）。启动或构建报 `Unable to establish loopback connection` 即该预设未生效，核查环境变量覆盖源后重试。`mv-local-debug` 宿主直启与 `mv-image-builder` 宿主出包共用本预设。
+
 ## 便携安装器 fallback
 
 面向无 mise/SDKMAN/nvm 的环境，安装到 `~/.mv/toolchain-manager/`，跨会话缓存、会话级激活：
@@ -56,7 +60,7 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 3. 默认仅官方源；镜像只在 `FF_MIRROR=cn` 或 `--mirror cn` 显式启用，禁止自动选第三方源。
 4. 环境变量仅当前会话生效：禁止 `setx`、写 shell profile、改注册表；cmd 激活必须 `call activate.cmd`。
 
-安装器下载后自动核对发行方校验和：归档依次探测 `<url>.sha256`/`<url>.sha512`、nodejs.org 的 `SHASUMS256.txt`、python-build-standalone 的 `SHA256SUMS` 与 uv 的 `sha256sum.txt`；npm registry tarball 使用该精确版本 `dist.integrity` 的 SRI 摘要。命中即校验、不匹配立即失败，未取得可用校验和时如实提示未验证，不把下载成功当作校验通过。镜像源提供同名校验和时同样核对，但其可信度以镜像为准；需要来源认证时按发行方指南验证签名后再使用。检测细节见 [detection](references/detection.md)，网络和来源见 [mirrors](references/mirrors.md)，工具细节按需读取 [Node.js](references/nodejs.md)、[JDK](references/jdk.md)、[Maven](references/maven.md)、[Gradle](references/gradle.md)、[Python](references/python.md)。
+安装器下载后自动核对发行方校验和：归档依次探测 `<url>.sha256`/`<url>.sha512`、nodejs.org 的 `SHASUMS256.txt`、python-build-standalone 的 `SHA256SUMS` 与 uv 的 `sha256sum.txt`；npm registry tarball 使用该精确版本 `dist.integrity` 的 SRI 摘要。命中即校验、不匹配立即失败，未取得可用校验和时如实提示未验证，不把下载成功当作校验通过。镜像源提供同名校验和时同样核对，但其可信度以镜像为准；需要来源认证时按发行方指南验证签名后再使用。检测细节见 [detection](references/detection.md)，网络和来源见 [mirrors](references/mirrors.md)，各工具链下载源、版本解析与目录约定按需读取 [portable-sources](references/portable-sources.md)。
 
 ## 输出
 

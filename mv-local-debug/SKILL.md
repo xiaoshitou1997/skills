@@ -28,7 +28,7 @@ python3 "${SKILL_ROOT}/scripts/doctor.py" --project .
 ## 直启流程
 
 1. 确认启动方式：先读项目 README、文档与运行脚本确定启动命令、参数与 profile（见「启动方式分层」硬性规范）；项目未文档化时按产物直启（`java -jar target/app.jar`）或框架约定（`mvn spring-boot:run`、`./gradlew bootRun`、`npm run dev`、`pnpm dev`）。检查运行参数与现有占用端口，默认只启动用户目标组件，不改变仓库或系统配置。
-2. 前台可见启动：**新开终端窗口**运行启动命令，日志实时可见；不在 agent 终端面板内执行，禁止后台化与静默重定向。Windows 宿主启动 JDK 前一律预设 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'`（daemon、test fork 与应用主进程全部 JVM 自动拾取；只改 `java.io.tmpdir` 无效），启动报 `Unable to establish loopback connection` 即该预设未生效，核查环境变量覆盖源后重试。
+2. 前台可见启动：**新开终端窗口**运行启动命令，日志实时可见；不在 agent 终端面板内执行，禁止后台化与静默重定向。Windows 宿主启动 JDK 前一律预设 Windows JDK loopback 参数 `JAVA_TOOL_OPTIONS`（预设内容与排查见 `mv-toolchain-manager`「Windows 宿主 JDK 预设」），启动报 `Unable to establish loopback connection` 即预设未生效，核查环境变量覆盖源后重试。
 3. 观测：以前台窗口实时日志为主，辅以只读探测（如 curl 健康端点）；不接管、不代重启用户窗口中的进程。
 4. 断点与热更新：IDE 直连宿主进程（本机调试端口）；前端热更新走 dev server 原生能力。
 5. 单元测试与本地集成测试按变更影响范围运行，记录实际命令与结果，不暗示完整 CI 已通过。

@@ -14,6 +14,13 @@
 - 路由用绑定具体 HTTP 方法的注解（`@GetMapping`、`@PostMapping` 等），不用未指定方法的 `@RequestMapping`。
 - 响应按统一包络返回（基线 `code`/`message`/`data`，项目既有包络优先）：成功路径 Controller 直接返回 VO，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
 
+## 认证配置
+
+- Spring Security 过滤器链按端分段（`/admin/**` 与 `/uc/**` 独立配置或独立 `SecurityFilterChain`）；JWT 基线下会话策略 STATELESS，CSRF 按 API 形态显式决策并记录理由。
+- 令牌校验在过滤器层完成，业务代码从安全上下文取当前主体；认证异常统一映射为约定错误码，不向客户端泄漏堆栈。认证与会话的领域条款（双令牌、双端隔离、凭据传输）见 java-guide「认证与会话」。
+- 密码编码器用 BCrypt（团队基线）；CORS 显式白名单来源，不放开 `*` 与凭据并用的组合；开发期跨域经前端 dev proxy 承担，不为此放宽生产 CORS。
+- refresh token 经 HttpOnly Secure Cookie 或专用刷新端点传输，刷新做轮换与重放检测。
+
 ## 外部 HTTP 调用
 
 - Spring 应用统一用 RestClient（团队基线），复用项目 Jackson 转换器与既有拦截器；RestTemplate 已是维护模式，不用于新代码；WebClient 仅响应式栈。
@@ -43,6 +50,14 @@
 - 环境变量覆盖默认经宽松绑定生效，名称转换规则为点换下划线、去连字符、转大写（`app.jwt.secret` → `APP_JWT_SECRET`）；不含连字符的 key 无需单独定义环境变量。
 - 含连字符的 key 在该转换中丢失词界（`expire-minutes` → `EXPIREMINUTES`），环境变量名与 key 分段不再对应：此类配置项在配置文件中用属性占位符显式声明环境变量与默认值（`expire-minutes: ${APP_JWT_EXPIRE_MINUTES:30}`）。属性占位符是独立于宽松绑定的核心 Spring 机制，默认值随占位符定义在配置文件，不进代码。
 - 禁止 `@Value` 注入配置；代码（字段初始化、构造器默认参）不定义配置默认值。
+
+## JPA 数据访问
+
+JPA 为团队持久层基线，新项目与新模块默认采用；通用数据访问条款见 java-guide「数据库与事务」。
+
+- 枚举持久化用 `@Enumerated(EnumType.STRING)` 保证存储值可读；同一项目不混用映射方案；映射变更涉及历史数据与兼容性，作为独立迁移评估。
+- 查询按需取字段：列表与报表场景用投影（DTO projection）替代实体全字段查询，即 `SELECT *` 的同等约束。
+- 关联加载显式化：需要关联数据时用 fetch join 或 `@EntityGraph` 明确获取路径，默认保持懒加载，避免在事务外触发懒加载异常；此为默认行为，可按项目既有取数风格覆盖。
 
 ## 健康探测
 
