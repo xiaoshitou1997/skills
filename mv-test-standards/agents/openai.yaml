@@ -1,0 +1,3 @@
+interface:
+  display_name: "Test Standards"
+  short_description: "测试分层与测试代码规范：单测/集成/E2E 各层范围、覆盖率口径，JUnit/Testcontainers、Vitest/Testing Library/Playwright 与 Taro 端写法。"

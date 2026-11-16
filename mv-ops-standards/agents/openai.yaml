@@ -1,0 +1,3 @@
+interface:
+  display_name: "Ops Standards"
+  short_description: "交付后稳态运维规范：日志轮转、Actuator/Micrometer 指标、告警判据、数据库备份与恢复演练、镜像老化重扫与例行巡检。"

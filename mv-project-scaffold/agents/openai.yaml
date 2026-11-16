@@ -1,0 +1,3 @@
+interface:
+  display_name: "Project Scaffold"
+  short_description: "新项目从零初始化：仓库布局、Spring Boot 后端骨架、shadcn-admin 管理端、Vite SPA 用户端与 Taro H5/小程序端起步，compose.dev、env 样例、Dockerfile.delivery 与 CI 样例落位。"

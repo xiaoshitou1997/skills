@@ -19,6 +19,9 @@ SKILLS = {
     'mv-local-debug',
     'mv-image-builder',
     'mv-container-deploy',
+    'mv-test-standards',
+    'mv-project-scaffold',
+    'mv-ops-standards',
 }
 
 # SDLC stage ownership for the division-of-labor vocabulary (structure-rules 命名先例);
@@ -29,12 +32,15 @@ STAGES = {
     'mv-backend-standards': 'impl',
     'mv-frontend-standards': 'impl',
     'mv-local-debug': 'impl',
+    'mv-test-standards': 'impl',
+    'mv-project-scaffold': 'impl',
     'mv-image-builder': 'build',
     'mv-container-deploy': 'delivery',
+    'mv-ops-standards': 'operate',
     'mv-git-publisher': 'cross-cutting',
     'mv-toolchain-manager': 'cross-cutting',
 }
-STAGE_VALUES = {'design', 'impl', 'build', 'delivery', 'cross-cutting'}
+STAGE_VALUES = {'design', 'impl', 'build', 'delivery', 'operate', 'cross-cutting'}
 
 # Scripts shipped verbatim in several skills so each installs independently;
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.

@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、编码规范、技术栈约定、工程文档写作（含工程制图与插图编排）的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、本机调试、镜像构建与容器部署、工具链管理、编码规范与测试规范、项目脚手架、稳态运维、技术栈约定、工程文档写作（含工程制图与插图编排）的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 九个 skills
+## 十二个 skills
 
 | Skill | 阶段 | 范围 |
 | --- | --- | --- |
@@ -13,12 +13,15 @@
 | `mv-backend-standards` | impl | Java 后端规范（基线 Spring Boot + JDK 21）：分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按基线栈应用 |
 | `mv-frontend-standards` | impl | React/TypeScript 前端规范（含 shadcn-admin 后台管理类项目）：组件分层、数据获取、状态管理、路由、构建环境变量、前端安全与页面交互体验基线（布局层级、表单容错、异常态、键盘可达）；Vite SPA 与 shadcn-admin、Next.js 条款按项目实际栈应用 |
 | `mv-local-debug` | impl | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零容器、零镜像） |
+| `mv-test-standards` | impl | 测试分层与测试代码规范：单测/集成/E2E 各层范围与覆盖率口径，JUnit/Testcontainers、Vitest/Testing Library/Playwright 与 Taro 端写法 |
+| `mv-project-scaffold` | impl | 新项目从零初始化：仓库布局与模块划分、Spring Boot 后端骨架、shadcn-admin 管理端、Vite SPA 用户端、Taro H5/小程序端，compose.dev/env 样例/Dockerfile.delivery/CI 样例落位 |
 | `mv-image-builder` | build | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | delivery | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
+| `mv-ops-standards` | operate | 交付后稳态运维：日志轮转、Actuator/Micrometer 指标、告警判据、数据库备份与恢复演练、镜像老化重扫与例行巡检 |
 | `mv-git-publisher` | 横切 | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-toolchain-manager` | 横切 | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发 |
 
-命名规范：统一采用 `mv-` + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关）；SDLC 阶段归属由受控词表承载（design 需求与方案设计、impl 编码实现、build 构建、delivery 交付部署、横切不限单一阶段），体现在上表阶段列与校验注册，不进名字。对象与职责词的选定走两步法与四条检查。具体规则见 [仓库结构规则](docs/structure-rules.md)。
+命名规范：统一采用 `mv-` + 对象 + 职责词——`mv-` 是本仓库的来源前缀（与 Maven 无关）；SDLC 阶段归属由受控词表承载（design 需求与方案设计、impl 编码实现、build 构建、delivery 交付部署、operate 交付后稳态运维、横切不限单一阶段），体现在上表阶段列与校验注册，不进名字。对象与职责词的选定走两步法与四条检查。具体规则见 [仓库结构规则](docs/structure-rules.md)。
 
 把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 
