@@ -1,10 +1,10 @@
 # 团队工程 Skills
 
-面向团队 Git 发布、镜像构建与容器部署、工具链管理、编码规范与测试规范、项目脚手架、稳态运维、技术栈约定、工程文档写作（含工程制图与插图编排）的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
+面向团队 Git 发布、镜像构建与容器部署、容器编排规范、工具链管理、编码规范与测试规范、项目脚手架、稳态运维、技术栈约定、工程文档写作（含工程制图与插图编排）的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 十一个 skills
+## 十二个 skills
 
 | Skill | 阶段 | 范围 |
 | --- | --- | --- |
@@ -16,6 +16,7 @@
 | `mv-project-scaffold` | impl | 新项目从零初始化：仓库布局与模块划分、Spring Boot 后端骨架、shadcn-admin 管理端、Vite SPA 用户端、Taro H5/小程序端，compose.dev/env 样例/Dockerfile.delivery/CI 样例落位 |
 | `mv-image-builder` | build | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | delivery | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |
+| `mv-orchestration-standards` | delivery | 容器编排规范：一项目一 stack/ns、环境即栈、禁共享基础设施；compose 编写细则、探针判定树、凭证分级与资源日志限额，k3s/k8s 映射 |
 | `mv-ops-standards` | operate | 交付后稳态运维：日志轮转、Actuator/Micrometer 指标、告警判据、数据库备份与恢复演练、镜像老化重扫与例行巡检 |
 | `mv-git-publisher` | 横切 | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-toolchain-manager` | 横切 | JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 的项目检测与便携准备，优先 wrapper 和项目内分发 |
@@ -81,6 +82,6 @@ Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称�
 
 ## 验证
 
-分发前运行 `python3 tests/validate_bundle.py`，检查十一个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
+分发前运行 `python3 tests/validate_bundle.py`，检查十二个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
 
 description 路由用 `python3 tests/run_trigger_evals.py [skill]` 在临时 HOME/配置与仅含候选工作区 skills 的隔离环境评测，记录候选内容 SHA-256；不加载用户已安装 skills、Hook、MCP，仅允许 Skill 工具。合理的多 skill 协作按职责与用例判定，不因多个 skill 同时触发而告警。CLI 或隔离所需凭据缺失时明确 SKIP，人工核对不等于真实路由通过；详见 [触发契约评测](docs/structure-rules.md#触发契约评测)。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。
