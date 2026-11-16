@@ -100,7 +100,7 @@
 ## 命名先例
 
 - 统一 `mv-` 前缀标识来源（用户确认的来源标识）：skills 多来源混装时看名字即知出自本仓库；前缀不承载场景语义。
-- 本集合统一采用 `mv-` + 对象 + 职责词，如 `mv-tech-stack-baseline`、`mv-image-builder`、`mv-java-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
+- 本集合统一采用 `mv-` + 对象 + 职责词，如 `mv-tech-stack-baseline`、`mv-image-builder`、`mv-backend-standards`；这是用户确认的团队约定，不代表官方形式排名。对象与职责词均用英文名词，不用动名词。
 - SDLC 阶段归属是**受控词表**，承载分工而不进名字，一处维护于本节，改词先改表；不从任何单一方法论推导。取词只要求四点：语义罩住该阶段全部内容、词间不重叠、行业既定、逐词申报锚点。当前归属值：
   - `design`：需求与方案设计（文档、图件、选型基线），覆盖经典 SDLC 的 Requirements + Design 两段；
   - `impl`：编码实现与本地验证，Implementation 的工程既定缩写；

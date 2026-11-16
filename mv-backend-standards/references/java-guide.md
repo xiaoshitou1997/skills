@@ -1,6 +1,6 @@
 # Java 后端编码指南
 
-框架中立主体，对任意 Java 后端框架适用。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款见 [persistence-jpa.md](persistence-jpa.md)。
+框架中立主体，承载 Java 后端通用工程条款（团队 Java 后端基线为 Spring Boot，基线见 mv-tech-stack-baseline）。使用 Spring Boot 时并读 [spring-guide.md](spring-guide.md)；持久层条款见 [persistence-jpa.md](persistence-jpa.md)。
 
 ## 目录
 

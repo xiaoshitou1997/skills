@@ -10,8 +10,8 @@
 | --- | --- | --- |
 | `mv-engineering-doc-writer` | design | 工程文档写作/评审与制图插图编排：PRD/HLD/LLD/RFC/API 文档与生产 MOP，架构图/组网图/时序图等可编辑图源与渲染成品，Markdown/Word/PPT 插图与图文核验 |
 | `mv-tech-stack-baseline` | design | 技术栈选型、版本基线、依赖引入与升级决策 |
-| `mv-java-backend-standards` | impl | 遵循项目约定的 Java 后端规范；Spring Boot 与 JPA 条款按项目实际框架应用 |
-| `mv-nextjs-frontend-standards` | impl | Next.js/React/TypeScript 前端规范：组件分层、数据获取、状态管理、服务端/客户端边界、构建环境变量与前端安全；框架条款按项目实际框架应用 |
+| `mv-backend-standards` | impl | Java 后端规范（基线 Spring Boot + JDK 21）：分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按基线栈应用 |
+| `mv-frontend-standards` | impl | React/TypeScript 前端规范（含 shadcn-admin 后台管理类项目）：组件分层、数据获取、状态管理、路由、构建环境变量、前端安全与页面交互体验基线（布局层级、表单容错、异常态、键盘可达）；Vite SPA 与 shadcn-admin、Next.js 条款按项目实际栈应用 |
 | `mv-local-debug` | impl | 本机（宿主）直启调试：前台可见运行、断点热更新、宿主构建与启动排障（零容器、零镜像） |
 | `mv-image-builder` | build | 宿主出包、上传服务器构建瘦镜像：各栈模块内 `Dockerfile.delivery`，服务器侧 `docker build`，包与镜像同 Tag 可追溯。只构建不运行，镜像身份（IMAGE_ID）交部署侧（工具链配合 mv-toolchain-manager） |
 | `mv-container-deploy` | delivery | 服务器构建产出的镜像交付 dev/prod、健康验证、同镜像晋级与回滚 |

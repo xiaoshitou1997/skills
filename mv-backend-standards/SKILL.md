@@ -1,13 +1,13 @@
 ---
-name: mv-java-backend-standards
-description: 编写、修改、重构或审查 Java 后端代码时使用（Spring Boot 及其他 Java 后端框架），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按项目实际框架应用。技术栈选型与版本基线归 mv-tech-stack-baseline。
+name: mv-backend-standards
+description: 编写、修改、重构或审查 Java 后端代码时使用，团队基线为 Spring Boot + JDK 21（Spring Framework 7、JPA、PostgreSQL），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 专属条款见 spring-guide。技术栈选型与版本基线归 mv-tech-stack-baseline。
 ---
 
 # Java 后端规范
 
 ## 作用与优先级
 
-这是**规范型 Skill**，在 Agent 编码、审查、测试期间引用；不负责编排 Spec/Plan/Tasks，不直接启动、Commit 或部署。适用于 Java 后端项目：通用条款对任意 Java 后端框架适用，Spring Boot 与 JPA 专属条款仅在使用对应框架时应用，不向其他框架强加不兼容约束。
+这是**规范型 Skill**，在 Agent 编码、审查、测试期间引用；不负责编排 Spec/Plan/Tasks，不直接启动、Commit 或部署。团队 Java 后端基线为 Spring Boot（见 mv-tech-stack-baseline）：通用条款为 Java 后端通用工程条款，Spring Boot 与 JPA 专属条款按基线栈应用；项目偏离基线时项目规范优先并记录理由。
 
 优先级：用户明确需求和项目已正式采纳的规范 / ADR → 本规范 → 框架默认约定。
 
