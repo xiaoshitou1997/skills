@@ -41,7 +41,7 @@ TiDB/OceanBase 原生在线 DDL，无需此类声明；MariaDB 兼容 `ALGORITHM
 
 ## 重建类变更
 
-改列类型、加唯一约束、删列、字符集转换属重建类：用 gh-ost、pt-osc 等在线变更工具执行（可限速暂停、控主从延迟），migration 记 marker 标注版本；无在线工具条件时安排维护窗口，不在业务高峰直接执行。
+按数据库版本、表规模与具体 DDL 分别评估锁、扫描及数据重写，不能把改类型、加约束和删列统一判为重建。PostgreSQL 唯一约束可先 `CREATE UNIQUE INDEX CONCURRENTLY`，再以 `ADD CONSTRAINT ... UNIQUE USING INDEX` 关联（核对索引适用条件）；CHECK / 外键按支持范围用 `NOT VALID` + `VALIDATE`，不把该写法套到 UNIQUE。并发建索引须在事务外执行，失败后检查并处理无效索引；耗时重写采用 expand–contract 或已验证的在线工具。gh-ost / pt-osc 仅用于支持的 MySQL 场景。确需外部工具时，migration 记录实际执行与验证结果；无在线条件时安排维护窗口，不在业务高峰直接执行。
 
 ## 回填与 expand–contract
 
