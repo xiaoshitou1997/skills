@@ -1,7 +1,7 @@
 ---
 name: mv-engineering-doc-writer
 description: >-
-  编写、重写、评审和规范化软件工程文档时使用：写或改 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产变更 MOP、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节。绘制工程图并把图作为交付物时使用：架构图（应用/部署）、物理组网图（设备、机架、链路、端口、IP、带宽、可用区）、逻辑组网图（网络平面、安全域、网段/VLAN、流量路径）、时序图、流程图、状态图、ER 图、页面示意图，用户说画图、画架构图、画组网图、画拓扑图、出部署示意图等即触发。为 Markdown、Word（DOCX）、PowerPoint（PPTX）文档插入或替换配图、控制尺寸与位置、图文一致与文档内核验时使用。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节；产出可编辑图源与本地渲染成品，不管图最终进不进文档。提交信息、PR 描述等 Git 短文本归 mv-git-publisher，业务代码实现归 mv-backend-standards；数据图表与网络方案设计不归本 skill，不负责通用 Word/PPT 正文或幻灯片排版。
+  编写、重写、评审和规范化软件工程文档时使用：写或改 PRD、HLD/架构设计、LLD/详细设计、RFC/技术提案、API 文档、生产变更 MOP、runbook、故障复盘、实施计划、README/CHANGELOG 交付章节。绘制工程图并把图作为交付物时使用：架构图（应用/部署）、物理组网图（设备、机架、链路、端口、IP、带宽、可用区）、逻辑组网图（网络平面、安全域、网段/VLAN、流量路径）、时序图、流程图、状态图、ER 图、页面示意图，用户说画图、画架构图、画组网图、画拓扑图、出部署示意图等即触发。为 Markdown、Word（DOCX）、PowerPoint（PPTX）文档插入或替换配图、控制尺寸与位置、图文一致与文档内核验时使用。保留来源事实，区分事实/需求/假设/开放问题，不虚构细节；产出可编辑图源与本地渲染成品，不管图最终进不进文档。提交信息、PR 描述等 Git 短文本归 mv-git-publisher，业务代码实现归 mv-backend-standards；业务规则与验收口径归 mv-requirements-standards；数据图表与网络方案设计不归本 skill，不负责通用 Word/PPT 正文或幻灯片排版。
 ---
 
 # 工程文档与图件
@@ -48,7 +48,7 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 
 ### 需求澄清
 
-需求输入不完整时，先按 [需求澄清](references/requirements-analysis.md) 补干系人、领域术语、业务流程与规则、验收标准；仍缺失的标 `Open Question`，不把推测写成需求。需求澄清只补事实与约束，不改写用户已确认的目标。
+需求分析、业务规则、状态流转与验收口径归 mv-requirements-standards；写作前读取已有分析结果，输入不完整时按该规范补齐。只改文风、章节或图件且业务语义不变时，不重新开展需求分析；缺失处标 `Open Question`，不把推测写成需求。
 
 ### 来源忠实
 
@@ -192,7 +192,7 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 
 ## 产物组合
 
-用户明确要求 DOCX、PDF、幻灯片等渲染产物时，先由写作模式确定内容与结构，再用相应的能力生成目标文件格式。写文档需要配图时，写作模式编排内容并核对图文事实：先制图模式产出可编辑图源与渲染成品，再由插图编排模式插入并核验；Markdown 正文中的内联 Mermaid 块属于正文写作，由写作模式直接撰写。上游业务梳理（端到端业务流程、规则与验证场景）由用户提供的材料承担，材料缺失处按 `TBD` 与 `Open Question` 标注，不自行编造业务流程。
+用户明确要求 DOCX、PDF、幻灯片等渲染产物时，先由写作模式确定内容与结构，再用相应的能力生成目标文件格式。写文档需要配图时，写作模式编排内容并核对图文事实：先制图模式产出可编辑图源与渲染成品，再由插图编排模式插入并核验；Markdown 正文中的内联 Mermaid 块属于正文写作，由写作模式直接撰写。上游业务梳理（端到端业务流程、规则与验证场景）按 mv-requirements-standards 执行，依据当前项目材料与确认记录产出；材料缺失处按 `TBD` 与 `Open Question` 标注，不自行编造业务流程。
 
 ## 参考
 
@@ -201,7 +201,6 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 写作模式：
 
 - [references/document-types.md](references/document-types.md)：PRD、HLD、LLD、RFC、API、MOP 等类型的结构与章节要求。
-- [references/requirements-analysis.md](references/requirements-analysis.md)：需求澄清、干系人、领域术语、业务流程与验收标准。
 - [references/quality-rules.md](references/quality-rules.md)：反虚构、可追溯、术语、文风与 Markdown 规则。
 - [references/mop-guide.md](references/mop-guide.md)：生产 MOP 的详细要求、检查点、回滚与验证规则。
 - [references/self-check.md](references/self-check.md)：交付前的最终质量门。

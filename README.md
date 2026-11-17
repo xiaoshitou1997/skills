@@ -1,14 +1,17 @@
-# 团队工程 Skills
+# MV 团队工程 Skills
+
+MV 是按项目承接业务的研发团队。本集合沉淀团队共同使用的研发规则、技术默认值、工作方法与验证标准；凡随项目而变的——行业业务模型、法规与资质、客户约束、环境配置——由各项目维护。
 
 面向团队 Git 发布、镜像构建与容器部署、容器编排规范、工具链管理、编码规范与测试规范、项目脚手架、稳态运维、技术栈约定、系统架构决策、应用安全与数据保护、工程文档写作（含工程制图与插图编排）的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
 这是团队工程实践合集，不代表任何 Agent、框架或端点安全厂商的官方产品或认证。
 
-## 十四个 skills
+## Skills 职责
 
 | Skill | 阶段 | 范围 |
 | --- | --- | --- |
-| `mv-engineering-doc-writer` | design | 工程文档写作/评审与制图插图编排：需求澄清、PRD/HLD/LLD/RFC/API 文档与生产 MOP，架构图/组网图/时序图等可编辑图源与渲染成品，Markdown/Word/PPT 插图与图文核验 |
+| `mv-requirements-standards` | design | 需求分析：项目上下文、领域术语、业务流程与规则、状态流转、验收标准、需求评审与范围变更 |
+| `mv-engineering-doc-writer` | design | 工程文档写作/评审与制图插图编排：PRD/HLD/LLD/RFC/API 文档与生产 MOP，架构图/组网图/时序图等可编辑图源与渲染成品，Markdown/Word/PPT 插图与图文核验 |
 | `mv-tech-stack-baseline` | design | 技术栈选型、版本基线、依赖引入与升级决策 |
 | `mv-architecture-standards` | design | 系统架构决策与评审：单体/按端/按域/微服务判据、模块与服务边界、同步/异步与一致性、多租户与数据隔离、集成模式、ADR 与架构评审 |
 | `mv-backend-standards` | impl | Java 后端规范（基线 Spring Boot + JDK 21）：分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、集合并发和测试；Spring Boot 与 JPA 条款按基线栈应用 |
@@ -31,9 +34,9 @@
 
 | 场景 | 加载顺序 |
 | --- | --- |
-| 新项目从零 | `mv-tech-stack-baseline` → `mv-architecture-standards` → `mv-project-scaffold` → `mv-backend-standards` / `mv-frontend-standards` → `mv-test-standards` → `mv-image-builder` → `mv-container-deploy` → `mv-ops-standards` |
-| 新功能或变更 | `mv-architecture-standards`（涉及边界、集成或数据隔离时）→ `mv-backend-standards` / `mv-frontend-standards` → `mv-test-standards` → `mv-security-standards`（新入口、敏感数据或第三方集成时）→ `mv-git-publisher` |
-| 存量项目接管 | `mv-architecture-standards`（现状与边界评估）→ `mv-security-standards`（安全评审）→ 对应端规范 → `mv-test-standards` → `mv-git-publisher` |
+| 新项目从零 | `mv-requirements-standards` → `mv-tech-stack-baseline` → `mv-architecture-standards` → `mv-project-scaffold` → `mv-backend-standards` / `mv-frontend-standards` → `mv-test-standards` → `mv-image-builder` → `mv-container-deploy` → `mv-ops-standards` |
+| 新功能或变更 | `mv-requirements-standards`（新增或改变业务规则、范围或验收时）→ `mv-architecture-standards`（涉及边界、集成或数据隔离时）→ `mv-backend-standards` / `mv-frontend-standards` → `mv-test-standards` → `mv-security-standards`（新入口、敏感数据或第三方集成时）→ `mv-git-publisher` |
+| 存量项目接管 | `mv-requirements-standards`（项目上下文与需求/现状差异）→ `mv-architecture-standards`（现状与边界评估）→ `mv-security-standards`（安全评审）→ 对应端规范 → `mv-test-standards` → `mv-git-publisher` |
 | 自托管第三方栈 | `mv-orchestration-standards` → `mv-ops-standards` |
 | 生产事故 | `mv-ops-standards`（事故响应）→ `mv-container-deploy`（回滚）→ `mv-engineering-doc-writer`（复盘文档） |
 | 文档与图件 | `mv-engineering-doc-writer`（写作、制图、插图编排） |
@@ -41,6 +44,18 @@
 把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理旧版本，避免重复触发；是否安装由使用者决定。
 
 这里的“通用”指团队内跨项目复用，不是面向所有公司或团队的统一标准。Skills 以已确认的团队规范为默认基线，项目业务细节留在各项目中；团队 Git 规则中 commit 与 push 是可分开执行的两个动作，各自先 pull --rebase 并解决冲突，全程一颗 worktree（树脏时在主树原地用 plumbing 临时索引提交，不侧 worktree 提交后直推 SHA），保持线性历史、禁止 merge commit。
+
+## 规则归属
+
+| 层次 | 内容 | 维护位置 |
+| --- | --- | --- |
+| 团队共用 | 技术基线、编码规范、测试方法、构建交付纪律与安全要求 | 对应 skill 的 SKILL.md 与 references |
+| 项目约定 | 行业术语、业务规则、验收、客户约束、技术偏离与 ADR | 当前项目的需求、README、契约与 ADR |
+| 环境配置 | 连接目标、资源配额、部署参数与凭据引用 | 当前项目环境说明与配置；真实凭据不进 Git |
+
+项目已有约定和用户明确需求优先于团队默认；冲突显式记录，不能把历史项目的业务或环境配置推广为团队要求。团队默认仍是新项目起点，不因项目业务不同而取消既有技术底座。读取与核对项目上下文的方法见 mv-requirements-standards 的 [项目上下文](mv-requirements-standards/references/project-context.md)。
+
+每个 skill 只维护自己的判据：需求定义要实现和验收什么，架构与技术栈确定方案，脚手架落工程骨架，前后端规范约束实现，测试规范组织验证，构建/部署/运维分别负责产物、交付动作与持续运行；文档写作承接各阶段的正式文稿与图件。按任务触发，不把完整链路当作每次改动的固定手续。
 
 ## 维护原则
 
@@ -97,6 +112,6 @@ Gitleaks/Trivy 为可选集成；缺少工具应报告未执行，不能声称�
 
 ## 验证
 
-分发前运行 `python3 tests/validate_bundle.py`，检查十四个 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
+分发前运行 `python3 tests/validate_bundle.py`，检查已注册的 skill 集合、仓库支持的 frontmatter 标量子集、元数据长度与目录一致性、正文 ≤500 行（不含 frontmatter）、所有 Markdown 的显式本地链接目标（不验证锚点）、脚本/模板路径、复制脚本一致性及 Python/Bash 语法。使用脚本时按目标项目运行针对性验证。
 
 description 路由用 `python3 tests/run_trigger_evals.py [skill]` 在临时 HOME/配置与仅含候选工作区 skills 的隔离环境评测，记录候选内容 SHA-256；不加载用户已安装 skills、Hook、MCP，仅允许 Skill 工具。合理的多 skill 协作按职责与用例判定，不因多个 skill 同时触发而告警。CLI 或隔离所需凭据缺失时明确 SKIP，人工核对不等于真实路由通过；详见 [触发契约评测](docs/structure-rules.md#触发契约评测)。技能发现与静态检查通过不代表部署成功或所有 agent 均已实测兼容。

@@ -9,11 +9,11 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 
 ## 作用与优先级
 
-这是**过程型 Skill**，在新项目初始化与新增端/模块时执行；优先级：用户明确需求 → mv-tech-stack-baseline 基线 → 生态默认。初始化产出的骨架持续遵守 mv-backend-standards 与 mv-frontend-standards，本 skill 不重复其条款。
+这是**过程型 Skill**，在新项目初始化与新增端/模块时执行；优先级：用户明确需求和项目已采纳的规范 / ADR → mv-tech-stack-baseline 基线 → 生态默认。初始化产出的骨架持续遵守 mv-backend-standards 与 mv-frontend-standards，本 skill 不重复其条款。
 
 ## 开始前确认
 
-开始前确认：项目名与应用名（APP 名，部署侧同用）、需要的端（后端、admin、user PC、H5/小程序按需）、仓库形态（单仓多模块或多仓）、基础设施范围（PostgreSQL 之外是否含 Redis、RabbitMQ、RustFS）。未确认先问，不默认全量端全量设施。
+先按 mv-requirements-standards 读取已有项目上下文，复用已确认的范围与业务约定；脚手架不重新定义业务模型。开始前确认：项目名与应用名（APP 名，部署侧同用）、需要的端（后端、admin、user PC、H5/小程序按需）、仓库形态（单仓多模块或多仓）、基础设施范围（是否需要 PostgreSQL、Redis、RabbitMQ、RustFS）。只对会影响本次初始化且资料中缺失的决策补充确认，不默认全量端全量设施。纯前端、无数据库或已有后端的任务只初始化所需部分，不附带新增 Spring Boot、数据库或认证系统。
 
 ## 仓库布局判据
 
@@ -26,13 +26,15 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 
 ## 初始化步骤
 
+只执行已确认范围对应的步骤；后端、各前端、数据库与基础设施均按实际需要落位，不把完整示例当作每个项目的必建清单。
+
 1. 建仓库与首次提交：`git init` 后首次提交为空提交（`git commit --allow-empty`），README、骨架代码从第二个提交开始；分支模型按团队约定（默认 `main`）。
 2. 后端骨架：Spring Boot 4 + JPA + PostgreSQL + Flyway 首迁（V1 建表与种子数据）、统一包络、readiness/liveness 双探针、错误码枚举与双语资源骨架、`.dockerignore` 与 `Dockerfile.delivery`（基线镜像 eclipse-temurin:21-jre、非 root 10001、端口 8080）；模块划分按「仓库布局判据」。
 3. admin 端：以 shadcn-admin 为基线起步（Vite + React SPA + TanStack + Tailwind），衍生清理（faker 演示数据、Clerk 认证替换、示例路由）按 mv-frontend-standards 的 Vite SPA 条款执行；对接后端包络与 RBAC 权限点。
 4. user PC 端（按需）：Vite SPA 与 admin 同底座起步；页面级 SEO/SSR 需求先回 mv-tech-stack-baseline 评 Next.js，不在 SPA 内变通。
 5. H5/小程序端（按需）：Taro（React 语法）初始化，编译目标 weapp + h5；工程条款见 mv-frontend-standards 的 Taro 条款。
-6. 环境配置：`compose.dev.yml` 描述开发服务器上的联调基础设施（PostgreSQL 必选，Redis/RabbitMQ/RustFS 按确认范围，固定版本 Tag），服务器经 SSH 访问；`.env.example` 使用占位值并纳入版本控制，真实 env 文件保持未跟踪。`.gitignore` 忽略 `.env*` 并以 `!.env.example` 放行样例。
-7. 首次迁移与种子数据：V1 脚本含 RBAC 权限点与菜单种子数据（幂等 upsert），与代码同版本发布。
+6. 环境配置：`compose.dev.yml` 描述开发服务器上的联调基础设施（需要关系型持久化时默认 PostgreSQL，Redis/RabbitMQ/RustFS 按确认范围，固定版本 Tag），服务器经 SSH 访问；无联调基础设施时不生成空编排。`.env.example` 使用占位值并纳入版本控制，真实 env 文件保持未跟踪。`.gitignore` 忽略 `.env*` 并以 `!.env.example` 放行样例。
+7. 首次迁移与种子数据：需要数据库的项目建立 V1；已确认的 RBAC 权限点、菜单及字典按实际范围加入种子数据（幂等 upsert），与代码同版本发布。不预置订单、会员、支付等未确认业务表，也不为无管理端的项目创建演示菜单。
 8. CI 样例：PR 触发「编译 + lint + 单测」工作流样例（GitHub Actions），作为项目最小门禁起点，按项目演进调整。
 9. 本地验证：宿主前台直启跑通后端与各端（前台可见窗口运行、Ctrl-C 可停），记录「编译/启动/首屏」证据后收尾。
 
@@ -45,7 +47,7 @@ description: 新项目从零初始化，或既有项目新增端/新增模块时
 
 ## 输出
 
-产出可运行的骨架仓库（端按需）、`compose.dev.yml` 与 env 样例、首次迁移、CI 样例；交付说明记录：布局形态与理由、偏离基线项及对应 ADR、各端本地验证证据、未初始化的端与原因。
+产出可运行的骨架仓库（端按需）、env 样例与 CI 样例；有联调基础设施时产出 `compose.dev.yml`，有数据库时产出首次迁移；交付说明记录：布局形态与理由、偏离基线项及对应 ADR、各端本地验证证据、未初始化的端与原因。
 
 ## 边界
 

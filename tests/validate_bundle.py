@@ -14,6 +14,7 @@ SKILLS = {
     'mv-git-publisher',
     'mv-engineering-doc-writer',
     'mv-tech-stack-baseline',
+    'mv-requirements-standards',
     'mv-architecture-standards',
     'mv-backend-standards',
     'mv-frontend-standards',
@@ -31,6 +32,7 @@ SKILLS = {
 STAGES = {
     'mv-engineering-doc-writer': 'design',
     'mv-tech-stack-baseline': 'design',
+    'mv-requirements-standards': 'design',
     'mv-architecture-standards': 'design',
     'mv-backend-standards': 'impl',
     'mv-frontend-standards': 'impl',

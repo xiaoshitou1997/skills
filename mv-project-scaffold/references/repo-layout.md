@@ -58,13 +58,13 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合 mv-project
 ## compose.dev 拓扑
 
 - 基础设施运行在经 SSH 访问的开发服务器，不在宿主安装或运行 Docker；宿主直启的业务进程通过项目配置连接开发服务器。
-- 基础设施固定版本 Tag（不用 `latest`）：PostgreSQL 必选；Redis、RabbitMQ、RustFS 按项目确认范围启停；数据卷命名带项目前缀防串。
+- 基础设施固定版本 Tag（不用 `latest`）：需要关系型持久化时默认 PostgreSQL；Redis、RabbitMQ、RustFS 按项目确认范围启停；数据卷命名带项目前缀防串。
 - 端口约定：同一开发服务器多项目共存时，宿主映射端口按项目分配区间并记录在项目 README，避免冲突；容器内端口用各组件默认值。
 - `compose.dev.yml` 只含基础设施与联调依赖；业务服务本地在宿主前台直启，不进 dev 编排（项目文档化开发拓扑为容器时除外，归 mv-container-deploy 的 dev 交付）。
 
 ## CI 样例
 
-- 最小门禁：PR 触发「后端编译 + 单测」「各端 lint + typecheck + 单测」两条 job，样例用 GitHub Actions；跑不通的流水线不入主干。
+- 最小门禁：PR 触发「后端编译 + 单测」「各端 lint + typecheck + 单测」两条 job，样例用 GitHub Actions，只为已存在的后端或前端模块建立对应 job；跑不通的流水线不入主干。
 - 交付类检查（镜像构建、部署）不在 CI 样例内，归 mv-image-builder 与 mv-container-deploy 的交付流程。
 
 本文只定仓库布局与本地拓扑；后端模块命名细则归 mv-backend-standards，交付编排与部署归 mv-image-builder 与 mv-container-deploy。

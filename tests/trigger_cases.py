@@ -10,6 +10,29 @@ query 按用户真实表述风格编写，自含上下文，不依赖具体仓�
 """
 
 CASES = [
+    # --- mv-requirements-standards：需求、规则、验收与变更，不依赖文档交付 ---
+    {'skill': 'mv-requirements-standards', 'kind': 'positive',
+     'query': '客户要做场馆预约系统，先梳理角色、预约冲突和取消规则，不写 PRD，也先别选技术栈'},
+    {'skill': 'mv-requirements-standards', 'kind': 'positive',
+     'query': '检验报告签发后能否更正，业务方还没定；帮我整理状态流转、待确认规则和验收标准，别擅自确定留存年限'},
+    {'skill': 'mv-requirements-standards', 'kind': 'positive',
+     'query': '设备告警平台改需求：重复上报要合并，恢复后再次告警要重新建单。请梳理规则边界和变更影响'},
+    {'skill': 'mv-requirements-standards', 'kind': 'positive',
+     'query': '接管一个老项目，工单说允许撤回，代码却一直拒绝。先梳理当前行为与确认需求的差异，不做技术栈升级'},
+    {'skill': 'mv-requirements-standards', 'kind': 'positive',
+     'query': '给导出需求补可验证的验收口径，权限范围、超时和大数据量怎么确认，先不写测试代码'},
+    {'skill': 'mv-requirements-standards', 'kind': 'positive', 'required': ['mv-engineering-doc-writer'],
+     'query': '访谈纪要里预约取消规则互相矛盾，先梳理规则与开放问题，再整理成可评审的 PRD'},
+    {'skill': 'mv-requirements-standards', 'kind': 'negative', 'instead': 'mv-engineering-doc-writer',
+     'query': '这份 PRD 已经确认，只统一标题编号和错别字，不改变业务语义，也不重新分析需求'},
+    {'skill': 'mv-requirements-standards', 'kind': 'negative', 'instead': 'mv-backend-standards',
+     'query': '需求和验收已确认，只检查这个 Spring Boot Service 的事务边界写法，不做业务分析'},
+    {'skill': 'mv-requirements-standards', 'kind': 'negative', 'instead': 'mv-test-standards',
+     'query': '按已确认的预约取消验收标准补集成测试，业务规则不变，也不需要重新制定验收'},
+    {'skill': 'mv-requirements-standards', 'kind': 'negative', 'instead': 'mv-architecture-standards',
+     'query': '业务规则与范围已经确定，评估这两个模块是否需要拆微服务，只做技术架构取舍'},
+    {'skill': 'mv-engineering-doc-writer', 'kind': 'negative', 'instead': 'mv-requirements-standards',
+     'query': '梳理场馆预约的取消规则与异常流程，给出可判定的验收标准即可，不产出 PRD 或图件'},
     # --- mv-toolchain-manager：宿主工具链，不含构建出包与镜像内安装 ---
     {'skill': 'mv-toolchain-manager', 'kind': 'positive',
      'query': '本机没有 Java 17，项目 .java-version 要求 17，帮我准备一下开发环境'},
@@ -154,7 +177,7 @@ CASES = [
 
     # --- mv-engineering-doc-writer：工程文档写作/评审、工程制图、插图编排三模式合一 ---
     # 写作模式
-    {'skill': 'mv-engineering-doc-writer', 'kind': 'positive',
+    {'skill': 'mv-engineering-doc-writer', 'kind': 'positive', 'required': ['mv-requirements-standards'],
      'query': '把这段需求讨论整理成一份可评审的 PRD'},
     {'skill': 'mv-engineering-doc-writer', 'kind': 'positive',
      'query': '评审这份 HLD 架构设计文档，指出缺失的决策和前后矛盾'},
