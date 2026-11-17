@@ -31,7 +31,7 @@ description: 编写、审查或整改容器编排文件时使用：写 Docker Co
 10. 凭证分级生成与注入：按 §凭证分级表选强度与命令生成，统一 `.env` 插值注入；**凭据不进 Git**（真实值不入版本控制，生产/CI 环境用 secrets manager），分类型生成命令与轮换周期见 [references/credentials.md](references/credentials.md)。
 11. Spring Boot 项目经环境变量宽松绑定注入（`spring.datasource.url` → `SPRING_DATASOURCE_URL`），不走 PARAMS 转发或启动包装；禁止自定义 entrypoint 包装脚本改配置，配置走组件官方渠道，发现自建包装脚本即回归官方方式并删除脚本。
 12. 所有服务配 `deploy.resources.limits`（防止单服务耗尽宿主机）与 logging 限额（`max-size`/`max-file`）；参数按服务类型取值表执行，见 [references/resources-logging.md](references/resources-logging.md)。
-13. 透明加密软件环境下，命令行写入的 `.env`、SQL 等文件会被异步加密：此类文件一律编辑器手写，写入后经容器/WSL 侧实测确认可读。
+13. 检测到透明加密软件时，按当前宿主已验证的透明通道读写 `.env`、SQL 等文件，不预设所有命令行或编辑器具有相同行为；传输与部署仍经 SSH，在目标服务器验证文件可读、配置可解析，不以宿主读取正常代替目标侧验证。
 14. 新增栈按 SOP 执行，部署后过校验清单；两份清单见 [references/sop-checklist.md](references/sop-checklist.md)。
 15. k3s/k8s 部署映射（namespace、probe、Secret、requests/limits）见 [references/k8s-mapping.md](references/k8s-mapping.md)；compose 规则到 k8s 的对应关系与差异点以该文件为准。
 
