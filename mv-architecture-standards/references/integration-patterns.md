@@ -12,10 +12,34 @@
 
 适用：本地事务成功后必须可靠投递事件，且不能接受双写丢失。
 
-1. 业务表与 outbox 表在同一本地事务写入。
-2. 独立投递器按主键游标读取未投递记录，发送后标记；失败重试有上限并进入死信/告警。
-3. 消费端按事件 ID 幂等；重复投递不产生重复副作用。
-4. outbox 表定期清理，保留期覆盖排障与对账窗口。
+1. 业务表与 outbox 表在同一本地事务写入；事件 ID 全局唯一，记录状态、重试次数、下次重试时间、租约令牌与到期时间；新事件的待发送状态与下次重试时间写入非空默认值。
+2. PostgreSQL 默认采用状态扫描 + 租约领取：每次从所有到期的待发送记录和租约过期记录中选批次，用 `SELECT ... FOR UPDATE SKIP LOCKED` 加行锁，在同一短事务中写入新租约令牌、到期时间后提交；按 ID 排序仅用于批内调度，不把最大 ID 当永久水位。其他数据库使用等价的原子领取机制。
+3. 事务提交后投递，收到消息中间件持久化确认后，以事件 ID 和本次租约令牌条件更新为已发送；租约已被接管时旧投递器不得覆盖新状态。发送失败或确认未知时按退避重试，租约超时允许重新领取；达到上限进入可查询的失败状态并告警，保留人工重放与对账入口。
+4. 投递采用至少一次语义：投递成功后进程在标记前崩溃可能重复发送；消费端以事件 ID 去重，并将去重记录与本地业务副作用置于同一事务。外部副作用使用对方幂等键或对账，不声称恰好一次。
+5. 只清理已发送且超过保留期的记录，保留期覆盖排障与对账窗口；监控待发送积压、最老记录年龄、失败数与租约过期数。
+
+**验证**：在集成测试中让较小 ID 事务晚于较大 ID 提交，确认两条均被投递；并模拟多投递器并发、发送后标记前崩溃、租约过期重领和重复消费，核对无漏投及业务副作用仅执行一次。
+
+PostgreSQL 领取批次示例（参数依次为批次大小、每次领取新生成的 UUID、租约秒数；在事务中执行，提交后才发送）：
+
+```sql
+WITH picked AS (
+  SELECT id FROM outbox
+  WHERE (status = 'pending' AND next_attempt_at <= CURRENT_TIMESTAMP)
+    OR (status = 'inflight' AND lease_until <= CURRENT_TIMESTAMP)
+  ORDER BY id
+  FOR UPDATE SKIP LOCKED
+  LIMIT $1
+)
+UPDATE outbox AS o
+SET status = 'inflight', lease_token = $2,
+    lease_until = CURRENT_TIMESTAMP + ($3 * INTERVAL '1 second')
+FROM picked
+WHERE o.id = picked.id
+RETURNING o.*;
+```
+
+收到持久化确认后执行 `UPDATE outbox SET status = 'sent', sent_at = CURRENT_TIMESTAMP WHERE id = $1 AND status = 'inflight' AND lease_token = $2`；受影响行数为 0 表示状态或租约令牌已变化，不能覆盖后继领取结果；租约过期但尚未被接管时仍可能更新成功。生产环境结合消息中间件开启发布确认与不可路由消息处理，确保确认代表消息已被接受且路由满足项目要求。
 
 ## Saga
 
