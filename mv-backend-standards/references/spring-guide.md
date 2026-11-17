@@ -41,14 +41,14 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 - Spring Security 过滤器链按端分段（`/admin/**` 与 `/uc/**` 独立配置或独立 `SecurityFilterChain`）；JWT 基线下会话策略 STATELESS，CSRF 按 API 形态显式决策并记录理由。
 - 令牌校验在过滤器层完成，业务代码从安全上下文取当前主体；认证异常统一映射为约定错误码，不向客户端泄漏堆栈。认证与会话的领域条款（双令牌、双端隔离、凭据传输）见 java-guide「认证与会话」。
 - 密码编码器用 BCrypt（团队基线）；CORS 显式白名单来源，不放开 `*` 与凭据并用的组合；开发期跨域经前端 dev proxy 承担，不为此放宽生产 CORS。
-- refresh token 经 HttpOnly Secure Cookie 或专用刷新端点传输，刷新做轮换与重放检测。
+- refresh token 经 HttpOnly Secure Cookie 或专用刷新端点传输，刷新做轮换与重放检测。Cookie 或其他浏览器自动携带凭据保护的写入、刷新与登出端点须实施 CSRF 防护，并核对 Origin 与 SameSite 策略；仅手工设置 Authorization 头且不接受自动凭据的 API 可评估关闭对应 CSRF 检查，记录适用范围，不因 JWT 或 STATELESS 全局关闭。
 
 ## 外部 HTTP 调用
 
 - Spring 应用统一用 RestClient（团队基线），复用项目 Jackson 转换器与既有拦截器；RestTemplate 已是维护模式，不用于新代码；WebClient 仅响应式栈。
 - 外部 HTTP 调用优先声明式（Spring HTTP Interface）：接口方法标 `@HttpExchange` 系注解（`@GetExchange`、`@PostExchange` 等），`HttpServiceProxyFactory` 配 `RestClientAdapter` 生成实现，引擎仍是 RestClient；不引 OpenFeign、Retrofit。
 - 仅当必须编程实现时用编程式 RestClient：动态 URL、运行时才能确定请求形态的调用（如通用网关转发）等固定接口签名覆盖不了的场景。
-- 对接第三方平台按平台一接口；签名、公共头、错误码归一等公共逻辑放 RestClient 拦截器（`ClientHttpRequestInterceptor`）或 `ExchangeFilterFunction`，不写进业务方法。
+- 对接第三方平台按平台一接口；签名、公共头、错误码归一等公共逻辑放 RestClient 拦截器（`ClientHttpRequestInterceptor`），不写进业务方法。
 - 非 Spring 场景用 JDK 原生 HttpClient（`java.net.http.HttpClient`）。
 
 ## 国际化
