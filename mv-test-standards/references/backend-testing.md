@@ -8,7 +8,7 @@
 - 一个测试类对应一个被测单元，命名 `<被测单元>Test`；测试方法名表达场景与预期（`createUser_duplicateEmail_throwsException` 一类），或用 `@DisplayName` 中文描述场景。
 - 断言用 AssertJ 链式断言，异常路径用 `assertThatThrownBy` 断言异常类型与业务语义，不用 JUnit4 时代断言风格。
 - 参数化场景（同一逻辑多组输入）用 `@ParameterizedTest`，不在一个测试方法里循环多组断言。
-- 只测被测单元的对外行为，不锁内部实现细节（私有方法调用次数一类）；mock 只用于被测单元的直接协作者。
+- 只测被测单元的对外行为，不锁内部实现细节（私有方法调用次数一类）；mock 只用于被测单元的直接协作者；Service 纯逻辑单测可替身 Repository，查询、事务与数据约束仍须由真实数据库集成测试验证。
 
 ## Web 层切片测试
 
