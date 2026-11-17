@@ -11,7 +11,7 @@
 ## 路由（TanStack Router）
 
 - 路由用文件式结构组织（脚手架 `routes/` 目录），路由层只做组装、守卫与数据编排；页面业务拆到 `features/<域>/`，路由文件不堆业务逻辑。
-- 搜索参数（页码、筛选、选中行）用类型化 search params 承载并校验（zod schema 同源类型），不手写 `URLSearchParams` 拼串；导航产生的临时状态（弹窗来源页）用 `router` 状态或 location state，不全局变量。
+- 可公开分享的搜索参数（页码、非敏感筛选）用类型化 search params 承载并校验（zod schema 同源类型），不手写 `URLSearchParams` 拼串；敏感条件与不适合分享的选中状态放受控会话或组件状态，导航产生的临时状态（弹窗来源页）用 `router` 状态或 location state，不全局变量。
 - 路由守卫（登录、权限）集中在路由定义层的 `beforeLoad` 一类钩子，不在页面组件内各自判断；无权限路径重定向到约定页面并记录目标页，登录后跳回。
 - 类型安全路由导航：链接与跳转用路由实例的类型化 API（`Link`、`navigate`），不用裸字符串拼路径。
 

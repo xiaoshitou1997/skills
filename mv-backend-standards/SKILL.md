@@ -25,7 +25,7 @@ description: 编写、修改、重构或审查 Java 后端代码时使用，团�
 6. DTO/VO/API Contract 不直接泄露持久层 Entity。
 7. 按项目既有 API 响应契约返回数据，不擅自把所有接口改为新的 `ApiResponse`。
 8. 项目无既有响应契约时按基线统一包络（`code`/`message`/`data`，见 mv-tech-stack-baseline），不临时发明新包络。
-9. 输入校验用 Bean Validation，保证客户端看到明确错误码和不暴露内部异常。
+9. 所有外部输入均不可信：即使前端已限制，后端仍须独立校验并授权；HTTP 入口使用 Bean Validation 与业务校验，失败返回明确错误码且不暴露内部异常，具体做法见 spring-guide「Web 与校验」。
 10. 捕获异常必须有实际处理意图，不吞异常，不用 `printStackTrace()`。
 11. 异步任务、批处理和后台作业必须正确传播或记录失败状态，不把「请求已接受」或「没有异常抛出」当成执行成功。
 12. 日志采用 SLF4J 参数化占位符，不使用 System.out。

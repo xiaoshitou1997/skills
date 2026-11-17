@@ -9,7 +9,29 @@
 
 ## Web 与校验
 
-- 输入校验用 Bean Validation（`@Valid`/`@Validated`），业务规则同时在 Service 层确认；避免直接相信 Controller 层入参。
+- 信任边界：浏览器、App、脚本、内部调用方、回调、消息和导入文件的输入均不可信；前端限制只用于交互体验，不能替代后端校验、认证或授权。各入口在解析与使用前独立检查来源、结构和约束；可信签名或认证只证明来源，不证明数据合法或已获业务授权。
+- HTTP 入口按接口契约约束必填、类型、长度、范围、集合数量及允许值；请求体 DTO 用 Bean Validation，Controller 的 `@RequestBody` 参数加 `@Valid`，嵌套对象及容器元素按需加 `@Valid`，并分别声明非空和数量上限。路径、查询、表单与文件等入口也须生效；方法参数校验按项目 Spring 版本配置并用实际请求验证。请求体及上传大小在网关或服务器配置上限，具体值按项目契约确定。
+- Service 层在真实事务边界检查跨字段关系、业务状态、资源归属及操作权限；从已认证安全上下文取得主体和租户，以服务端记录或可信配置确定价格、权限、状态等敏感事实，不以客户端提交值作最终依据。涉及并发的余额、库存、唯一性等不变量用数据库约束、条件更新或锁保证，不能只依赖先查后写。
+- 校验失败按项目契约返回可定位字段及稳定错误码，不进入业务写入、不泄露堆栈或敏感输入；记录必要的拒绝信息，避免输出 Token 和完整请求体。第三方响应、MQ 消息与回调按各自协议验证来源及结构，并在执行副作用前检查业务约束；文件内容校验不能只依赖扩展名或客户端声明的 MIME。
+
+示例（数值仅演示；已引入 Jakarta Bean Validation 实现，并按项目约定配置统一错误处理）：
+
+```java
+public record CreateOrderRequest(
+    @NotNull @Positive Long productId,
+    @NotNull @Min(1) @Max(100) Integer quantity,
+    @NotEmpty @Size(max = 20) List<@NotNull @Valid OrderLine> lines
+) {}
+
+public record OrderLine(@NotBlank @Size(max = 64) String sku) {}
+
+@PostMapping("/orders")
+public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
+    return orderService.create(request);
+}
+```
+
+示例中的 `quantity` 与 `lines` 上限须替换为实际业务契约；Service 仍须确认商品可售、库存、服务端价格和主体是否有权操作。DTO 注解不会自动保护 MQ 消费、内部方法调用等其他入口，须在对应入口显式触发等价校验。
 - 用户可见文案统一维护在 `messages*.properties`，经 MessageSource 或 ErrorCode 关联的 messageKey 获取；国际化细则见下方「国际化」。
 - 路由用绑定具体 HTTP 方法的注解（`@GetMapping`、`@PostMapping` 等），不用未指定方法的 `@RequestMapping`。
 - 响应按统一包络返回（基线 `code`/`message`/`data`，项目既有包络优先）：成功路径 Controller 直接返回 VO，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
