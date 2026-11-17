@@ -47,6 +47,10 @@ if [[ "$ENV" == prod && "$ACTION" != status ]]; then
   [[ "$APPROVAL" == --approve-prod ]] || { echo 'Production mutation requires --approve-prod after explicit user authorization' >&2; exit 3; }
 fi
 
+if [[ "$ACTION" == deploy && "$ENV" == prod && ! "${FF_REQUIRE_DEV_PROOF:-1}" =~ ^[01]$ ]]; then
+  echo 'FF_REQUIRE_DEV_PROOF must be 0 or 1' >&2; exit 2
+fi
+
 # Health URL/timeout follow the target runner input contract.
 if [[ -n "${FF_HEALTH_URL:-}" && ! "${FF_HEALTH_URL}" =~ ^https?://[a-zA-Z0-9._:/-]+$ ]]; then
   echo 'FF_HEALTH_URL contains unsupported characters; use a simple http(s) health URL without query/credentials' >&2
@@ -126,6 +130,11 @@ ssh_cli() {
   ssh "${SSH_OPTS[@]}" "$SSH_DEST" "$remote_command"
 }
 
+receipt_valid() {
+  local file=$1 image_id=$2
+  [[ -f "$file" && "$(<"$file")" == "$(printf 'mv-container-deploy-receipt-v2	%s' "$image_id")" ]]
+}
+
 case "$ACTION" in
   deploy)
     project_checks
@@ -140,8 +149,8 @@ case "$ACTION" in
     [[ "$TARGET_ID" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo 'Target returned unexpected image ID' >&2; exit 3; }
     if [[ "$ENV" == prod && "${FF_REQUIRE_DEV_PROOF:-1}" == 1 ]]; then
       # 晋级门禁第一段(本机,上传前):主镜像按目标机 Image ID 核对本机 dev 收据。
-      RECEIPT_FILE="$HOME/.mv/container-deploy/receipts/$APP/${TARGET_ID//:/-}"
-      [[ -f "$RECEIPT_FILE" ]] || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
+      RECEIPT_FILE="$HOME/.mv/container-deploy/receipts/$APP/v2/${TARGET_ID//:/-}"
+      receipt_valid "$RECEIPT_FILE" "$TARGET_ID" || { echo 'Image has no verified dev deployment receipt; deploy to dev first (or explicitly set FF_REQUIRE_DEV_PROOF=0 after risk review)' >&2; exit 3; }
     fi
     COMPOSE=${FF_COMPOSE_FILE:-}
     if [[ -z "$COMPOSE" ]]; then
@@ -166,8 +175,8 @@ case "$ACTION" in
               echo "Refusing to deploy an image tagged from an uncommitted working tree to prod: $gate_img" >&2
               exit 3
             fi
-            gate_receipt="$HOME/.mv/container-deploy/receipts/$APP/${gate_id//:/-}"
-            [[ -f "$gate_receipt" ]] || { echo "Image has no verified dev deployment receipt: $gate_img" >&2; exit 3; }
+            gate_receipt="$HOME/.mv/container-deploy/receipts/$APP/v2/${gate_id//:/-}"
+            receipt_valid "$gate_receipt" "$gate_id" || { echo "Image has no verified dev deployment receipt: $gate_img" >&2; exit 3; }
             ;;
         esac
       done <<< "$PLAN_OUTPUT"
@@ -177,7 +186,7 @@ case "$ACTION" in
     if [[ "$ENV" == dev && "$OUTPUT" == *"VERIFIED_HEALTH=strong"* ]]; then
       # 版本级 dev 收据:清单里每个 Image ID 一条,晋级门禁按它逐镜像核对。
       # 文件名不沿用 Image ID 原文:sha256:xxx 的冒号在 Windows 是 NTFS 备用数据流语义,统一替换为连字符。
-      RECEIPT_DIR="$HOME/.mv/container-deploy/receipts/$APP"
+      RECEIPT_DIR="$HOME/.mv/container-deploy/receipts/$APP/v2"
       mkdir -p "$RECEIPT_DIR"
       chmod 700 "$RECEIPT_DIR"
       printf '%s\n' "$OUTPUT" | while IFS= read -r receipt_line; do
@@ -186,14 +195,14 @@ case "$ACTION" in
             receipt_row=${receipt_line#MANIFEST_LINE=}
             receipt_img=$(printf '%s\n' "$receipt_row" | cut -f2)
             receipt_id=$(printf '%s\n' "$receipt_row" | cut -f3)
-            printf '%s\n' "$receipt_img" > "$RECEIPT_DIR/${receipt_id//:/-}"
+            printf 'mv-container-deploy-receipt-v2\t%s\n' "$receipt_id" > "$RECEIPT_DIR/${receipt_id//:/-}"
             chmod 600 "$RECEIPT_DIR/${receipt_id//:/-}"
             ;;
         esac
       done
       echo "DEV_RECEIPT=$VERSION"
     elif [[ "$ENV" == dev ]]; then
-      echo 'No promotable dev receipt: set FF_HEALTH_URL to the readiness endpoint and redeploy' >&2
+      echo 'No promotable dev receipt: verify single-service readiness and configured container health, then redeploy' >&2
     fi
     ;;
   status|rollback)

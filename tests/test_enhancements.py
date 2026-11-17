@@ -223,6 +223,187 @@ esac
             self.assertNotEqual(prod.returncode,0)
             self.assertIn('requires FF_HEALTH_URL', prod.stderr)
 
+    def test_dev_underreplicated_or_unparseable_topology_is_not_strong(self):
+        cases = [(json.dumps({'services': {'app': {'deploy': {'replicas': 2}}}}), 'readiness-partial'),
+                 ('invalid', 'readiness-partial'),
+                 (json.dumps({'services': {'app': {}}}), 'strong')]
+        for topology, expected in cases:
+            with self.subTest(topology=topology), tempfile.TemporaryDirectory() as d:
+                base = Path(d)
+                target = base / '.mv/container-deploy/api'
+                target.mkdir(parents=True)
+                (target / 'compose.yml').write_text('services: {}\n')
+                (target / '.env.dev').write_text('APP_ENV=dev\n')
+                binary = base / 'bin'
+                binary.mkdir()
+                docker = binary / 'docker'
+                docker.write_text('''#!/bin/sh
+case "$1" in
+  image) echo sha256:fake;;
+  inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; *) echo sha256:fake;; esac;;
+  compose) case "$*" in
+    *'config --format json'*) printf '%s' "$TEST_TOPOLOGY";;
+    *'config --services'*) echo app;;
+    *'ps -q'*) echo first;;
+    *'ps --format'*) printf 'app\tapi:one\n';;
+  esac;;
+esac
+''')
+                docker.chmod(0o755)
+                for name, body in (('curl', 'exit 0'),
+                                   ('python3', 'exec "' + Path(sys.executable).as_posix() + '" "$@"')):
+                    stub = binary / name
+                    stub.write_text('#!/bin/sh\n' + body + '\n')
+                    stub.chmod(0o755)
+                env = stub_env(d, binary, HOME=d, TEST_TOPOLOGY=topology)
+                run = exec_run(BASH, RUNNER, 'deploy', 'dev', 'api', 'api:one',
+                               'http://localhost/ready', '2', 'version_20260101000000_0123456789ab',
+                               '', cwd=d, env=env)
+                self.assertEqual(run.returncode, 0, run.stderr)
+                self.assertIn('VERIFIED_HEALTH=' + expected, run.stdout)
+                if expected != 'strong':
+                    self.assertNotIn('VERIFIED_HEALTH=strong', run.stdout)
+
+    def test_prod_multiservice_is_rejected_before_compose_up(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            target = base / '.mv/container-deploy/api'
+            target.mkdir(parents=True)
+            (target / 'compose.yml').write_text('services: {}\n')
+            (target / '.env.prod').write_text('APP_ENV=prod\n')
+            binary = base / 'bin'
+            binary.mkdir()
+            docker = binary / 'docker'
+            docker.write_text('''#!/bin/sh
+case "$*" in
+  *'config --format json'*) printf '%s' '{"services":{"app":{},"job":{}}}';;
+  *' up '*) echo STARTED >&2;;
+esac
+''')
+            docker.chmod(0o755)
+            python_shim = binary / 'python3'
+            python_shim.write_text('#!/bin/sh\nexec "' + Path(sys.executable).as_posix() + '" "$@"\n')
+            python_shim.chmod(0o755)
+            env = stub_env(d, binary, HOME=d, FF_REQUIRE_DEV_PROOF='0')
+            run = exec_run(BASH, RUNNER, 'deploy', 'prod', 'api', 'api:one',
+                           'http://localhost/ready', '2', 'version_20260101000000_0123456789ab',
+                           '', cwd=d, env=env)
+            self.assertEqual(run.returncode, 3, run.stderr)
+            self.assertIn('exactly one active service required', run.stderr)
+            self.assertNotIn('STARTED', run.stderr)
+            self.assertFalse((target / 'current-version').exists())
+
+    def test_production_topology_rejects_unprovable_readiness(self):
+        source = Path(RUNNER).read_text(encoding='utf-8')
+        function = source.split('check_prod_topology() {', 1)[1].split('\n}\n', 1)[0]
+        shell = ('check_prod_topology() {' + function + '\n}\n'
+                 'docker() { printf "%s" "$TEST_CONFIG"; }\n'
+                 'python3() { "$PYTHON_TEST" "$@"; }\n'
+                 'DOCKER=(docker)\ncheck_prod_topology image\n')
+        cases = [({'services': {'app': {}}}, True),
+                 ({'services': {'app': {}, 'job': {}}}, False),
+                 ({'services': {'app': {'scale': 2}}}, False),
+                 ({'services': {'app': {'deploy': {'replicas': 2}}}}, False),
+                 ({'services': {'app': {'deploy': {'mode': 'global'}}}}, False),
+                 ({'services': {}}, False)]
+        for config, allowed in cases:
+            with self.subTest(config=config):
+                env = os.environ.copy()
+                env.update(TEST_CONFIG=json.dumps(config), PYTHON_TEST=Path(sys.executable).as_posix())
+                result = exec_run(BASH, '-c', shell, env=env)
+                self.assertEqual(result.returncode == 0, allowed, result.stderr)
+
+    def test_receipt_version_and_image_id_are_required(self):
+        source = Path(DEPLOY).read_text(encoding='utf-8')
+        function = source.split('receipt_valid() {', 1)[1].split('\n}\n', 1)[0]
+        shell = ('receipt_valid() {' + function + '\n}\n'
+                 'printf "%s\n" "old-image" > "$TEST_RECEIPT"\n'
+                 'if receipt_valid "$TEST_RECEIPT" "$TEST_ID"; then exit 10; fi\n'
+                 'printf "mv-container-deploy-receipt-v2\t%s\n" "$TEST_ID" > "$TEST_RECEIPT"\n'
+                 'receipt_valid "$TEST_RECEIPT" "$TEST_ID" || exit 11\n'
+                 'if receipt_valid "$TEST_RECEIPT" sha256:other; then exit 12; fi\n')
+        with tempfile.TemporaryDirectory() as d:
+            env = os.environ.copy()
+            env.update(TEST_RECEIPT=(Path(d) / 'receipt').as_posix(), TEST_ID='sha256:abc')
+            result = exec_run(BASH, '-c', shell, env=env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_readiness_waits_for_configured_container_healthchecks(self):
+        for mode in ('starting', 'transient', 'none', 'unhealthy', 'single', 'missing', 'multi', 'prod-multi'):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as d:
+                base = Path(d)
+                target = base / '.mv/container-deploy/api'
+                target.mkdir(parents=True)
+                (target / 'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
+                (target / '.env.dev').write_text('APP_ENV=dev\n')
+                binary = base / 'bin'
+                binary.mkdir()
+                docker = binary / 'docker'
+                docker.write_text('''#!/bin/sh
+case "$1" in
+  image) echo sha256:fake;;
+  inspect)
+    case "$*" in
+      *State.Status*) echo running;;
+      *State.Health*)
+        if [ "$4" = first ]; then echo healthy
+        else
+          case "$HEALTH_MODE" in
+            starting) echo starting;;
+            transient) if mkdir "$HOME/health-seen" 2>/dev/null; then echo starting; else echo healthy; fi;;
+            none) echo none;;
+            unhealthy) echo unhealthy;;
+            *) echo healthy;;
+          esac
+        fi;;
+      *) echo sha256:fake;;
+    esac;;
+  compose) case "$*" in
+    *'config --format json'*) printf '%s' "$TOPOLOGY";;
+    *'config --services'*) if [ "$HEALTH_MODE" = multi ]; then printf 'app
+worker
+'; else echo app; fi;;
+    *'ps -q app'*) if [ "$HEALTH_MODE" != missing ]; then echo first; fi;;
+    *'ps -q'*) if [ "$HEALTH_MODE" = single ] || [ "$HEALTH_MODE" = missing ] || [ "$HEALTH_MODE" = multi ]; then echo first; else printf 'first
+second
+'; fi;;
+    *'ps --format'*) printf 'app	api:one
+';;
+  esac;;
+esac
+''')
+                docker.chmod(0o755)
+                for name, body in (('curl', 'exit 0'), ('sleep', 'echo polled >&2')):
+                    stub = binary / name
+                    stub.write_text('#!/bin/sh\n' + body + '\n')
+                    stub.chmod(0o755)
+                deployment_env = 'prod' if mode == 'prod-multi' else 'dev'
+                if deployment_env == 'prod':
+                    (target / '.env.prod').write_text('APP_ENV=prod' + chr(10))
+                python_shim = binary / 'python3'
+                python_shim.write_text('#!/bin/sh' + chr(10) + 'exec "' + Path(sys.executable).as_posix() + '" "$@"' + chr(10))
+                python_shim.chmod(0o755)
+                services = {'app': {}, 'worker': {}} if mode in ('multi', 'prod-multi') else {'app': {}}
+                topology = json.dumps({'services': services})
+                env = stub_env(d, binary, HOME=str(d), TOPOLOGY=topology, HEALTH_MODE='multi' if mode == 'prod-multi' else mode)
+                run = exec_run(BASH, RUNNER, 'deploy', deployment_env, 'api', 'api:one',
+                               'http://localhost/ready', '4', 'version_20260101000000_0123456789ab',
+                               '', cwd=d, env=env)
+                if mode in ('starting', 'unhealthy', 'missing', 'prod-multi'):
+                    self.assertEqual(run.returncode, 1 if mode == 'missing' else 3 if mode == 'prod-multi' else 4, run.stderr)
+                    self.assertNotIn('VERIFIED_HEALTH=strong', run.stdout)
+                    self.assertFalse((target / 'current-version').exists())
+                    self.assertFalse((target / 'releases.tsv').exists())
+                else:
+                    self.assertEqual(run.returncode, 0, run.stderr)
+                    expected = 'strong' if mode == 'single' else 'readiness-partial'
+                    self.assertIn('VERIFIED_HEALTH=' + expected, run.stdout)
+                    self.assertEqual(run.stderr.count('polled'), 1 if mode == 'transient' else 0)
+                if mode == 'starting':
+                    self.assertIn('Timed out waiting', run.stderr)
+                if mode == 'unhealthy':
+                    self.assertIn('Container health: unhealthy', run.stderr)
+
     def test_failing_compose_start_attempts_to_restore_previous(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)

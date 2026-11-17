@@ -34,7 +34,7 @@ mkdir -p "$VERSIONS_DIR"
 
 check_service() {
   local candidate=$1
-  local attempt id health status all_ok missing_health=0
+  local attempt id health status all_ok services service_id missing_health=0
   # prod 门禁只认 readiness:必须显式提供 FF_HEALTH_URL;HEALTHCHECK 属 liveness 观测位,不构成门禁。
   if [[ "$ENV" == prod && -z "$HEALTH_URL" ]]; then
     echo 'Production requires FF_HEALTH_URL pointing at the readiness endpoint' >&2
@@ -66,8 +66,19 @@ check_service() {
     # Docker HEALTHCHECK 属 liveness 观测位,单独通过不产生可晋级收据。
     if [[ -n "$HEALTH_URL" ]]; then
       command -v curl >/dev/null 2>&1 || { echo 'curl required for HTTP probe' >&2; return 1; }
-      if curl --fail --silent --show-error --max-time 4 "$HEALTH_URL" >/dev/null 2>&1; then
-        VERIFIED_HEALTH=strong
+      if [[ "$all_ok" == 1 ]] && curl --fail --silent --show-error --max-time 4 "$HEALTH_URL" >/dev/null 2>&1; then
+        # 一个 URL 只能验证单服务单容器；其余情况不得产生可晋级收据。
+        services=$(FF_IMAGE="$candidate" "${DOCKER[@]}" config --services) || return 1
+        if [[ -n "$services" && "$services" != *[[:space:]]* && "$id" != *[[:space:]]* ]]; then
+          service_id=$(FF_IMAGE="$candidate" "${DOCKER[@]}" ps -q "$services") || return 1
+          if [[ "$id" == "$service_id" ]] && check_prod_topology "$candidate"; then
+            VERIFIED_HEALTH=strong
+            return 0
+          fi
+        fi
+        echo 'Cannot prove readiness for every configured service and container' >&2
+        [[ "$ENV" != prod ]] || return 1
+        VERIFIED_HEALTH=readiness-partial
         return 0
       fi
     elif [[ "$all_ok" == 1 ]]; then
@@ -84,6 +95,39 @@ check_service() {
   done
   echo 'Timed out waiting for container or HTTP readiness' >&2
   return 1
+}
+
+# 单 URL 只能验证单服务单容器，检查解析后的配置。
+check_prod_topology() {
+  command -v python3 >/dev/null 2>&1 || { echo 'python3 required to validate Compose topology' >&2; return 1; }
+  FF_IMAGE="$1" "${DOCKER[@]}" config --format json | python3 -c '
+import json, sys
+try:
+    services = json.load(sys.stdin)["services"]
+    if not isinstance(services, dict) or len(services) != 1:
+        raise ValueError("exactly one active service required")
+    service = next(iter(services.values()))
+    deploy = service.get("deploy") or {}
+    if deploy.get("mode", "replicated") != "replicated":
+        raise ValueError("only a single replicated container is supported")
+    if service.get("scale", 1) != 1 or deploy.get("replicas", 1) != 1:
+        raise ValueError("exactly one replica required")
+except (ValueError, KeyError, TypeError, AttributeError) as exc:
+    print("Compose topology cannot prove single-container readiness: " + str(exc), file=sys.stderr)
+    sys.exit(1)
+'
+}
+
+check_prod_start() {
+  local candidate=$1 existing
+  [[ "$ENV" == prod ]] || return 0
+  [[ -n "$HEALTH_URL" ]] || { echo 'Production requires FF_HEALTH_URL pointing at the readiness endpoint' >&2; return 1; }
+  check_prod_topology "$candidate" || return 1
+  existing=$(FF_IMAGE="$candidate" "${DOCKER[@]}" ps -q) || return 1
+  if [[ "$existing" == *[[:space:]]* ]]; then
+    echo 'Production has multiple running containers; refusing to start' >&2
+    return 1
+  fi
 }
 
 # 目标机镜像分发:清单里缺哪个镜像拉哪个,全部就位并核对 Image ID 后才启动;不构建,不经宿主直传。
@@ -163,6 +207,7 @@ case "$ACTION" in
     ;;
   deploy)
     [[ "$IMAGE" =~ ^[a-zA-Z0-9][a-zA-Z0-9._:/@-]{0,199}$ ]] || { echo 'Invalid image ref' >&2; exit 2; }
+    check_prod_start "$IMAGE" || exit 3
     rm -f compose.override.yml
     ensure_images
     OLD_VERSION=$(cat "$CURRENT" 2>/dev/null || true)
@@ -203,6 +248,7 @@ case "$ACTION" in
       [[ -s "$DIR/.rollback-service.tsv" ]] || { echo "Service $SERVICE not in version $PREV" >&2; exit 3; }
       TARGET_MANIFEST="$DIR/.rollback-service.tsv"
     fi
+    check_prod_start "$(head -n 1 "$TARGET_MANIFEST" | cut -f2)" || exit 3
     if ! apply_manifest "$TARGET_MANIFEST" || ! check_service "$(head -n 1 "$TARGET_MANIFEST" | cut -f3)"; then
       echo 'Rollback verification failed; restoring current version' >&2
       apply_manifest "$VERSIONS_DIR/$CUR.tsv" || true

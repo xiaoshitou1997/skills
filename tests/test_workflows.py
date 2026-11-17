@@ -176,6 +176,9 @@ case "$1 $2" in
   'compose --env-file')
     if [[ "${*: -3:2}" == 'ps -q' || "${*: -2}" == 'ps -q' ]]; then echo fake-container; fi
     if [[ "${@: -2}" == 'config --images' ]]; then echo demo:release; fi
+    if [[ "${@: -2}" == 'config --services' ]]; then echo app; fi
+    if [[ "${@: -3}" == 'config --format json' ]]; then printf '{"services":{"app":{}}}'; fi
+    if [[ "${@: -3}" == 'ps -q app' ]]; then echo fake-container; fi
     if [[ "${@: -3:2}" == 'ps --format' ]]; then printf 'app\tdemo:release\n'; fi ;;
   'inspect --format')
     if [[ "$3" == *Health* ]]; then echo healthy
@@ -217,6 +220,7 @@ if [[ -n "$src" && -n "$dest" ]]; then
   cp -- "$src" "$FAKE_RUNTIME_ROOT/$remote"
 fi
 """,
+            'python3': '#!/bin/bash\nexec python "$@"\n',
             'uname': '#!/bin/bash\necho MINGW64_NT\n',
         }
         for name, text in scripts.items():
@@ -484,7 +488,7 @@ fi
             self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
             self.assertRegex(run.stdout, 'DEV_RECEIPT=version_[0-9]{14}_[0-9a-f]{12}')
             # 收据文件由部署链路新写,本机可能被透明加密,只断言存在性。
-            receipt = Path(env['HOME']) / '.mv/container-deploy/receipts/demo' / MOCK_ID.replace(':', '-')
+            receipt = Path(env['HOME']) / '.mv/container-deploy/receipts/demo/v2' / MOCK_ID.replace(':', '-')
             self.assertTrue(receipt.is_file(), 'dev 收据应落在本机 receipts 目录')
             prod_env = dict(env)
             prod_env['FF_PROD_SSH'] = 'deployer@fakeprod'

@@ -45,8 +45,8 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod [--
 ## 交付流程
 
 1. 交付前检查：`compose.delivery.yml` 或 `templates/compose.delivery.yml`、`.env.<env>`（未跟踪、`APP_ENV` 匹配）、`.dockerignore`；脚本内 `project_checks`/`env_checks` 与 `deploy-preflight.sh` 会先做只读预检（静态配置 + SSH 连通与目标机 Compose v2）。生产变更核对项目要求的验收证据、未关闭风险与发布决定；涉及 schema 时核对迁移目标版本和执行结果、旧版本兼容性、恢复点与失败处置责任人，迁移未完成或兼容性未确认时停止交付。以上为人工交接检查，不视为脚本自动门禁。
-2. `deploy dev`：目标为 `FF_DEV_SSH` 指定的开发服务器。生成版本号（`version_<UTC 时间戳>_<sha12>[-dirty]`）后，compose 声明的全部镜像在目标机分发就位——已有直接使用，缺失经镜像仓库 `docker pull` 并核对 Image ID，不经宿主直传；随后启动 Compose、轮询 readiness（`FF_HEALTH_URL` 指向 readiness 端点；Docker HEALTHCHECK 属 liveness 观测位）。
-3. dev 健康验证通过（`VERIFIED_HEALTH=strong`）后：目标机快照版本清单写入 `versions/<版本>.tsv`（全服务 `服务\t镜像\tImage ID`）并前移 `current-version`；本机（执行部署的工作机）按清单逐 Image ID 在 `~/.mv/container-deploy/receipts/<app>/` 写 dev 收据。仅 `running-only`、`liveness-only` 不产生可晋级收据。
+2. `deploy dev`：目标为 `FF_DEV_SSH` 指定的开发服务器。生成版本号（`version_<UTC 时间戳>_<sha12>[-dirty]`）后，compose 声明的全部镜像在目标机分发就位——已有直接使用，缺失经镜像仓库 `docker pull` 并核对 Image ID，不经宿主直传；随后启动 Compose、轮询 `FF_HEALTH_URL` 指向的 readiness 端点和已配置的 Docker HEALTHCHECK；已发现容器须运行，已配置的 HEALTHCHECK 须为 healthy。单个 URL 成功不证明各服务 readiness；仅声明单服务单副本且运行单容器时可记 strong，目标机须有 `python3` 解析配置，多服务或多容器 dev 记 `readiness-partial`、不产生可晋级收据，prod 验证失败。
+3. dev 健康验证通过（`VERIFIED_HEALTH=strong`）后：目标机快照版本清单写入 `versions/<版本>.tsv`（全服务 `服务\t镜像\tImage ID`）并前移 `current-version`；本机（执行部署的工作机）按清单逐 Image ID 在 `~/.mv/container-deploy/receipts/<app>/v2/` 写 dev 收据。`running-only`、`liveness-only` 和 `readiness-partial` 不产生可晋级收据。
 4. `deploy prod`：要求用户明确授权、`FF_PROD_SSH` 目标、晋级门禁两段核对 dev 收据（上传前主镜像按目标机 Image ID，启动前经 `plan` 按完整镜像清单逐镜像，并拒绝 `-dirty`；`FF_REQUIRE_DEV_PROOF=0` 仅限风险评估后的显式应急）。生产必须有真实健康信号，仅 `running` 不算健康。
 5. 部署成功后在目标机 `~/.mv/container-deploy/<app>/releases.tsv` 追加发布记录（每服务一行）；验证失败时脚本按上一版本清单自动恢复应用并如实报告。
 6. `rollback prod` 按上一版本清单整栈恢复并验证记录结果，`--service NAME` 可限定单服务回退；**不回滚外部状态和数据库**。
@@ -63,7 +63,7 @@ bash "${SKILL_ROOT}/scripts/deploy.sh" rollback prod app-name --approve-prod [--
 
 - 目标机无目标镜像且拉取失败（`Image absent on target`/`Image unavailable on target`）：部署侧不构建，先回 `mv-image-builder` 确认服务器构建已完成，再核对镜像仓库分发与镜像名/Tag 拼写（与构建输出一致）。
 - dev 部署成功但提示 `No promotable dev receipt`：未设 `FF_HEALTH_URL`（须指向 readiness 端点），仅靠 Docker HEALTHCHECK 只记 `liveness-only` 档；补设后重新部署才能取得可晋级收据。
-- prod 晋级报无 dev 收据（`no verified dev deployment receipt`）：晋级门禁按目标机 Image ID 核对本机收据（`~/.mv/container-deploy/receipts/<app>/`），同一 Image ID 必须先在 dev 验证健康，不跳过校验。
+- prod 晋级报无 dev 收据（`no verified dev deployment receipt`）：晋级门禁按目标机 Image ID 核对本机收据（`~/.mv/container-deploy/receipts/<app>/v2/`），同一 Image ID 必须先在 dev 验证健康，不跳过校验。
 - 远端启动失败但脚本已回滚：`releases.tsv`、`versions/` 版本清单与 `current-version` 是事实源，用 `status` 核对当前版本与镜像后再决定重试或人工介入。
 - 访问不到容器端口：确认 compose `ports` 已发布、目标端口未被占用（目标机用 `ss -ltnp` 或 `lsof -i :<端口>` 查占用）并核对防火墙放行。
 

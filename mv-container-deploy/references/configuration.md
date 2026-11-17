@@ -8,8 +8,8 @@
 | `FF_PROD_SSH` | prod 目标 SSH；生产部署必填 |
 | `FF_DEV_SSH_KEY` / `FF_PROD_SSH_KEY` | 对应环境的 SSH 私钥绝对路径，可留空使用 SSH Agent |
 | `FF_COMPOSE_FILE` | 项目自定义的 Compose 文件名 |
-| `FF_HEALTH_URL` | dev 收据与 prod 门禁的唯一健康探活依据（readiness 端点，如 `http://127.0.0.1:8080/actuator/health/readiness`）；必须能**从目标机访问**，不要求客户端能够访问。未设置时部署最多记 `liveness-only`（HEALTHCHECK 通过）或 `running-only`，均不产生可晋级收据 |
-| `FF_REQUIRE_DEV_PROOF` | 默认 `1`：生产晋级要求同一 Image ID 的 dev 健康验证收据；置 `0` 仅限风险评估后的显式应急，详见 [交付契约](deployment-contract.md) |
+| `FF_HEALTH_URL` | dev 收据与 prod 门禁的 readiness 探活地址（如 `http://127.0.0.1:8080/actuator/health/readiness`）；必须能**从目标机访问**。强健康还要求全部已发现容器运行，且已配置的 HEALTHCHECK 为 healthy；未配置 HEALTHCHECK 的容器仍可通过。单个 URL 成功不证明各服务 readiness；仅声明单服务单副本且运行单容器时可记 strong；解析配置需要目标机 `python3`，缺失或解析失败时不能记 strong，多服务或多容器 dev 记 `readiness-partial`、不产生可晋级收据，prod 验证失败。未设置时部署最多记 `liveness-only`（HEALTHCHECK 通过）或 `running-only`，均不产生可晋级收据 |
+| `FF_REQUIRE_DEV_PROOF` | 默认 `1`：生产晋级要求同一 Image ID 的 dev 健康验证收据；置 `0` 仅限风险评估后的显式应急，只跳过收据核验；生产拓扑和 readiness 检查仍执行，详见 [交付契约](deployment-contract.md) |
 | `FF_READY_TIMEOUT` | 目标机就绪轮询上限秒数，默认 `50`；慢启动应用可调大，经 deploy.sh 透传到目标机 |
 
 所有部署目标统一经 SSH 通道交付：容器操作在目标机执行，运行状态与发布历史保存在目标机用户目录 `~/.mv/container-deploy/`；dev 健康验证收据保存在执行部署的本机 `~/.mv/container-deploy/receipts/`（记录本机执行的验证）。目标服务器缺 Docker/Compose 时部署直接失败，不虚构部署成功，也不改在宿主侧操作。

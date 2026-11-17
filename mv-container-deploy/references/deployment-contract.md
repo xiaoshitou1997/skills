@@ -12,7 +12,7 @@
 - **发布以版本为准**：每次部署生成版本号 `version_<UTC yyyyMMddHHmmSS>_<git sha 前12位>[-dirty]`——hash 锚发布时工作区 HEAD（发版基准点），非 Git 目录记 `unversioned` 且强制 `-dirty`；`-dirty` 版本拒绝上 prod。验证通过后目标机在 `~/.mv/container-deploy/<app>/versions/<版本>.tsv` 落版本清单（全服务 `服务\t镜像\tImage ID` 快照），`current-version` 指向当前版本。**版本清单是运行状态源**：回退按上一版清单经 `compose.override.yml` 整栈恢复，`--service` 可限定单服务（不移动 `current-version`）。
 - **部署流程不构建镜像**，只加载并运行不可变镜像；`docker compose` 一律 `--no-build --pull never`。
 - **双探针**：可运行服务暴露 readiness 与 liveness 两个健康端点（Spring Boot 服务经 Actuator 健康组实现，条款见 `mv-backend-standards` 的 spring-guide「健康探测」）。liveness 只反映进程内状态、不聚合外部依赖；readiness 反映可接流状态并聚合关键依赖，是部署验证与晋级门禁的探活依据。`FF_HEALTH_URL` 指向 readiness 端点；未配置时 dev 不产生可晋级收据、prod 直接拒绝部署。
-- 编排映射：收据与 prod 门禁**只认 readiness**——`FF_HEALTH_URL` 必须指向 readiness 端点；HEALTHCHECK 仅作 liveness 观测位，单独通过记 `liveness-only` 档、不产生可晋级收据。Compose 基线只有容器级 HEALTHCHECK（liveness 语义，仅标记状态、不自动重启）；镜像内 HEALTHCHECK 由模块 `Dockerfile.delivery` 声明（指向 liveness 端点，`start_period` 覆盖启动期）。swarm/k8s 接入后按 `livenessProbe`/`readinessProbe` 原生分列（失败重启/摘流），替换上述映射。
+- 编排映射：收据与 prod 门禁要求 `FF_HEALTH_URL` 指向的 readiness 端点通过，且全部已发现容器运行、已配置的 HEALTHCHECK 为 healthy；未配置 HEALTHCHECK 的容器不因此被拒绝。HEALTHCHECK 属 liveness 观测，单独通过记 `liveness-only` 档、不产生可晋级收据。单个 URL 成功不证明各服务 readiness；仅声明单服务单副本且运行单容器时可记 strong；目标机须有 `python3` 解析配置，缺失或解析失败时不能记 strong，多服务或多容器 dev 记 `readiness-partial`、不产生可晋级收据，prod 验证失败。Compose 基线只有容器级 HEALTHCHECK（liveness 语义，仅标记状态、不自动重启）；镜像内 HEALTHCHECK 由模块 `Dockerfile.delivery` 声明（指向 liveness 端点，`start_period` 覆盖启动期）。swarm/k8s 接入后按 `livenessProbe`/`readinessProbe` 原生分列（失败重启/摘流），替换上述映射。
 
 ## 环境变量
 
@@ -20,8 +20,8 @@
 
 ## 交付流程
 
-1. `deploy dev APP IMAGE` 预检配置（`deploy-preflight.sh` 与脚本内 `project_checks`/`env_checks`），生成版本号后把 compose 声明的全部镜像在目标机分发就位（缺失经镜像仓库 `docker pull` 并核对 Image ID），启动 Compose、整栈验证健康。验证通过（`VERIFIED_HEALTH=strong`）后快照版本清单写入 `versions/<版本>.tsv` 并前移 `current-version`，在本机（执行部署的工作机）按清单逐 Image ID 写 dev 收据（`~/.mv/container-deploy/receipts/APP/`，文件名为 Image ID、冒号替换为 `-`，规避 Windows 备用数据流语义）。
-2. `deploy prod APP IMAGE --approve-prod` 要求用户明确授权、SSH 目标和真实健康探测；晋级门禁两段核对（`FF_REQUIRE_DEV_PROOF=1` 默认）：上传前按目标机 Image ID 核对主镜像的本机收据，启动前经 `plan` 取目标机完整镜像清单、逐镜像核对收据并拒绝 `-dirty`。`FF_REQUIRE_DEV_PROOF=0` 仅用于评估风险后的显式应急处理，不属于常规流程。
+1. `deploy dev APP IMAGE` 预检配置（`deploy-preflight.sh` 与脚本内 `project_checks`/`env_checks`），生成版本号后把 compose 声明的全部镜像在目标机分发就位（缺失经镜像仓库 `docker pull` 并核对 Image ID），启动 Compose，检查已发现容器状态并探测指定 readiness URL。验证通过（`VERIFIED_HEALTH=strong`）后快照版本清单写入 `versions/<版本>.tsv` 并前移 `current-version`，在本机（执行部署的工作机）按清单逐 Image ID 写 dev 收据（`~/.mv/container-deploy/receipts/APP/v2/`，文件名为 Image ID、冒号替换为 `-`，规避 Windows 备用数据流语义）。
+2. `deploy prod APP IMAGE --approve-prod` 要求用户明确授权、SSH 目标和真实健康探测；晋级门禁两段核对（`FF_REQUIRE_DEV_PROOF=1` 默认）：上传前按目标机 Image ID 核对主镜像的本机收据，启动前经 `plan` 取目标机完整镜像清单、逐镜像核对收据并拒绝 `-dirty`。`FF_REQUIRE_DEV_PROOF=0` 仅用于评估风险后的显式应急处理，只跳过收据核验，不跳过生产拓扑与健康检查。收据使用 `v2` 目录及版本和 Image ID 内容校验；旧收据不自动接受，须按当前规则重新部署 dev。生产启动前解析 Compose 配置（目标机须有 `python3`），拒绝多服务、声明多个副本或全局模式，以及已发现多个运行容器；启动后仍核查实际容器。包含一次性任务的多服务配置同样拒绝，不验证任务完成情况。
 3. 目标部署成功后，在 `~/.mv/container-deploy/APP/releases.tsv` 追加 TSV 发布记录（时间/动作/环境/版本/服务/镜像/Image ID/验证档位，每服务一行）。部署失败时按上一版本清单自动恢复应用并如实报告。
 4. `rollback prod APP --approve-prod` 按上一版本清单整栈恢复、验证并记录结果；`--service NAME` 限定单服务回退。**不回滚外部状态和数据库。**
 
