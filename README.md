@@ -94,6 +94,8 @@ bash "$SKILL_ROOT/scripts/pr.sh" view
 
 ## 容器构建与部署
 
+当前交付脚本只为单服务单副本单容器、readiness 验证通过的配置签发可晋级收据。多组件完整栈、多副本和一次性任务未具备当前脚本的生产晋级支持；dev 诊断成功不代表可晋级，不通过拆 stack 或关闭门禁规避。
+
 构建与交付按宿主/服务器职责二分（[构建与交付分工](docs/structure-rules.md#构建与交付分工)）：宿主只编译出二进制包并上传，镜像全部在服务器构建——单机部署为部署机自身，集群为镜像仓库所在节点，宿主不安装 Docker。把镜像跑起来属于部署，归 `mv-container-deploy`（dev 目标是开发服务器，经 `FF_DEV_SSH` 指定，验证健康后写收据；prod 需明确授权）。两者之间是 `mv-image-builder`：宿主出包后在服务器构建只含运行时的瘦镜像，只构建不运行，以镜像身份（`IMAGE=<repo>:<tag>` 与 `IMAGE_ID`）交接部署侧；晋级 prod 要求同一 Image ID 的 dev 健康收据。镜像定义与模块同源：各栈模块内自备 `Dockerfile.delivery`（Node 静态前端可用内置模板），其他产物布局用 `FF_ARTIFACT` 指定。准备 `.dockerignore` 与未跟踪的 `.env.dev`/`.env.prod`。出包上传统一经 SSH（`FF_BUILD_TARGET` 指向构建点），构建点核对 SHA-256，不匹配即删除损坏包中止构建。详见 [镜像构建契约](mv-image-builder/references/build-contract.md)、[交付契约](mv-container-deploy/references/deployment-contract.md) 与 [部署安全模型](mv-container-deploy/references/security-model.md)。
 
 ```bash
