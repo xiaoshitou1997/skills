@@ -29,7 +29,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 8. **commit 与 push 是两个可分开执行的动作，各自开始前都先完成 `pull --rebase`。** 同步失败、冲突未解决或 rebase/merge 未结束时停止该动作，不先 commit 再补同步。冲突解决不了时停止并交由用户处理，呈现两侧差异，不强行自动取舍。
 9. **每个动作都从主树 `pull --rebase` 开始：commit 前 pull --rebase → 显式路径原子 commit；push 前重新 pull --rebase → push。全程只有一颗 worktree。** 不另开侧 worktree 提交后直推 SHA：那样远端指针前移而本地分支指针与工作树文件未跟随，表现为「已推送但暂存区还在」，此后基于本地 HEAD 的 diff、状态判断与回滚都指向错误基线。树脏时在主树原地用 plumbing 临时索引完成提交。
 10. **保持线性提交历史，禁止生成 merge commit。** 远端同步使用 rebase，不用 merge commit 解决分支分歧。
-11. **AI 参与生成或修改的提交和 PR 必须添加 AI 署名或归属行。** 署名行统一用 `Co-Authored-By: <工具名> <工具邮箱>` 置于提交信息或 PR 描述末尾；Claude Code 固定为 `Co-Authored-By: Claude Code <noreply@anthropic.com>`。
+11. **commit message 只写不换行的一句话，概括本次实际特性或变更目的。** 不追加正文、尾注、署名或与变更目的无关的过程信息；验证结果和必要的交付细节在交付说明或 PR 描述中记录。AI 参与的 PR 按项目及工具要求在 PR 描述中标注归属。
 
 ## 工作流
 
@@ -39,7 +39,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 4. 按依赖顺序逐组 `git add -- <explicit paths>`。同文件有多组修改时，交互式终端可用 `git add -p`；无人值守工具使用经过审查的 patch，`git apply --cached --check` 验证后再暂存。工作树脏到无法正常暂存时改走下文「树脏时的原地提交」。保留原始 index，审查最终暂存差异，不猜测修改边界。
 5. 逐组暂存审查：`git diff --cached --check`、`git diff --cached --name-status`、`git diff --cached --`，确认暂存内容**只**属于当前组。可运行 `python3 "${SKILL_ROOT}/scripts/stage_audit.py"` 检查常见 secret/大文件风险。
 6. 按涉及代码运行项目已有且可用的轻量检查（lint / typecheck / targeted tests）。没有配置的检查不虚构成功；失败时停止本组提交并报告。
-7. 提交信息采用用户或仓库约定的语言与格式。没有既有约定时默认中文 Conventional Commits，例如 `feat(auth): 增加短信登录验证码校验`。标题基于本组 staged diff，避免含糊通用信息。
+7. 提交信息只用一行概括本组 staged diff 对应的实际特性或变更目的，采用用户或仓库约定的语言与格式；没有既有约定时默认中文 Conventional Commits，例如 `feat(auth): 增加短信登录验证码校验`。不追加与变更目的无关的过程信息或尾注。
 8. `git commit -m '...'` 后再次查看状态及 SHA。
 9. **commit 与 push 是两个独立动作，用户要求到哪步就做到哪步**：「提交」停在本地 commit；「推送」单独要求时也先完成 pull --rebase 再 push；「提交并推送」则依次连续完成两个动作。push 前重新执行第 2 步的 pull --rebase，即使刚提交完——远端可能已在此窗口前进；push 被拒（非快进）说明 pull 之后窗口内远端又前进，本地提交无损，`git pull --rebase` 恢复后重试 push。上游缺失时先确认远端与分支再设置；推送失败如实报告，任何情况下不重试 `--force`。
 10. 汇报每组提交的 hash、type、变更目的、检查情况、push 结果，以及明确保留的未提交内容。
@@ -61,7 +61,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 - 工作区不干净时先确认改动归属。树脏时的提交路径是主树原地 plumbing 临时索引，不用侧 worktree，也不以 stash 为默认手段：stash 会影响共享工作区，不自动把他人 staged/untracked 内容一起藏起。确需 stash 时记录标识，并在恢复后核对文件与暂存状态。
 - merge/rebase 尚未结束时，先处理或明确退出当前操作，不叠加新的 pull 或 stash 恢复。
 - 命令使用明确工作目录，管道检查原始 Git 退出码，失败命令不得被输出管道的末端成功掩盖。
-- 提交和 PR 发布前检查最终消息，确保 AI 参与的内容带有准确的 AI 署名或归属行。
+- 提交前检查最终信息只有一行且准确概括变更目的；PR 发布前检查描述内容及适用的归属要求。
 
 ## 权限与风险
 
