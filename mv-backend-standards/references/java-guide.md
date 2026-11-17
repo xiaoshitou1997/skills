@@ -75,7 +75,7 @@ shop-common/
 ## 代码与命名
 
 - Controller `UserController`; Service `UserService`; Mapper `UserMapper`; DTO `CreateUserRequest` 或遵循项目既有 `CreateUserDTO`; VO `UserVO`。
-- 参数数量过多时封装对象；避免含混的 `deal`, `handleData` 与不必要缩写；注释解释为何而非复述代码。
+- 参数数量过多时封装对象；避免含混的 `deal`, `handleData` 与非领域通用缩写；注释解释为何而非复述代码。
 - 命名按英文习惯表达语义，不做中文大白话直译：先定语义再选词，不以中文语序拼英文；布尔判断用 is/has/can + 形容词（如 `isNormal`），不写 `judgeIfNormal`、`checkIsNormal` 这类逐字翻译。
 - 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不随本次变更重写。
 - Java 代码缩进一般 4 空格，行宽参考项目 Checkstyle/Spotless，不强制与既有格式化配置冲突；避免注释掉的旧实现。
@@ -106,7 +106,7 @@ shop-common/
 
 - 约定统一的错误编码、HTTP 状态、参数校验和 requestId/traceId。
 - 使用 Bean Validation（如 `@Valid`/`@Validated`）做入口校验，业务规则同时在 Service 层确认；避免直接相信入参。
-- 生产错误仅给必要的错误信息，不返回堆栈；在合适层统一记录错误，不制造日志风暴。
+- 生产错误仅返回错误码、message 与 requestId，不返回堆栈；错误经全局异常处理器统一记录，不制造日志风暴。
 - API 改动考虑兼容老客户端、分页约定、幂等请求、限流与鉴权权限边界。
 - 区分 HTTP 状态、平台包络码和内层业务码；HTTP 200 不保证业务成功。确认码的字符串/数值类型和真实响应结构，不凭字段名推断契约。
 - 每个独立业务失败场景对应唯一错误码枚举常量，一个 code 唯一映射一个业务语义；不复用既有错误码扩展语义，新增失败场景同步新增枚举。前端按 code 分支，前后端语义严格对齐。
@@ -162,7 +162,7 @@ shop-common/
 
 ## 数据库与事务
 
-- 查询指定必要字段；分页大集合，限制最大 page size；避免 N+1 查询，考虑批量查询/缓存权衡。
+- 查询按本次所需指定列，不取全列；分页大集合，限制最大 page size；避免 N+1 查询，考虑批量查询/缓存权衡。
 - 库层约束逐字段落位作为最后防线：必填列 `NOT NULL`，长度定类型上限并与后端校验同口径，取值域用 CHECK、字典表外键或受控枚举列，业务唯一性用 UNIQUE；迁移、脚本、并发与缺陷都可能绕过应用写入，不以「应用已校验」为由省略库层约束；确需免约束的列（如 JSON 内部结构、条件生效约束）在迁移说明记录理由。
 - DDL / migration 用项目已有 Flyway/Liquibase/SQL 流程，默认不得随应用镜像回滚反向执行；schema 迁移与大表 DDL 执行策略见 [schema-migrations.md](schema-migrations.md)。
 - schema 全量版本化：建表、索引、约束、种子/字典数据一律进版本化迁移脚本，与代码同仓库同版本发布，空库一键拉起，部署与回滚不做手工 SQL。

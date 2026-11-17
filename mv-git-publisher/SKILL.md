@@ -29,7 +29,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 8. **commit 与 push 是两个可分开执行的动作，各自开始前都先完成 `pull --rebase`。** 同步失败、冲突未解决或 rebase/merge 未结束时停止该动作，不先 commit 再补同步。冲突解决不了时停止并交由用户处理，呈现两侧差异，不强行自动取舍。
 9. **每个动作都从主树 `pull --rebase` 开始：commit 前 pull --rebase → 显式路径原子 commit；push 前重新 pull --rebase → push。全程只有一颗 worktree。** 不另开侧 worktree 提交后直推 SHA：那样远端指针前移而本地分支指针与工作树文件未跟随，表现为「已推送但暂存区还在」，此后基于本地 HEAD 的 diff、状态判断与回滚都指向错误基线。树脏时在主树原地用 plumbing 临时索引完成提交。
 10. **保持线性提交历史，禁止生成 merge commit。** 远端同步使用 rebase，不用 merge commit 解决分支分歧。
-11. **commit message 只写不换行的一句话，概括本次实际特性或变更目的。** 不追加正文、尾注、署名或与变更目的无关的过程信息；验证结果和必要的交付细节在交付说明或 PR 描述中记录。AI 参与的 PR 按项目及工具要求在 PR 描述中标注归属。
+11. **commit message 只写不换行的一句话，概括本次实际特性或变更目的。** 不追加正文、尾注、署名或与变更目的无关的过程信息；验证结果和交付细节在交付说明或 PR 描述中记录。AI 参与的 PR 按项目及工具要求在 PR 描述中标注归属。
 
 ## 工作流
 
