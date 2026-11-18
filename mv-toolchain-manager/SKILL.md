@@ -1,6 +1,6 @@
 ---
 name: mv-toolchain-manager
-description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 工具链；按项目声明准备便携工具并只在当前会话激活。适用于缺少工具、Java class version 不匹配、EBADENGINE、Python 版本不符和明确的运行时版本请求；技术栈版本基线归 mv-tech-stack-baseline，镜像构建本身归 mv-image-builder。
+description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Maven、Gradle、npm、pnpm、yarn、uv 工具链；按项目声明准备便携工具并只在当前会话激活。适用于缺少工具、Java class version 不匹配、EBADENGINE、Python 版本不符和明确的运行时版本请求；技术栈版本基线归 mv-design-standards，镜像构建本身归 mv-delivery-standards。
 ---
 
 # 工具链管理
@@ -23,13 +23,13 @@ description: 识别、安装、选择或切换本地 JDK、Node.js、Python、Ma
 - 不进行系统范围 sudo 安装，不修改注册表、`.bashrc`、`.zshrc` 或 PowerShell profile，除非用户明确授权。
 - 优先项目/用户态工具链，严格使用项目要求的 major/minor，不随意升级。
 - 自带便携安装器位于 `scripts/installer/`（`runtime_cli.py`），仅在第 3-4 步均无可用方案、且用户同意后使用。
-- `mv-image-builder` 的二进制包在宿主构建，宿主 JDK/Maven/Gradle/Node 工具链是出包前置条件。skill 自身脚本所需 Python 同样由本 skill 按需准备（`ensure --python`），不要求用户手工下载。
+- `mv-delivery-standards` 的二进制包在宿主构建，宿主 JDK/Maven/Gradle/Node 工具链是出包前置条件。skill 自身脚本所需 Python 同样由本 skill 按需准备（`ensure --python`），不要求用户手工下载。
 - 如果 Python 3 不可用，直接人工检查版本文件；不要因为辅助探测脚本不可用就阻断开发。
 - 不按缓存内容拼 classpath：依赖解析与手工验证的完整条款见 [manual-classpath](references/manual-classpath.md)。
 
 ## Windows 宿主 JDK 预设
 
-Windows 宿主启动或 fork JVM 前统一预设 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'`（daemon、test fork 与应用主进程全部 JVM 自动拾取；只改 `java.io.tmpdir` 无效）。启动或构建报 `Unable to establish loopback connection` 即该预设未生效，核查环境变量覆盖源后重试。宿主 JVM 构建/直启场景共用本预设（如 `mv-image-builder` 宿主出包）。
+Windows 宿主启动或 fork JVM 前统一预设 `JAVA_TOOL_OPTIONS='-Djdk.net.unixdomain.tmpdir=C:/Windows/Temp'`（daemon、test fork 与应用主进程全部 JVM 自动拾取；只改 `java.io.tmpdir` 无效）。启动或构建报 `Unable to establish loopback connection` 即该预设未生效，核查环境变量覆盖源后重试。宿主 JVM 构建/直启场景共用本预设（如 `mv-delivery-standards` 宿主出包）。
 
 ## 便携安装器 fallback
 
@@ -64,7 +64,7 @@ PowerShell 使用 `activate --print ps1` 生成片段，审查后在当前会话
 
 ## 输出
 
-给出项目要求、当前版本、选择或准备的运行时、验证结果，并按意图提示调用 `mv-image-builder` 出镜像（部署晋级归 `mv-container-deploy`）。
+给出项目要求、当前版本、选择或准备的运行时、验证结果，并按意图提示调用 `mv-delivery-standards` 出镜像与部署晋级。
 
 ## 与项目自检配合
 

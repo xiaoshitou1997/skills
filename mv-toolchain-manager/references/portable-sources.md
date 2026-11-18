@@ -42,7 +42,7 @@ https://api.adoptium.net/v3/assets/latest/<feature>/hotspot?architecture=<arch>&
 
 ## Python（python-build-standalone）
 
-- 使用场景：安装器依次读取 `.python-version`、`.tool-versions`、`.mise.toml` 与 `pyproject.toml` 的 `requires-python`；不替代项目已有的解释器、虚拟环境、uv 或 conda，项目现有方案可用时直接使用。本 skill 与 `mv-image-builder` 的只读诊断脚本（`doctor.py` 等）同样复用该便携 Python。
+- 使用场景：安装器依次读取 `.python-version`、`.tool-versions`、`.mise.toml` 与 `pyproject.toml` 的 `requires-python`；不替代项目已有的解释器、虚拟环境、uv 或 conda，项目现有方案可用时直接使用。本 skill 与 `mv-delivery-standards` 的只读诊断脚本（`doctor.py` 等）同样复用该便携 Python。
 - 最新 release 为日期标签：`https://github.com/astral-sh/python-build-standalone/releases/latest`；资产名 `cpython-<ver>+<date>-<triple>-install_only.tar.gz`，版本清单来自该 release 的 `SHA256SUMS`。
 - triple：Windows `x86_64-pc-windows-msvc`/`aarch64-pc-windows-msvc`，Linux `x86_64-unknown-linux-gnu`/`aarch64-unknown-linux-gnu`，macOS `x86_64-apple-darwin`/`aarch64-apple-darwin`。
 - 只接受严格 `X.Y.Z`，预发布忽略；版本只在最新 release 内解析（`3.12` 取最高 3.12.x，精确版必须出现在最新 release 否则报错）；上游不再随最新 release 发布的旧补丁版需人工下载放入同一目录。

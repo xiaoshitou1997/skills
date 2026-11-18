@@ -1,3 +1,0 @@
-interface:
-  display_name: "Architecture Standards"
-  short_description: "系统架构决策与评审规范：形态拆分、依赖边界、同步/异步与一致性、多租户、集成模式与 ADR。"

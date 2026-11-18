@@ -1,0 +1,3 @@
+interface:
+  display_name: "设计规范"
+  short_description: "需求分析、业务规则与验收建模；架构决策评审与技术栈基线；PRD/HLD/LLD/RFC/API/MOP 写作、工程制图与插图编排；新项目骨架初始化。"

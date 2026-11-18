@@ -1,0 +1,3 @@
+interface:
+  display_name: "容器交付规范"
+  short_description: "容器交付全链路：宿主出包、服务器构建镜像、镜像身份与包校验、部署契约（入口当前关闭）、Compose 编排探针凭证分级。"

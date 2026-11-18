@@ -26,11 +26,11 @@ class TriggerRunnerTests(unittest.TestCase):
         self.assertEqual(runner.verdict({'skill': 'mv-git-publisher', 'kind': 'positive'}, ['old:mv-git-publisher'])[0], 'FAIL')
 
     def test_cooperation_and_required_set(self):
-        case = {'skill': 'mv-container-deploy', 'kind': 'positive', 'required': ['mv-image-builder']}
-        self.assertEqual(runner.verdict(case, ['mv-image-builder', 'mv-container-deploy'])[0], 'PASS')
-        self.assertEqual(runner.verdict(case, ['mv-container-deploy'])[0], 'FAIL')
-        self.assertEqual(runner.verdict({'skill': 'mv-backend-standards', 'kind': 'positive'},
-                                        ['mv-toolchain-manager', 'mv-backend-standards'])[0], 'PASS')
+        case = {'skill': 'mv-ops-standards', 'kind': 'positive', 'required': ['mv-design-standards']}
+        self.assertEqual(runner.verdict(case, ['mv-design-standards', 'mv-ops-standards'])[0], 'PASS')
+        self.assertEqual(runner.verdict(case, ['mv-ops-standards'])[0], 'FAIL')
+        self.assertEqual(runner.verdict({'skill': 'mv-coding-standards', 'kind': 'positive'},
+                                        ['mv-toolchain-manager', 'mv-coding-standards'])[0], 'PASS')
 
     def test_environment_drops_host_modes_and_preserves_environment_auth(self):
         with patch.dict(os.environ, {'CLAUDECODE': '1', 'CLAUDE_CODE_PLUGIN_DIRS': '/old',

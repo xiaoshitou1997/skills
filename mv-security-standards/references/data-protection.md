@@ -25,4 +25,4 @@
 
 ## 边界
 
-认证授权实现归 mv-backend-standards；前端展示与输入处理归 mv-frontend-standards；备份与恢复归 mv-ops-standards；合规结论由项目与法务确认。
+认证授权实现、前端展示与输入处理归 mv-coding-standards；备份与恢复归 mv-ops-standards；合规结论由项目与法务确认。

@@ -1,0 +1,3 @@
+interface:
+  display_name: "编码规范"
+  short_description: "编码规范（后端 Java/Spring Boot、前端 React/Vite SPA/shadcn-admin/Next.js/Taro、测试分层与覆盖率口径）；需求与设计归 mv-design-standards，镜像构建与部署归 mv-delivery-standards。"

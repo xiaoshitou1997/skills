@@ -15,10 +15,10 @@ BASH = str(Path(os.environ.get('ProgramFiles', 'C:/Program Files')) / 'Git/bin/b
 if not Path(BASH).exists():
     BASH = 'bash'
 DOCTOR = (ROOT / 'mv-toolchain-manager/scripts/doctor.py').as_posix()
-PREFLIGHT = (ROOT / 'mv-container-deploy/scripts/deploy-preflight.sh').as_posix()
-DEPLOY = (ROOT / 'mv-container-deploy/scripts/deploy.sh').as_posix()
-RUNNER = (ROOT / 'mv-container-deploy/scripts/target-runner.sh').as_posix()
-QUALITY = (ROOT / 'mv-image-builder/scripts/quality-check.sh').as_posix()
+PREFLIGHT = (ROOT / 'mv-delivery-standards/scripts/deploy-preflight.sh').as_posix()
+DEPLOY = (ROOT / 'mv-delivery-standards/scripts/deploy.sh').as_posix()
+RUNNER = (ROOT / 'mv-delivery-standards/scripts/target-runner.sh').as_posix()
+QUALITY = (ROOT / 'mv-delivery-standards/scripts/quality-check.sh').as_posix()
 
 
 def exec_run(*cmd, cwd=None, env=None, input=None):
@@ -50,6 +50,48 @@ def stub_env(d, bin_dir, **updates):
 
 
 class EnhancementsTests(unittest.TestCase):
+    def test_delivery_entrypoints_fail_before_remote_or_target_writes(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            target = root / '.mv/delivery-standards/api'
+            target.mkdir(parents=True)
+            (target / 'compose.yml').write_text('sentinel')
+            (target / '.env.dev').write_text('sentinel')
+            before = {p.relative_to(root): (p.read_bytes(), p.stat().st_mode)
+                      for p in target.rglob('*') if p.is_file()}
+            env = os.environ.copy()
+            env.update(HOME=d, FF_DEV_SSH='user@invalid.example',
+                       FF_PROD_SSH='user@invalid.example')
+            guarded = 'ssh() { exit 91; }; scp() { exit 92; }; docker() { exit 93; }; source "$@"'
+            for environment in ('dev', 'prod'):
+                for action in ('deploy', 'rollback', 'status'):
+                    args = ['api:release'] if action == 'deploy' else []
+                    run = exec_run(BASH, '-c', guarded, 'guard', DEPLOY, action, environment, 'api', *args, cwd=d, env=env)
+                    self.assertEqual(run.returncode, 3, run.stderr)
+                    self.assertIn('unavailable pending safety verification', run.stderr)
+                    self.assertNotIn('DEV_RECEIPT', run.stdout)
+                for action in ('deploy', 'rollback', 'status', 'plan'):
+                    image = 'api:release' if action in ('deploy', 'plan') else ''
+                    version = 'version_20260101000000_abc' if action == 'deploy' else ''
+                    run = exec_run(BASH, '-c', guarded, 'guard', RUNNER, action, environment, 'api', image, '', '2', version, '', cwd=d, env=env)
+                    self.assertEqual(run.returncode, 3, run.stderr)
+                    self.assertIn('unavailable pending safety verification', run.stderr)
+                    self.assertNotIn('PLAN_LINE=', run.stdout)
+            after = {p.relative_to(root): (p.read_bytes(), p.stat().st_mode)
+                     for p in target.rglob('*') if p.is_file()}
+            self.assertEqual(before, after)
+            self.assertFalse((target / 'versions').exists())
+            self.assertFalse((root / '.mv/delivery-standards/receipts').exists())
+
+    def test_delivery_validation_precedes_refusal(self):
+        with tempfile.TemporaryDirectory() as d:
+            for cmd in ((DEPLOY, 'deploy', 'dev', 'api', 'bad image'),
+                        (RUNNER, 'plan', 'dev', 'api', 'bad image')):
+                run = exec_run(BASH, *cmd, cwd=d, env=dict(os.environ, HOME=d))
+                self.assertEqual(run.returncode, 2, run.stderr)
+                self.assertNotIn('unavailable pending safety verification', run.stderr)
+            self.assertFalse((Path(d) / '.mv').exists())
+
     def test_doctor_is_read_only(self):
         with tempfile.TemporaryDirectory() as d:
             p=exec_run(sys.executable, DOCTOR, '--project', d, '--json')
@@ -92,7 +134,7 @@ class EnhancementsTests(unittest.TestCase):
             subprocess.run(['git','config','status.showUntrackedFiles','no'],cwd=root,check=True)
             b=root/'bin'; b.mkdir()
             docker=b/'docker'
-            docker.write_text('#!/bin/sh\nif [ "$1" = "image" ] && [ "$2" = "inspect" ]; then echo sha256:fakehash; fi\nif [ "$1" = "compose" ] && [ "$2" = "version" ]; then echo v2.0; fi\n')
+            docker.write_text('#!/bin/sh\nif [ "$1" = "image" ] && [ "$2" = "inspect" ]; then echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaahash; fi\nif [ "$1" = "compose" ] && [ "$2" = "version" ]; then echo v2.0; fi\n')
             docker.chmod(0o755)
             # 假 ssh:目标机 Image ID 校验通过后,晋级门禁在本机收据处拒绝,无需真实连接。
             ssh=b/'ssh'
@@ -101,7 +143,7 @@ class EnhancementsTests(unittest.TestCase):
             env=stub_env(d, b, HOME=d, FF_PROD_SSH='deploy@prod.example.com')
             p=exec_run(BASH,DEPLOY,'deploy','prod','api','api:abc','--approve-prod',cwd=d,env=env)
             self.assertNotEqual(p.returncode,0)
-            self.assertIn('no verified dev deployment receipt',p.stderr)
+            self.assertIn('Deployment, rollback and status are unavailable',p.stderr)
 
     def test_quality_fails_if_no_scripts(self):
         with tempfile.TemporaryDirectory() as d:
@@ -118,10 +160,11 @@ class EnhancementsTests(unittest.TestCase):
             self.assertNotEqual(p.returncode,0)
             self.assertIn('not a pass',p.stderr)
 
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_verified_release_tracks_prev_and_history(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d)
-            target=root/'.mv/container-deploy/api'
+            target=root/'.mv/delivery-standards/api'
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')
@@ -129,12 +172,13 @@ class EnhancementsTests(unittest.TestCase):
             docker=b/'docker'
             docker.write_text('''#!/bin/sh
 case "$1" in
-  image) if [ "$2" = inspect ]; then echo sha256:mocked; fi ;;
-  inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; esac ;;
+  image) if [ "$2" = inspect ]; then echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; fi ;;
+  inspect) case "$*" in *'.Image'*) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;; *State.Health*) echo healthy;; *State.Status*) echo running;; esac ;;
   compose)
     case "$*" in
+      *'config --images'*) echo "$FF_IMAGE" ;;
       *'ps -q'*) echo mock-container ;;
-      *'ps --format'*) printf 'app\tapi:one\n' ;;
+      *'ps --format'*) printf 'app\t%s\n' "$FF_IMAGE" ;;
       *' ps'*) echo mock-container ;;
     esac ;;
 esac
@@ -155,14 +199,16 @@ esac
             manifest=manifest_file.read_text(encoding='utf-8').splitlines()
             self.assertEqual(len(manifest),1)
             self.assertEqual(manifest[0].split('\t')[1],'api:two')
+            self.assertIn('sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', manifest[0])
             self.assertEqual((target/'current-version').read_text(encoding='utf-8').strip(),'version_20260101000000_000000000002')
             self.assertEqual(len((target/'releases.tsv').read_text(encoding='utf-8').splitlines()),2)
 
 
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_running_only_dev_does_not_claim_strong_health(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)
-            target=base/'.mv/container-deploy/api'
+            target=base/'.mv/delivery-standards/api'
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')
@@ -170,9 +216,9 @@ esac
             docker=binary/'docker'
             docker.write_text('''#!/bin/sh
 case "$1" in
-  image) echo sha256:fake;;
-  inspect) case "$*" in *State.Health*) echo none;; *State.Status*) echo running;; esac;;
-  compose) case "$*" in *'ps -q'*) echo mock;; *'ps --format'*) printf 'app\tapi:one\n';; esac;;
+  image) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;
+  inspect) case "$*" in *'.Image'*) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;; *State.Health*) echo none;; *State.Status*) echo running;; esac;;
+  compose) case "$*" in *'config --images'*) echo "$FF_IMAGE";; *'ps -q'*) echo mock;; *'ps --format'*) printf 'app\tapi:one\n';; esac;;
 esac
 ''')
             docker.chmod(0o755)
@@ -186,14 +232,15 @@ esac
             (target/'.env.prod').write_text('APP_ENV=prod\n')
             prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','','','version_20260101000000_0123456789ab','',cwd=d,env=env)
             self.assertNotEqual(prod.returncode,0)
-            self.assertIn('requires FF_HEALTH_URL', prod.stderr)
-            if not sealed(target/'current-image'):
-                self.assertEqual((target/'current-image').read_text(encoding='utf-8').strip(), 'api:one')
+            self.assertIn('Deployment, rollback and status are unavailable', prod.stderr)
+            if not sealed(target/'current-version'):
+                self.assertEqual((target/'current-version').read_text(encoding='utf-8').strip(), 'version_20260101000000_0123456789ab')
 
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_healthcheck_only_dev_records_liveness_and_is_not_promotable(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)
-            target=base/'.mv/container-deploy/api'
+            target=base/'.mv/delivery-standards/api'
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')
@@ -201,9 +248,9 @@ esac
             docker=binary/'docker'
             docker.write_text('''#!/bin/sh
 case "$1" in
-  image) echo sha256:fake;;
-  inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; esac;;
-  compose) case "$*" in *'ps -q'*) echo mock;; *'ps --format'*) printf 'app\tapi:one\n';; esac;;
+  image) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;
+  inspect) case "$*" in *'.Image'*) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;; *State.Health*) echo healthy;; *State.Status*) echo running;; esac;;
+  compose) case "$*" in *'config --images'*) echo "$FF_IMAGE";; *'ps -q'*) echo mock;; *'ps --format'*) printf 'app\tapi:one\n';; esac;;
 esac
 ''')
             docker.chmod(0o755)
@@ -221,8 +268,9 @@ esac
             (target/'.env.prod').write_text('APP_ENV=prod\n')
             prod=exec_run(BASH,RUNNER,'deploy','prod','api','api:two','','','version_20260101000000_0123456789ab','',cwd=d,env=env)
             self.assertNotEqual(prod.returncode,0)
-            self.assertIn('requires FF_HEALTH_URL', prod.stderr)
+            self.assertIn('Deployment, rollback and status are unavailable', prod.stderr)
 
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_dev_underreplicated_or_unparseable_topology_is_not_strong(self):
         cases = [(json.dumps({'services': {'app': {'deploy': {'replicas': 2}}}}), 'readiness-partial'),
                  ('invalid', 'readiness-partial'),
@@ -230,7 +278,7 @@ esac
         for topology, expected in cases:
             with self.subTest(topology=topology), tempfile.TemporaryDirectory() as d:
                 base = Path(d)
-                target = base / '.mv/container-deploy/api'
+                target = base / '.mv/delivery-standards/api'
                 target.mkdir(parents=True)
                 (target / 'compose.yml').write_text('services: {}\n')
                 (target / '.env.dev').write_text('APP_ENV=dev\n')
@@ -239,9 +287,10 @@ esac
                 docker = binary / 'docker'
                 docker.write_text('''#!/bin/sh
 case "$1" in
-  image) echo sha256:fake;;
-  inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; *) echo sha256:fake;; esac;;
+  image) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;
+  inspect) case "$*" in *'.Image'*) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;; *State.Health*) echo healthy;; *State.Status*) echo running;; *) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;; esac;;
   compose) case "$*" in
+    *'config --images'*) echo "$FF_IMAGE";;
     *'config --format json'*) printf '%s' "$TEST_TOPOLOGY";;
     *'config --services'*) echo app;;
     *'ps -q'*) echo first;;
@@ -264,10 +313,11 @@ esac
                 if expected != 'strong':
                     self.assertNotIn('VERIFIED_HEALTH=strong', run.stdout)
 
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_prod_multiservice_is_rejected_before_compose_up(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
-            target = base / '.mv/container-deploy/api'
+            target = base / '.mv/delivery-standards/api'
             target.mkdir(parents=True)
             (target / 'compose.yml').write_text('services: {}\n')
             (target / '.env.prod').write_text('APP_ENV=prod\n')
@@ -289,7 +339,7 @@ esac
                            'http://localhost/ready', '2', 'version_20260101000000_0123456789ab',
                            '', cwd=d, env=env)
             self.assertEqual(run.returncode, 3, run.stderr)
-            self.assertIn('exactly one active service required', run.stderr)
+            self.assertIn('Deployment, rollback and status are unavailable', run.stderr)
             self.assertNotIn('STARTED', run.stderr)
             self.assertFalse((target / 'current-version').exists())
 
@@ -313,13 +363,118 @@ esac
                 result = exec_run(BASH, '-c', shell, env=env)
                 self.assertEqual(result.returncode == 0, allowed, result.stderr)
 
+    def test_production_mutations_fail_closed_before_remote_access(self):
+        with tempfile.TemporaryDirectory() as d:
+            env = os.environ.copy()
+            env.update(HOME=d, FF_PROD_SSH='deployer@prod.example.com')
+            for action, args in (('deploy', ['api:release', '--approve-prod']),
+                                 ('rollback', ['--approve-prod'])):
+                run = exec_run(BASH, DEPLOY, action, 'prod', 'api', *args, cwd=d, env=env)
+                self.assertEqual(run.returncode, 3, run.stderr)
+                self.assertIn('Deployment, rollback and status are unavailable', run.stderr)
+                runner = exec_run(BASH, RUNNER, action, 'prod', 'api',
+                                  'api:release' if action == 'deploy' else '', '', '2',
+                                  'version_20260101000000_abc' if action == 'deploy' else '',
+                                  '', cwd=d, env=env)
+                self.assertEqual(runner.returncode, 3, runner.stderr)
+                self.assertIn('Deployment, rollback, plan and status are unavailable', runner.stderr)
+
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
+    def test_plan_snapshot_and_rollback_image_identity(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            target = root / '.mv/delivery-standards/api'
+            target.mkdir(parents=True)
+            (target / 'compose.yml').write_text('services: {}\n')
+            (target / '.env.dev').write_text('APP_ENV=dev\n')
+            binary = root / 'bin'
+            binary.mkdir()
+            image_id = 'sha256:' + 'a' * 64
+            docker = binary / 'docker'
+            docker.write_text('''#!/bin/sh
+case "$1" in
+  image) echo "$TEST_IMAGE_ID";;
+  inspect) case "$3" in
+    *State.Health*) echo healthy;;
+    *State.Status*) echo running;;
+    *.Image*) echo "$TEST_IMAGE_ID";;
+    *.Id*) echo container-id-must-not-be-used;;
+  esac;;
+  compose) case "$*" in
+    *'config --images'*) [ "$FF_IMAGE" = api:new ] || exit 7; echo "$FF_IMAGE";;
+    *'ps --format'*) [ "$FF_IMAGE" = api:new ] || exit 8; printf 'app\tapi:new\n';;
+    *'ps -q'*) [ -n "$FF_IMAGE" ] || exit 9; echo container-id;;
+    *' up '*) case "$*" in *'compose.override.yml'*) echo OVERRIDE_UP >&2;; *) echo PLAIN_UP >&2;; esac;;
+  esac;;
+esac
+''')
+            docker.chmod(0o755)
+            env = stub_env(d, binary, HOME=d, TEST_IMAGE_ID=image_id)
+            plan = exec_run(BASH, RUNNER, 'plan', 'dev', 'api', 'api:new', '', '', '', '', cwd=d, env=env)
+            self.assertEqual(plan.returncode, 0, plan.stderr)
+            self.assertIn('PLAN_LINE=api:new\t' + image_id, plan.stdout)
+            v1 = 'version_20260101000000_000000000001'
+            v2 = 'version_20260101000000_000000000002'
+            v3 = 'version_20260101000000_000000000003'
+            mv = binary / 'mv'
+            mv.write_text('#!/bin/sh' + chr(10) + 'case "$*" in *current-version*000000000002*) exit 9;; esac' + chr(10) + 'exec /usr/bin/mv "$@"' + chr(10), newline=chr(10))
+            mv.chmod(0o755)
+            first = exec_run(BASH, RUNNER, 'deploy', 'dev', 'api', 'api:new', '', '', v1, '', cwd=d, env=env)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            failed = exec_run(BASH, RUNNER, 'deploy', 'dev', 'api', 'api:new', '', '', v2, '', cwd=d, env=env)
+            self.assertEqual(failed.returncode, 4, failed.stderr)
+            self.assertIn('Current-version update failed', failed.stderr)
+            versions = target / 'versions'
+            self.assertTrue((versions / (v2 + '.tsv')).exists())
+            deploy = exec_run(BASH, RUNNER, 'deploy', 'dev', 'api', 'api:new', '', '', v3, '', cwd=d, env=env)
+            self.assertEqual(deploy.returncode, 0, deploy.stderr)
+            self.assertIn('MANIFEST_LINE=app', deploy.stdout)
+            probe = exec_run(BASH, '-c', 'IFS= read -r v < "$1"; IFS= read -r row < "$2"; [[ "$v" == "$3" && "$row" == *deploy* ]]',
+                             'probe', (target / 'current-version').as_posix(),
+                             (target / 'releases.tsv').as_posix(), v3)
+            if probe.returncode != 0:
+                self.skipTest('Bash cannot read generated version pointer or release history through security agent')
+            rollback = exec_run(BASH, RUNNER, 'rollback', 'dev', 'api', '', '', '', '', '', cwd=d, env=env)
+            self.assertEqual(rollback.returncode, 0, rollback.stderr)
+            self.assertIn('ROLLED_BACK_TO=' + v1, rollback.stdout)
+            self.assertNotIn('ROLLED_BACK_TO=' + v2, rollback.stdout)
+            self.assertIn('OVERRIDE_UP', rollback.stderr)
+            self.assertNotIn('PLAIN_UP', rollback.stderr)
+            if not sealed(target / 'compose.override.yml'):
+                self.assertIn('image: ' + image_id, (target / 'compose.override.yml').read_text())
+            (target / 'current-version').write_text(v3 + '\n')
+            (versions / (v1 + '.tsv')).write_text('app\tapi:old\tcontainer-id\n')
+            rejected = exec_run(BASH, RUNNER, 'rollback', 'dev', 'api', '', '', '', '', '', cwd=d, env=env)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertNotIn('UP', rejected.stderr)
+            service = exec_run(BASH, RUNNER, 'rollback', 'dev', 'api', '', '', '', '', 'app', cwd=d, env=env)
+            self.assertNotEqual(service.returncode, 0)
+            self.assertNotIn('UP', service.stderr)
+
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
+    def test_rollback_without_deploy_history_fails_closed(self):
+        with tempfile.TemporaryDirectory() as d:
+            target = Path(d) / '.mv/delivery-standards/api'
+            target.mkdir(parents=True)
+            (target / 'compose.yml').write_text('services: {}' + chr(10), newline=chr(10))
+            (target / '.env.dev').write_text('APP_ENV=dev' + chr(10), newline=chr(10))
+            (target / 'current-version').write_text('version_20260101000000_000000000003' + chr(10), newline=chr(10))
+            env = os.environ.copy()
+            env['HOME'] = d
+            run = exec_run(BASH, RUNNER, 'rollback', 'dev', 'api', '', '', '2', '', '', cwd=d, env=env)
+            self.assertEqual(run.returncode, 3, run.stderr)
+            self.assertIn('Current version has no deploy release record', run.stderr)
+
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_receipt_version_and_image_id_are_required(self):
         source = Path(DEPLOY).read_text(encoding='utf-8')
         function = source.split('receipt_valid() {', 1)[1].split('\n}\n', 1)[0]
         shell = ('receipt_valid() {' + function + '\n}\n'
                  'printf "%s\n" "old-image" > "$TEST_RECEIPT"\n'
                  'if receipt_valid "$TEST_RECEIPT" "$TEST_ID"; then exit 10; fi\n'
-                 'printf "mv-container-deploy-receipt-v2\t%s\n" "$TEST_ID" > "$TEST_RECEIPT"\n'
+                 'printf "mv-container-deploy-receipt-v3\t%s\n" "$TEST_ID" > "$TEST_RECEIPT"\n'
+                 'if receipt_valid "$TEST_RECEIPT" "$TEST_ID"; then exit 13; fi\n'
+                 'printf "mv-delivery-standards-receipt-v3\t%s\n" "$TEST_ID" > "$TEST_RECEIPT"\n'
                  'receipt_valid "$TEST_RECEIPT" "$TEST_ID" || exit 11\n'
                  'if receipt_valid "$TEST_RECEIPT" sha256:other; then exit 12; fi\n')
         with tempfile.TemporaryDirectory() as d:
@@ -328,11 +483,12 @@ esac
             result = exec_run(BASH, '-c', shell, env=env)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_readiness_waits_for_configured_container_healthchecks(self):
         for mode in ('starting', 'transient', 'none', 'unhealthy', 'single', 'missing', 'multi', 'prod-multi'):
             with self.subTest(mode=mode), tempfile.TemporaryDirectory() as d:
                 base = Path(d)
-                target = base / '.mv/container-deploy/api'
+                target = base / '.mv/delivery-standards/api'
                 target.mkdir(parents=True)
                 (target / 'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
                 (target / '.env.dev').write_text('APP_ENV=dev\n')
@@ -341,7 +497,7 @@ esac
                 docker = binary / 'docker'
                 docker.write_text('''#!/bin/sh
 case "$1" in
-  image) echo sha256:fake;;
+  image) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;
   inspect)
     case "$*" in
       *State.Status*) echo running;;
@@ -356,9 +512,10 @@ case "$1" in
             *) echo healthy;;
           esac
         fi;;
-      *) echo sha256:fake;;
+      *) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;
     esac;;
   compose) case "$*" in
+    *'config --images'*) echo "$FF_IMAGE";;
     *'config --format json'*) printf '%s' "$TOPOLOGY";;
     *'config --services'*) if [ "$HEALTH_MODE" = multi ]; then printf 'app
 worker
@@ -390,7 +547,7 @@ esac
                                'http://localhost/ready', '4', 'version_20260101000000_0123456789ab',
                                '', cwd=d, env=env)
                 if mode in ('starting', 'unhealthy', 'missing', 'prod-multi'):
-                    self.assertEqual(run.returncode, 1 if mode == 'missing' else 3 if mode == 'prod-multi' else 4, run.stderr)
+                    self.assertEqual(run.returncode, 3 if mode == 'prod-multi' else 4, run.stderr)
                     self.assertNotIn('VERIFIED_HEALTH=strong', run.stdout)
                     self.assertFalse((target / 'current-version').exists())
                     self.assertFalse((target / 'releases.tsv').exists())
@@ -404,26 +561,88 @@ esac
                 if mode == 'unhealthy':
                     self.assertIn('Container health: unhealthy', run.stderr)
 
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
+    def test_snapshot_failure_attempts_previous_restore(self):
+        for previous, failure in ((True, "snapshot"), (False, "snapshot"), (True, "pointer"), (False, "pointer")):
+            with self.subTest(previous=previous, failure=failure), tempfile.TemporaryDirectory() as d:
+                base = Path(d)
+                target = base / '.mv/delivery-standards/api'
+                versions = target / 'versions'
+                versions.mkdir(parents=True)
+                (target / 'compose.yml').write_text('services: {}\n')
+                (target / '.env.dev').write_text('APP_ENV=dev\n')
+                old = 'version_20260101000000_000000000001'
+                new = 'version_20260101000000_000000000002'
+                if previous:
+                    (versions / (old + '.tsv')).write_text('app\tapi:old\tsha256:' + 'a' * 64 + '\n', newline='\n')
+                    (target / 'current-version').write_text(old + '\n', newline='\n')
+                    if sealed(versions / (old + '.tsv')) or sealed(target / 'current-version'):
+                        self.skipTest('Security agent sealed rollback fixture')
+                    probe = exec_run(BASH, '-c', 'IFS= read -r row < "$1"; [[ "$row" == app*sha256:* ]]',
+                                     'probe', (versions / (old + '.tsv')).as_posix())
+                    if probe.returncode != 0:
+                        self.skipTest('Bash cannot read rollback fixture through security agent')
+                binary = base / 'bin'
+                binary.mkdir()
+                docker = binary / 'docker'
+                docker.write_text('''#!/bin/sh
+case "$1" in
+  image) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;
+  inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; *.Image*) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;; esac;;
+  compose) case "$*" in
+    *'config --images'*) echo "$FF_IMAGE";;
+    *'ps --format'*) if [ "$FAILURE" = snapshot ]; then exit 9; else printf 'app	api:new
+'; fi;;
+    *'ps -q'*) echo mock;;
+    *'compose.override.yml'*' up '*) echo RESTORED >&2;;
+  esac;;
+esac
+''')
+                docker.chmod(0o755)
+                mv = binary / 'mv'
+                mv.write_text('#!/bin/sh\ncase "$*" in *current-version*) exit 9;; esac\nexec /usr/bin/mv "$@"\n', newline='\n')
+                mv.chmod(0o755)
+                env = stub_env(d, binary, HOME=d, FAILURE=failure)
+                run = exec_run(BASH, RUNNER, 'deploy', 'dev', 'api', 'api:new', '', '2', new, '', cwd=d, env=env)
+                self.assertEqual(run.returncode, 4, run.stderr)
+                if failure == 'snapshot':
+                    self.assertIn('Snapshot failed or empty', run.stderr)
+                    self.assertFalse((versions / (new + '.tsv')).exists())
+                else:
+                    self.assertIn('Current-version update failed', run.stderr)
+                    self.assertIn('version pointer and running state are unconfirmed', run.stderr)
+                self.assertFalse((target / 'releases.tsv').exists())
+                self.assertIn('Recovery unconfirmed; inspect actual containers', run.stderr)
+                if previous:
+                    self.assertIn('prior topology and configuration cannot be proven', run.stderr)
+                    self.assertIn('RESTORED', run.stderr)
+                    self.assertEqual((target / 'current-version').read_text().strip(), old)
+                else:
+                    self.assertIn('No previous manifest; newly started containers may still be running', run.stderr)
+                    self.assertFalse((target / 'current-version').exists())
+
+    @unittest.skip('部署入口关闭，待安全修复后重新验证')
     def test_failing_compose_start_attempts_to_restore_previous(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)
-            target=base/'.mv/container-deploy/api'
+            target=base/'.mv/delivery-standards/api'
             target.mkdir(parents=True)
             (target/'compose.yml').write_text('services:\n  app:\n    image: ${FF_IMAGE}\n')
             (target/'.env.dev').write_text('APP_ENV=dev\n')
             # 新契约:回退目标是上一版本清单,current-version 指向当前版本。
             versions=target/'versions'
             versions.mkdir(parents=True)
-            (versions/'version_20260101000000_000000000001.tsv').write_text('app\tapi:old\tsha256:fake\n')
+            (versions/'version_20260101000000_000000000001.tsv').write_text('app\tapi:old\tsha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n')
             (target/'current-version').write_text('version_20260101000000_000000000001\n')
             binary=base/'bin';binary.mkdir()
             docker=binary/'docker'
             docker.write_text('''#!/bin/sh
 case "$1" in
-  image) echo sha256:fake;;
-  inspect) case "$*" in *State.Health*) echo healthy;; *State.Status*) echo running;; esac;;
+  image) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;;
+  inspect) case "$*" in *'.Image'*) echo sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;; *State.Health*) echo healthy;; *State.Status*) echo running;; esac;;
   compose)
     case "$*" in
+      *'config --images'*) echo "$FF_IMAGE" ;;
       *' up '* ) if [ "$FF_IMAGE" = api:bad ]; then exit 9; fi;;
       *'ps -q'*) echo mock;;
       *'ps --format'*) printf 'app\\tapi:one\\n';;

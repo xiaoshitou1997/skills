@@ -1,3 +1,0 @@
-interface:
-  display_name: "Backend Standards"
-  short_description: "Java 后端编码规范（基线 Spring Boot + JDK 21）：分层、API、DTO/VO、错误码与国际化、事务、数据访问与测试。"

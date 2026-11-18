@@ -1,6 +1,6 @@
 ---
 name: mv-git-publisher
-description: 用户要求提交、推送代码（两个动作可分开执行，各自先 pull --rebase）、拆分原子 commit、创建 PR、查看 PR 检查结果，或仅起草、修改、评审 commit message 与 PR 标题/描述等 Git 短文本时使用。发布模式按独立逻辑变更精细暂存并审查最终 staged diff；短文本模式只输出文稿或评审意见，不暂存、commit、push 或创建 PR。仅解释 Git 概念无需加载完整发布流程，PRD/HLD/README 等工程文档归 mv-engineering-doc-writer。
+description: 用户要求提交、推送代码（两个动作可分开执行，各自先 pull --rebase）、拆分原子 commit、创建 PR、查看 PR 检查结果，或仅起草、修改、评审 commit message 与 PR 标题/描述等 Git 短文本时使用。发布模式按独立逻辑变更精细暂存并审查最终 staged diff；短文本模式只输出文稿或评审意见，不暂存、commit、push 或创建 PR。仅解释 Git 概念无需加载完整发布流程，PRD/HLD/README 等工程文档归 mv-design-standards。
 allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git show:*)
 ---
 
@@ -27,7 +27,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 6. 每次操作前确认所在仓库/分支；尤其注意单仓库父目录、多仓库目录、嵌套 Git、子模块。不得跨仓库混提交。
 7. 暂存状态不表示改动归属，IDE 或其他会话可能自动暂存。必要时同时审查 HEAD→index 和 index→工作区差异；`AM` 等状态意味着暂存版与最终文件不同。
 8. **commit 与 push 是两个可分开执行的动作，各自开始前都先完成 `pull --rebase`。** 同步失败、冲突未解决或 rebase/merge 未结束时停止该动作，不先 commit 再补同步。冲突解决不了时停止并交由用户处理，呈现两侧差异，不强行自动取舍。
-9. **每个动作都从主树 `pull --rebase` 开始：commit 前 pull --rebase → 显式路径原子 commit；push 前重新 pull --rebase → push。全程只有一颗 worktree。** 不另开侧 worktree 提交后直推 SHA：那样远端指针前移而本地分支指针与工作树文件未跟随，表现为「已推送但暂存区还在」，此后基于本地 HEAD 的 diff、状态判断与回滚都指向错误基线。树脏时在主树原地用 plumbing 临时索引完成提交。
+9. **每个动作都从主树 `pull --rebase` 开始：commit 前 pull --rebase → 显式路径原子 commit；push 前重新 pull --rebase → push。全程只有一颗 worktree。** 不另开侧 worktree 提交后直推 SHA：那样远端指针前移而本地分支指针与工作树文件未跟随，表现为「已推送但暂存区还在」，此后基于本地 HEAD 的 diff、状态判断与回滚都指向错误基线。同步成功后确需临时索引时在主树内使用；树脏导致同步失败时停止，不以本地提交绕过同步。
 10. **保持线性提交历史，禁止生成 merge commit。** 远端同步使用 rebase，不用 merge commit 解决分支分歧。
 11. **commit message 只写不换行的一句话，概括本次实际特性或变更目的。** 不追加正文、尾注、署名或与变更目的无关的过程信息；验证结果和交付细节在交付说明或 PR 描述中记录。AI 参与的 PR 按项目及工具要求在 PR 描述中标注归属。
 
@@ -72,7 +72,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 
 ## GitHub PR 工作流（明确请求才执行）
 
-1. 检查本次 PR 相对目标分支的全部提交与 diff。已有合适提交时直接复用，不为创建 PR 新增 commit。
+1. 确定 PR 目标分支：优先使用用户明确指定的分支，其次读取项目发布约定和平台仓库信息；多个来源冲突或不能唯一确定时询问用户，不猜测。检查本次 PR 相对该分支的全部提交与 diff。已有合适提交时直接复用，不为创建 PR 新增 commit。
 2. 仍有待提交修改时按独立功能分组，避免加入无关变更。
 3. 创建 PR 本身就是明确请求，push 是它的组成部分：确认当前分支正确、上游已设置、远端没有不明变更后安全普通 push。
 4. GitHub 项目可复用 `gh`，先运行 `gh auth status`。创建 PR：`bash "${SKILL_ROOT}/scripts/pr.sh" create <base> <title> <body.md>`。脚本要求干净工作区及已配置上游，不会自动 Push。

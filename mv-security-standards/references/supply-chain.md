@@ -4,7 +4,7 @@
 
 ## 引入
 
-- 新依赖先过 mv-tech-stack-baseline 的依赖引入评估：维护状态、License、安全记录、退出成本。
+- 新依赖先过 mv-design-standards 的依赖引入评估：维护状态、License、安全记录、退出成本。
 - 优先复用已有库能力；不为一个小功能引入大型框架。
 - 锁定版本：使用 BOM/version catalog/lockfile；不散落单点版本；构建可复现。
 - 第三方 SDK 默认不引，优先协议直连 + 自封装；行业事实标准客户端（S3、SFTP、SMTP 等）例外。
@@ -31,6 +31,6 @@
 
 - 构建依赖锁定；不使用来源不明的脚本与二进制；下载校验发行方校验和或签名。
 - CI 凭据最小权限；构建产物带 commit 溯源；发布包与镜像可追溯到构建输入。
-- 依赖升级按 mv-tech-stack-baseline 的升级流程执行，不搭车业务变更。
+- 依赖升级按 mv-design-standards 的升级流程执行，不搭车业务变更。
 
-本文只管供应链安全控制；版本基线与选型归 mv-tech-stack-baseline，镜像构建流程归 mv-image-builder。
+本文只管供应链安全控制；版本基线与选型归 mv-design-standards，镜像构建流程归 mv-delivery-standards。

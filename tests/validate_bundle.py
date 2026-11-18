@@ -10,37 +10,22 @@ from urllib.parse import unquote, urlsplit
 
 ROOT = Path(sys.argv[1]).expanduser().resolve() if __name__ == '__main__' and len(sys.argv) > 1 else Path(__file__).resolve().parents[1]
 SKILLS = {
-    'mv-toolchain-manager',
+    'mv-design-standards',
+    'mv-coding-standards',
+    'mv-delivery-standards',
     'mv-git-publisher',
-    'mv-engineering-doc-writer',
-    'mv-tech-stack-baseline',
-    'mv-requirements-standards',
-    'mv-architecture-standards',
-    'mv-backend-standards',
-    'mv-frontend-standards',
-    'mv-image-builder',
-    'mv-container-deploy',
-    'mv-orchestration-standards',
-    'mv-test-standards',
-    'mv-project-scaffold',
     'mv-ops-standards',
     'mv-security-standards',
+    'mv-toolchain-manager',
 }
 
 # SDLC stage ownership for the division-of-labor vocabulary (structure-rules 命名先例);
 # stages are declared metadata, deliberately absent from skill names.
+# mv-delivery-standards 覆盖 build+delivery 两段,按交付伞词登记为 delivery。
 STAGES = {
-    'mv-engineering-doc-writer': 'design',
-    'mv-tech-stack-baseline': 'design',
-    'mv-requirements-standards': 'design',
-    'mv-architecture-standards': 'design',
-    'mv-backend-standards': 'impl',
-    'mv-frontend-standards': 'impl',
-    'mv-test-standards': 'impl',
-    'mv-project-scaffold': 'impl',
-    'mv-image-builder': 'build',
-    'mv-container-deploy': 'delivery',
-    'mv-orchestration-standards': 'delivery',
+    'mv-design-standards': 'design',
+    'mv-coding-standards': 'impl',
+    'mv-delivery-standards': 'delivery',
     'mv-ops-standards': 'operate',
     'mv-git-publisher': 'cross-cutting',
     'mv-toolchain-manager': 'cross-cutting',
@@ -52,10 +37,10 @@ STAGE_VALUES = {'design', 'impl', 'build', 'delivery', 'operate', 'cross-cutting
 # every copy must stay byte-identical so a fix cannot silently miss a sibling.
 DUPLICATE_GROUPS = [
     ['mv-git-publisher/scripts/quality-check.sh',
-     'mv-image-builder/scripts/quality-check.sh',
-     'mv-backend-standards/scripts/quality-check.sh'],
+     'mv-coding-standards/scripts/quality-check.sh',
+     'mv-delivery-standards/scripts/quality-check.sh'],
     ['mv-git-publisher/scripts/security-scan.sh',
-     'mv-image-builder/scripts/security-scan.sh'],
+     'mv-delivery-standards/scripts/security-scan.sh'],
 ]
 
 
@@ -170,7 +155,7 @@ def local_link_errors(path, data, root):
 def cross_reference_errors(root, skills):
     """Resolve plain-text mv-* mentions against shipped skills.
 
-    Boundary sentences such as 「X 归 mv-container-deploy」 are prose, not
+    Boundary sentences such as 「X 归 mv-delivery-standards」 are prose, not
     Markdown links, so the link check never sees them; checking them here
     surfaces rename drift at validate time. docs/ stays out of scope: the
     conventions document holds abstract placeholders such as mv-Y.
