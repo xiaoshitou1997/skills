@@ -77,7 +77,7 @@ shop-common/
 ## 代码与命名
 
 - Controller `UserController`; Service `UserService`; Mapper `UserMapper`; DTO `CreateUserRequest` 或遵循项目既有 `CreateUserDTO`; VO `UserVO`。
-- 参数数量过多时封装对象；避免含混的 `deal`, `handleData` 与非领域通用缩写；注释解释为何而非复述代码。
+- 参数数量过多时封装对象；不含业务语义的万能词不作方法名（`deal`、`handleData`、`processData`、`manage`），判定标准：看名字与所在类说不出它处理什么、产出什么即换业务动词；非领域通用缩写不用；注释解释为何而非复述代码。
 - 命名按英文习惯表达语义，不做中文大白话直译：先定语义再选词，不以中文语序拼英文；布尔判断用 is/has/can + 形容词（如 `isNormal`），不写 `judgeIfNormal`、`checkIsNormal` 这类逐字翻译。
 - 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不随本次变更重写。
 - Java 代码缩进一般 4 空格，行宽参考项目 Checkstyle/Spotless，不强制与既有格式化配置冲突；避免注释掉的旧实现。
@@ -86,6 +86,10 @@ shop-common/
 - 工具方法优先 JDK 标准库、Spring 自带工具类与 Apache Commons（判空、集合、断言、IO 等）；不引入 Hutool（团队基线）。
 - 有状态组件按职责命名，避免伪装成工具类。使用 Lombok 等注解时检查嵌套类型是否遮蔽注解名。重复出现的拼写错误使用限定范围的扫描或重命名工具校验，并以编译结果确认引用完整。
 - 禁止通配符导入（`import xxx.*`），按类显式列出依赖；禁止在代码正文中使用全限定名（如 `java.util.List`），统一通过 `import` 语句引用，避免与同包同名类混淆并保持 import 顺序稳定。
+- 命名角色后缀取固定词表，一词一义：`Resolver` 策略式转换裁决、`Handler` 输入处置组件、`Processor` 流水线钩子、`Adapter` 接口桥接、`Registry` 可注册容器、`Holder` 对象载体、`Template` 操作模板、`Utils` 纯静态工具类（配 private 构造器防实例化）。新增类名从词表选词；表外职责词先给出仓外既定用法证据再使用，同一职责不另造同义词。
+- 查询动词分级编码返回契约，同一接口对同一数据只用其一：`getXxx` 必得，缺失抛业务异常；`findXxx` 可空，缺失返回 null 或 Optional；`resolveXxx` 经策略把输入规范化为目标值（占位符、locale、视图名一类）；`loadXxx` 装载或刷新可缓存状态；`obtainXxx` 内部获取必然就绪的实例，未就绪即失败。调用点不查实现即可判定缺失行为。
+- 成对操作动词对称且全库唯一：register/remove、before/after、pre/post；同一概念不出现第二套动词（如 register 与 unregister 并存）。
+- 近邻概念用复合名词写全作用对象消歧（如 `BeanFactoryPostProcessor` 与 `BeanPostProcessor` 各自作用于工厂与实例），不用未加说明的缩写。
 
 ## 常量、控制语句与注释
 
@@ -193,7 +197,7 @@ shop-common/
 
 变更交付前按任务及其直接影响范围逐项确认；与项目实际基线冲突时以项目为准。清单不要求未修改的代码追溯达标，兼容性导致未应用的条款说明原因；历史问题与本次新增问题分别报告：
 
-- [ ] 无魔法值，命名规范，equals/hashCode 成对覆盖，Javadoc 完整
+- [ ] 无魔法值，命名合规（角色后缀词表、查询动词分级），equals/hashCode 成对覆盖，Javadoc 完整
 - [ ] 无未使用的 import、无本次新增的多余代码块/类、无注释掉的旧实现
 - [ ] 集合与并发合规：toArray、Iterator 删除、entrySet、ThreadPoolExecutor 显式建池、ThreadLocal 用后 remove
 - [ ] 异常未用于流程控制，finally 无 return，无空 catch；日志 SLF4J 占位符，无敏感信息与 System.out
