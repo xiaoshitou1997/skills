@@ -181,6 +181,7 @@ description: 编写、修改、重构或审查业务代码与软件测试时使�
 ## 输出
 
 - 后端交付前按 java-guide「交付自查清单」逐项核对本次变更直接影响范围；未修改代码不追溯达标，兼容性未应用条款与历史问题分别如实报告。
+- 交付前对本次变更范围执行 [references/readability-refactoring.md](references/readability-refactoring.md) 的可读性修剪：结构信号逐条判定，记录修剪点与未修剪原因；修剪保持行为等价并复跑受影响检查。
 - 交付说明列出关键规范决策、针对本次变更的遵循/偏离原因、实际应用的框架条款与执行的验证结果；未执行的检查明确写「未执行」，不虚构通过。
 - 前端交付结合实际页面逐项标注发现或无法排除的风险点、影响及对应优化方案，区分已完成与待验证，不泛泛输出整本规范。
 - 测试证据分别记录编译、单测/组件、API、集成测试和业务 E2E；每项记录执行命令、时间、目标环境、结果或退出码及报告位置，区分通过、失败、跳过与未执行并说明原因。记录提交 SHA、工作区是否有未提交改动，并对验证范围内的文件记录内容指纹或其他足以识别内容的依据；不记录秘密。需求、设计、代码、配置或环境变化后检查证据受影响范围；无法判定影响时执行覆盖变更范围的完整检查，无法确认原证据对应当前内容时重新验证。按项目风险关联需求或变更编号、验收标准、测试或人工验收证据、未关闭缺陷及风险，交由项目责任人作发布判断；健康检查不等于业务验收。执行性能测试时另记负载模型、环境、数据量、阈值与结果。
@@ -199,6 +200,7 @@ description: 编写、修改、重构或审查业务代码与软件测试时使�
 - [references/java-guide.md](references/java-guide.md) — Java 后端通用工程条款：模块分层与命名、集合并发、API 错误码、RBAC、认证会话、外部调用、数据库事务与交付自查清单
 - [references/spring-guide.md](references/spring-guide.md) — Spring Boot 专属条款：事务、Web 校验、认证配置、国际化、配置绑定、JPA 数据访问、健康探测、LLM 集成
 - [references/schema-migrations.md](references/schema-migrations.md) — schema 迁移与大表 DDL：执行通道、脚本纪律、在线 DDL 方言写法、expand–contract
+- [references/readability-refactoring.md](references/readability-refactoring.md) — 交付前可读性修剪：结构信号判定标准、修剪流程与反目标
 - [references/frontend-guide.md](references/frontend-guide.md) — 前端框架中立条款：目录命名、类型契约、服务层、前后端联调信息固定入口、状态管理、安全与性能基线
 - [references/vite-spa-guide.md](references/vite-spa-guide.md) — Vite SPA 与 shadcn-admin 衍生项目条款：路由、TanStack Query、表单、UI 体系、环境变量、开发代理
 - [references/taro-guide.md](references/taro-guide.md) — Taro H5/小程序条款：渲染目标、请求层、各端联调、平台差异、分包

@@ -198,6 +198,7 @@ shop-common/
 变更交付前按任务及其直接影响范围逐项确认；与项目实际基线冲突时以项目为准。清单不要求未修改的代码追溯达标，兼容性导致未应用的条款说明原因；历史问题与本次新增问题分别报告：
 
 - [ ] 无魔法值，命名合规（角色后缀词表、查询动词分级），equals/hashCode 成对覆盖，Javadoc 完整
+- [ ] 本次变更按 [readability-refactoring.md](readability-refactoring.md) 修剪：结构信号逐条判定，修剪点与未修剪原因已记录
 - [ ] 无未使用的 import、无本次新增的多余代码块/类、无注释掉的旧实现
 - [ ] 集合与并发合规：toArray、Iterator 删除、entrySet、ThreadPoolExecutor 显式建池、ThreadLocal 用后 remove
 - [ ] 异常未用于流程控制，finally 无 return，无空 catch；日志 SLF4J 占位符，无敏感信息与 System.out
