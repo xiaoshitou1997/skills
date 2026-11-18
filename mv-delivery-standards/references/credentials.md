@@ -8,6 +8,7 @@ SKILL.md「Compose 编排」关键规则 10 的展开：分类型生成规则、
 |---|---|---|---|
 | 数据库 / 中间件内部密码（service-to-service，无人输入） | 128-bit → 32-hex | `openssl rand -hex 16` | `MYSQL_PASSWORD`、`POSTGRES_PASSWORD`、redis requirepass |
 | 管理端 / Web 登录密码（人输） | 128-bit → 32-hex | `openssl rand -hex 16` | `UI_PASSWORD`、`ADMIN_PASSWORD`、S3 secret key |
+| 自研应用管理员口令哈希（env 存哈希，应用启动期 upsert 入库） | 口令按上行生成后 BCrypt cost ≥10 | `htpasswd -bnBC 12 "" "$(openssl rand -hex 16)" \| tr -d ':\n'` | `*_ADMIN_PASSWORD_HASH` |
 | 签名 / 加密 / 派生密钥（机器用，无人输入） | 256-bit → 64-hex | `openssl rand -hex 32` | `*_MASTER_KEY`、`*_SALT_KEY`、`*_COOKIE_SECRET`、`JWT_SECRET` |
 | 密码哈希 salt | 每条密码记录独立随机值，不作全局机密复用 | 由密码哈希库生成 | 哈希 salt |
 | Web / 管理端访问 token | 256-bit → base64url(32B) 约 43 字符 | `openssl rand -base64 32 \| tr '+/' '-_' \| tr -d '=\n'` | `*_AUTH_TOKEN` |

@@ -43,6 +43,8 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 - 令牌校验在过滤器层完成，业务代码从安全上下文取当前主体；认证异常统一映射为约定错误码，不向客户端泄漏堆栈。认证与会话的领域条款（双令牌、双端隔离、凭据传输）见 java-guide「认证与会话」。
 - 密码编码器用 BCrypt（团队基线）；CORS 显式白名单来源，不放开 `*` 与凭据并用的组合；开发期跨域经前端 dev proxy 承担，不为此放宽生产 CORS。
 - refresh token 经 HttpOnly Secure Cookie 或专用刷新端点传输，刷新做轮换与重放检测。Cookie 或其他浏览器自动携带凭据保护的写入、刷新与登出端点须实施 CSRF 防护，并核对 Origin 与 SameSite 策略；仅手工设置 Authorization 头且不接受自动凭据的 API 可评估关闭对应 CSRF 检查，记录适用范围，不因 JWT 或 STATELESS 全局关闭。
+- 单管理员工具端（无用户表）：自定义 `InMemoryUserDetailsManager` bean，从环境变量取 `*_ADMIN_USERNAME` 与 `*_ADMIN_PASSWORD_HASH`（BCrypt 哈希，编码器 `matches` 做恒定时间比较）；该 bean 存在时 Boot 自动配置的随机密码默认用户退位。会话模型优先服务端 session（登出即失效自然成立），不引入 JWT 双令牌；CSRF 按 cookie 会话形态显式决策并记录理由；公网可达时登录端点加限流，登录成败留审计日志（政策见 mv-security-standards「认证」）。
+- 有后台项目的初始管理员：`ApplicationRunner` 在 Flyway 迁移完成后按 env 幂等 upsert 管理员账号与角色授予（env 为准，每次启动对齐；env 未配置且账号缺失时抛出明确错误终止启动，日志记 created/updated/skipped 不记凭据值）。种子脚本只含权限点、菜单、字典与内置角色定义，不含任何账号行。
 
 ## 外部 HTTP 调用
 

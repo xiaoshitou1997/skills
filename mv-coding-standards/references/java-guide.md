@@ -137,6 +137,7 @@ shop-common/
 - refresh token 仅经 HttpOnly Secure Cookie 或专用刷新端点传输并做轮换；access token 不放 URL；长效凭据不落浏览器 localStorage（前端消费条款见 [frontend-guide.md](frontend-guide.md)）。
 - 密码散列用 BCrypt/Argon2 一类自适应慢散列，不存可逆密文；登录失败响应不区分「用户不存在」与「密码错误」，防账号枚举。
 - 会话过期与刷新失败返回约定错误码，前端据此引导重新登录；Spring 侧过滤器链配置见 spring-guide「认证配置」。
+- 初始管理员凭据不进迁移脚本与代码默认值，经环境变量注入：变量名如实承载形态（`*_ADMIN_USERNAME`、`*_ADMIN_PASSWORD_HASH` 存 BCrypt 哈希，生成命令见 mv-delivery-standards credentials 分级表）。无后台工具端用内存用户认证，不建用户表；有后台项目由启动期初始化器按 env 为准幂等 upsert 管理员账号及角色授予，该账户不提供 UI 改密入口，改密=改 env 重启；账号缺失且 env 未配置时拒绝启动并明确报错，日志记 created/updated/skipped 不记凭据值。适用范围与毕业判据见 mv-security-standards「认证」；Spring 接线见 [spring-guide.md](spring-guide.md)「认证配置」。
 
 ## 枚举与类型安全
 
