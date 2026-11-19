@@ -90,6 +90,8 @@ shop-common/
 - 查询动词分级编码返回契约，同一接口对同一数据只用其一：`getXxx` 必得，缺失抛业务异常；`findXxx` 可空，缺失返回 null 或 Optional；`resolveXxx` 经策略把输入规范化为目标值（占位符、locale、视图名一类）；`loadXxx` 装载或刷新可缓存状态；`obtainXxx` 内部获取必然就绪的实例，未就绪即失败。调用点不查实现即可判定缺失行为。
 - 成对操作动词对称且全库唯一：register/remove、before/after、pre/post；同一概念不出现第二套动词（如 register 与 unregister 并存）。
 - 近邻概念用复合名词写全作用对象消歧（如 `BeanFactoryPostProcessor` 与 `BeanPostProcessor` 各自作用于工厂与实例），不用未加说明的缩写。
+- 接口的实现类以策略命名，不用 `Impl` 后缀：类名说明选择的路线（`JpaOrderRepository`、`InMemoryOrderRepository`、`DefaultUserService` 一类），`OrderServiceImpl` 式命名只说明"它是实现"，不说明是什么实现；策略不分化时不为命名造形式化接口+实现两件套（主规范「分层与命名」既有条款）。
+- `Manager` 仅限拥有某资源族生命周期的所有者角色（`TransactionManager`、`CacheManager` 一类），不作模糊职责词；说不出"拥有什么资源的生命周期"的类按角色词表另选词。
 
 ## 常量、控制语句与注释
 
