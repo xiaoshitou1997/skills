@@ -86,10 +86,15 @@ JPA 为团队持久层基线，新项目与新模块默认采用；通用数据�
 - 查询按需取字段：列表与报表场景用投影（DTO projection）替代实体全字段查询，即 `SELECT *` 的同等约束。
 - 关联加载显式化：需要关联数据时用 fetch join 或 `@EntityGraph` 明确获取路径，默认保持懒加载，避免在事务外触发懒加载异常；此为默认行为，可按项目既有取数风格覆盖。
 
+## 缓存与 Redis
+
+- Redis 接入用 Spring Data Redis，客户端用默认 Lettuce；写入即带过期：字符串经 `opsForValue().set(key, value, Duration)`，集合与结构类写入后用 `expire(key, Duration)` 补齐，不出现无 TTL 写入路径；通用原则见 java-guide「缓存与 Redis」。
+- `@Cacheable` 声明式缓存的 TTL 统一在 `RedisCacheManager` 按 cacheName 配置（`RedisCacheConfiguration.entryTtl`），不在调用点散落硬编码时间；方法级不一致的过期需求改用显式模板调用承载。
+
 ## 健康探测
 
 - 可运行服务暴露 readiness 与 liveness 双探针端点：`application.yml` 显式设置 `management.endpoint.health.probes.enabled: true`（部署到 k8s 时自动启用，Compose 等环境必须显式开启），端点为 `/actuator/health/readiness` 与 `/actuator/health/liveness`；`management.endpoints.web.exposure.include` 最小化放开（health 必开，其余按需）。
-- 两个端点检查内容分离：liveness 只反映进程内状态（死锁、关键线程停摆），不聚合任何外部依赖——基础设施抖动若进入 liveness 会放大成容器重启风暴；readiness 反映可接流状态，聚合关键依赖（连接池等）检查，失败时摘除流量、恢复后自动回归，不重启进程。
+- 两个端点检查内容分离：liveness 只反映进程内状态（死锁、关键线程停摆），不聚合任何外部依赖——基础设施抖动若进入 liveness 会放大成容器重启风暴；readiness 反映可接流状态，聚合关键依赖（连接池等）检查，失败时摘除流量、恢复后自动回归，不重启进程；可降级的非强依赖（缓存 Redis 等）不进 readiness 聚合，经运行指标与告警观测（告警判据见 mv-ops-standards）。
 - 自定义 `HealthIndicator` 只做组件可用性判定，不在健康检查里跑慢查询或重逻辑；镜像 HEALTHCHECK 用 `start_period` 覆盖启动期，防止启动中被判死。
 - readiness 端点同时是交付门禁探活地址：容器部署 `FF_HEALTH_URL` 指向它，语义与编排映射见 `mv-delivery-standards` 交付契约「双探针」。
 

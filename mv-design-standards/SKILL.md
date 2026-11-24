@@ -86,7 +86,7 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 | 第三方平台 SDK | 平台专属 SDK 默认不引：RestClient 直连 + 签名/验签自封装；行业标准协议的事实标准客户端放行（S3、SFTP、SMTP 等） | 试金石：换同类供应商客户端要不要跟着换；自封装签名配单测，平台测试环境联调验签通过为完成门；测试环境信息取得见 mv-coding-standards 的外部调用条款；真引入才写 ADR 并加防腐层 |
 | 数据库 | PostgreSQL | dev/prod 统一，开发联调直连远程 |
 | SQLite | 仅限单测、临时验证 | 不作开发联调库，无双方言兼容要求 |
-| 缓存与分布式锁 | Redis | 按需引入；dev 可使用跨项目共享实例并按项目隔离，UAT、prod 等其他环境按项目和环境隔离实例 |
+| 缓存与分布式锁 | Redis | 按需引入，实例不开启持久化、不在备份范围；dev 可使用跨项目共享实例并按项目隔离，UAT、prod 等其他环境按项目和环境隔离实例 |
 | 消息队列 | RabbitMQ | 其他中间件按需引入，先过「依赖引入与升级」 |
 | 对象存储 | RustFS（S3 兼容） | 统一用 S3 兼容客户端接入 |
 | 文件传输 | SFTPGo（SFTP） | 不使用明文 FTP |
