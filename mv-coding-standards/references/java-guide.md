@@ -132,13 +132,11 @@ shop-common/
 
 ## 认证与会话
 
-- 团队默认自建认证：JWT access + refresh 双令牌；access 短时效、refresh 长时效且可吊销，吊销状态经服务端存储管理。项目采用 SSO/CAS/网关 OAuth2 时按项目基线执行并记录理由，不双栈并存。
+- 多用户系统（有用户表、多个可登录账号）用户认证只走 OIDC 联邦登录，不建本地密码账号体系，对接项目已确认的 IdP；IdP 选型是多用户系统的设计前置（见 mv-design-standards），未确认不开建用户认证。单管理员工具端（无用户表）不受此限。OIDC 接入必须完整形态，四项缺一按未完成处理：授权码登录并校验 ID Token（签名、`iss`、`aud`、`exp`、`nonce`）；RP 发起登出跳 IdP `end_session_endpoint` 并同步失效本地会话，不以清本地会话冒充联邦登出；令牌生命周期闭环（过期刷新或重新授权，失效与过期令牌按未认证处理）；身份映射衔接（claims 映射本地用户与角色，审计操作人从 OIDC 主体解析）。不交付只含登录的半截接入；偏离基线（如客户强制要求本地登录）按「用户明确需求 → 本规范」优先级链记录理由；Spring 承载写法见 spring-guide「认证配置」。
 - 认证与授权分离：入口层校验令牌并建立可信主体，按 RBAC 统一校验功能权限点；Service 从安全上下文取主体，按「角色与权限」检查对象级授权，不自行解析令牌。
-- JWT 校验至少包括签名、算法白名单、有效期、issuer 与 audience；通过可信配置确定算法与密钥，不信任令牌自报的算法或密钥地址。登出与吊销同时覆盖 access 和 refresh：采用服务端会话版本或吊销记录，逐请求核验，不能只删除客户端令牌或吊销 refresh。吊销依赖不可用时拒绝依赖该核验的受保护请求并告警，不静默放行；验证登出后重放旧 access 被拒绝。
-- admin 端与 user 端会话相互独立：令牌以 audience 或 scope 区分两端，互不互认；单端登出或吊销不影响另一端会话。
-- refresh token 仅经 HttpOnly Secure Cookie 或专用刷新端点传输并做轮换；access token 不放 URL；长效凭据不落浏览器 localStorage（前端消费条款见 [frontend-guide.md](frontend-guide.md)）。
-- 密码散列用 BCrypt/Argon2 一类自适应慢散列，不存可逆密文；登录失败响应不区分「用户不存在」与「密码错误」，防账号枚举。
-- 会话过期与刷新失败返回约定错误码，前端据此引导重新登录；Spring 侧过滤器链配置见 spring-guide「认证配置」。
+- admin 端与 user 端会话相互独立：两端在 IdP 注册独立客户端（scope 区分授权边界），本地服务端会话各自建立互不互认；单端登出失效本端本地会话，IdP 统一会话注销后两端均需重新认证。
+- 管理员口令哈希用 BCrypt/Argon2 一类自适应慢散列，经环境变量注入哈希值（见「初始管理员」条款）；登录失败响应不区分「用户不存在」与「密码错误」，防账号枚举。
+- 会话过期返回约定错误码，前端据此引导重新认证；Spring 侧过滤器链配置见 spring-guide「认证配置」。
 - 初始管理员凭据不进迁移脚本与代码默认值，经环境变量注入：变量名如实承载形态（`*_ADMIN_USERNAME`、`*_ADMIN_PASSWORD_HASH` 存 BCrypt 哈希，生成命令见 mv-delivery-standards credentials 分级表）。无后台工具端用内存用户认证，不建用户表；有后台项目由启动期初始化器按 env 为准幂等 upsert 管理员账号及角色授予，该账户不提供 UI 改密入口，改密=改 env 重启；账号缺失且 env 未配置时拒绝启动并明确报错，日志记 created/updated/skipped 不记凭据值。适用范围与毕业判据见 mv-security-standards「认证」；Spring 接线见 [spring-guide.md](spring-guide.md)「认证配置」。
 
 ## 枚举与类型安全
