@@ -72,9 +72,9 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 ## 配置绑定与多环境
 
 - 配置文件优先 YAML（`application.yml`、`application-{profile}.yml`）；每个新增配置项必须先在配置文件定义，不在代码里散落。
-- 业务自定义配置用 `@ConfigurationProperties` 类型化绑定并按领域拆分，不合并为单一巨量配置类；key 用 kebab-case（如 `app.jwt.expire-minutes`）。
-- 环境变量覆盖默认经宽松绑定生效，名称转换规则为点换下划线、去连字符、转大写（`app.jwt.secret` → `APP_JWT_SECRET`）；不含连字符的 key 无需单独定义环境变量。
-- 含连字符的 key 在该转换中丢失词界（`expire-minutes` → `EXPIREMINUTES`），环境变量名与 key 分段不再对应：此类配置项在配置文件中用属性占位符显式声明环境变量与默认值（`expire-minutes: ${APP_JWT_EXPIRE_MINUTES:30}`）。属性占位符是独立于宽松绑定的核心 Spring 机制，默认值随占位符定义在配置文件，不进代码。
+- 业务自定义配置用 `@ConfigurationProperties` 类型化绑定并按领域拆分，不合并为单一巨量配置类；key 用 kebab-case（如 `app.cache.expire-minutes`）。
+- 环境变量覆盖默认经宽松绑定生效，名称转换规则为点换下划线、去连字符、转大写（`app.mail.host` → `APP_MAIL_HOST`）；不含连字符的 key 无需单独定义环境变量。
+- 含连字符的 key 在该转换中丢失词界（`expire-minutes` → `EXPIREMINUTES`），环境变量名与 key 分段不再对应：此类配置项在配置文件中用属性占位符显式声明环境变量与默认值（`cache-expire-minutes: ${CACHE_EXPIRE_MINUTES:30}`）。属性占位符是独立于宽松绑定的核心 Spring 机制，默认值随占位符定义在配置文件，不进代码。
 - 禁止 `@Value` 注入配置；代码（字段初始化、构造器默认参）不定义配置默认值。
 
 ## JPA 数据访问

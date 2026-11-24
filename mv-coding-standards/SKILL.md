@@ -88,8 +88,8 @@ description: 编写、修改、重构或审查业务代码与软件测试时使�
 42. `.env.prod` 等生产配置不提交 Git。
 43. 配置支持按 profile 环境差异化。
 44. 每个新增配置项必须先在配置文件定义（格式优先 YAML，如 `application.yml`），不在代码中定义默认值。
-45. 环境变量覆盖默认走宽松绑定：点换下划线、去连字符、转大写（`app.jwt.secret` → `APP_JWT_SECRET`）。
-46. 含连字符的 key 转换后丢失词界（`expire-minutes` → `EXPIREMINUTES`），此类配置项须在配置文件用属性占位符显式声明环境变量与默认值（`expire-minutes: ${APP_JWT_EXPIRE_MINUTES:30}`）。
+45. 环境变量覆盖默认走宽松绑定：点换下划线、去连字符、转大写（`app.mail.host` → `APP_MAIL_HOST`）。
+46. 含连字符的 key 转换后丢失词界（`expire-minutes` → `EXPIREMINUTES`），此类配置项须在配置文件用属性占位符显式声明环境变量与默认值（`cache-expire-minutes: ${CACHE_EXPIRE_MINUTES:30}`）。
 47. 注入用 `@ConfigurationProperties` 类型化绑定，禁止 `@Value` 注入。
 
 ### 集合与并发
