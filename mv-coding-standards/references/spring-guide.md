@@ -80,6 +80,7 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 
 JPA 为团队持久层基线，新项目与新模块默认采用；通用数据访问条款见 java-guide「数据库与事务」。
 
+- 审计字段统一定义到 `@MappedSuperclass` 基类（如 `BaseEntity`）：≥2 个实体携带同一组审计字段（`created_at`、`updated_at`、`created_by`、`updated_by` 及逻辑删除标记，字段集按 java-guide「数据库与事务」基线）时，字段集中到该基类声明，业务实体继承取得，不在各实体重复声明；基类挂 `@EntityListeners(AuditingEntityListener.class)`，字段用 `@CreatedDate`、`@LastModifiedDate`、`@CreatedBy`、`@LastModifiedBy` 标注，配置类加 `@EnableJpaAuditing` 启用，操作人经 `AuditorAware` Bean 从当前认证上下文解析，不在业务代码逐实体手写填充。
 - 枚举持久化用 `@Enumerated(EnumType.STRING)` 保证存储值可读；同一项目不混用映射方案；映射变更涉及历史数据与兼容性，作为独立迁移评估。
 - 查询按需取字段：列表与报表场景用投影（DTO projection）替代实体全字段查询，即 `SELECT *` 的同等约束。
 - 关联加载显式化：需要关联数据时用 fetch join 或 `@EntityGraph` 明确获取路径，默认保持懒加载，避免在事务外触发懒加载异常；此为默认行为，可按项目既有取数风格覆盖。
