@@ -86,12 +86,14 @@ shop-common/
 - 工具方法优先 JDK 标准库、Spring 自带工具类与 Apache Commons（判空、集合、断言、IO 等）；不引入 Hutool（团队基线）。
 - 有状态组件按职责命名，避免伪装成工具类。使用 Lombok 等注解时检查嵌套类型是否遮蔽注解名。重复出现的拼写错误使用限定范围的扫描或重命名工具校验，并以编译结果确认引用完整。
 - 禁止通配符导入（`import xxx.*`），按类显式列出依赖；禁止在代码正文中使用全限定名（如 `java.util.List`），统一通过 `import` 语句引用，避免与同包同名类混淆并保持 import 顺序稳定。
-- 命名角色后缀取固定词表，一词一义：`Resolver` 策略式转换裁决、`Handler` 输入处置组件、`Processor` 流水线钩子、`Adapter` 接口桥接、`Registry` 可注册容器、`Holder` 对象载体、`Template` 操作模板、`Utils` 纯静态工具类（配 private 构造器防实例化）。新增类名从词表选词；表外职责词先给出仓外既定用法证据再使用，同一职责不另造同义词。
+- 命名角色后缀取固定词表，一词一义：`Resolver` 策略式转换裁决、`Handler` 输入处置组件、`Processor` 流水线钩子、`Adapter` 接口桥接、`Registry` 可注册容器、`Holder` 对象载体、`Template` 操作模板、`Configurer` 配置定制装配（`WebMvcConfigurer`）、`Listener` 事件监听（`ApplicationListener`）、`Interceptor` 拦截横切（`HandlerInterceptor`）、`Properties` 类型化配置载体（`@ConfigurationProperties` 的 `XxxProperties`）、`Utils` 纯静态工具类（`StringUtils`，配 private 构造器防实例化）。新增类名从词表选词；表外职责词先给出仓外既定用法证据再使用，同一职责不另造同义词。
 - 查询动词分级编码返回契约，同一接口对同一数据只用其一：`getXxx` 必得，缺失抛业务异常；`findXxx` 可空，缺失返回 null 或 Optional；`resolveXxx` 经策略把输入规范化为目标值（占位符、locale、视图名一类）；`loadXxx` 装载或刷新可缓存状态；`obtainXxx` 内部获取必然就绪的实例，未就绪即失败。调用点不查实现即可判定缺失行为。
 - 成对操作动词对称且全库唯一：register/remove、before/after、pre/post；同一概念不出现第二套动词（如 register 与 unregister 并存）。
 - 近邻概念用复合名词写全作用对象消歧（如 `BeanFactoryPostProcessor` 与 `BeanPostProcessor` 各自作用于工厂与实例），不用未加说明的缩写。
 - 接口的实现类以策略命名，不用 `Impl` 后缀：类名说明选择的路线（`JpaOrderRepository`、`InMemoryOrderRepository`、`DefaultUserService` 一类），`OrderServiceImpl` 式命名只说明"它是实现"，不说明是什么实现；策略不分化时不为命名造形式化接口+实现两件套（主规范「分层与命名」既有条款）。
 - `Manager` 仅限拥有某资源族生命周期的所有者角色（`TransactionManager`、`CacheManager` 一类），不作模糊职责词；说不出"拥有什么资源的生命周期"的类按角色词表另选词。
+- 对外方法薄封装，真实逻辑下沉到 `do` 前缀的内部工作方法（`AbstractBeanFactory.doGetBean`、`doResolveDependency` 一类），`do` 方法不直接对外暴露；静态工厂动词按语义从 `of`/`from`/`valueOf`/`for`/`parse` 选词——聚合组件用 `of`、转换既有值用 `from`/`valueOf`（`HttpStatus.valueOf`）、按已知上下文定位用 `for`（`ResolvableType.forClass`）、解析文本用 `parse`（`MediaType.parseMediaType`）；事件与回调方法用 `on` + 事件名（`onApplicationEvent` 式，业务侧如 `onOrderCreated`）；组件生命周期收口到框架注解或接口（`@PostConstruct`/`@PreDestroy`/`InitializingBean.afterPropertiesSet`），自定义生命周期对沿用成对动词条款。
+- 接口小而单一，接口名即能力名（`Ordered`、`InitializingBean`、`BeanNameAware` 一类，一句话说不出能力的不建接口）；能力通过组合与接口注入装配，不靠继承层级堆叠；常量定义在所属领域类上（`HttpStatus.OK`、`MediaType.APPLICATION_JSON`），随类组织不建 `XxxConstants` 收容类（衔接「不维护巨型 Constants」条款）。
 
 ## 常量、控制语句与注释
 
