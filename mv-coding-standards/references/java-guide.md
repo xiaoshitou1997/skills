@@ -82,7 +82,7 @@ shop-common/
 - 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不随本次变更重写。
 - Java 代码缩进一般 4 空格，行宽参考项目 Checkstyle/Spotless，不强制与既有格式化配置冲突；避免注释掉的旧实现。
 - DTO/Entity/VO 转换优先显式代码或项目既有 MapStruct；避免未受控的反射拷贝造成字段漏填/泄露。
-- JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 等配置遵循项目既有约定。
+- JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 统一使用 Spring Boot 自动配置的 bean，定制经 `spring.jackson.*` 配置属性集中调整，不在业务代码散落自建实例；Jackson 3 下未知属性处理与日期序列化格式按项目契约显式验证，不依赖版本默认值。
 - 工具方法优先 JDK 标准库、Spring 自带工具类与 Apache Commons（判空、集合、断言、IO 等）；不引入 Hutool（团队基线）。
 - 有状态组件按职责命名，避免伪装成工具类。使用 Lombok 等注解时检查嵌套类型是否遮蔽注解名。重复出现的拼写错误使用限定范围的扫描或重命名工具校验，并以编译结果确认引用完整。
 - 禁止通配符导入（`import xxx.*`），按类显式列出依赖；禁止在代码正文中使用全限定名（如 `java.util.List`），统一通过 `import` 语句引用，避免与同包同名类混淆并保持 import 顺序稳定。
@@ -121,7 +121,7 @@ shop-common/
 - 区分 HTTP 状态、平台包络码和内层业务码；HTTP 200 不保证业务成功。确认码的字符串/数值类型和真实响应结构，不凭字段名推断契约。
 - 每个独立业务失败场景对应唯一错误码枚举常量，一个 code 唯一映射一个业务语义；不复用既有错误码扩展语义，新增失败场景同步新增枚举。前端按 code 分支，前后端语义严格对齐。
 - 用户可见文案（异常提示、响应信息）不在业务代码中硬编码中英文字符串；统一维护在 i18n 资源文件，经项目国际化机制或 ErrorCode 关联的 messageKey 获取。
-- RESTful 动词语义清晰：查询 GET、新增 POST、更新 PUT、删除 DELETE，路由声明绑定具体 HTTP 方法；URL 小写名词复数、不含动词，可带版本前缀（`/api/v1/users`）。项目已有路由风格优先。
+- RESTful 动词语义清晰：查询 GET、新增 POST、更新 PUT、删除 DELETE，路由声明绑定具体 HTTP 方法；URL 小写名词复数、不含动词，可带版本前缀（`/api/v1/users`）。存量路由不批量改写，新端点按本条执行；确需偏离时显式记录。
 - 手机号、证件号等隐私数据在 VO 层脱敏后返回，不暴露原始敏感数据。
 
 ## 角色与权限
@@ -180,7 +180,7 @@ shop-common/
 - 结构演进走 expand–contract，应用对上一版 schema 兼容：新增列先可空/带默认，回填或双写后切读，旧列延迟删除；回填按主键游标分批限速，收紧 `NOT NULL`/`UNIQUE` 前先回填查重。
 - 事务置于 Service 真实业务边界：不在长事务中执行远程 HTTP 或慢操作；分布式事务优先讨论 Outbox 等替代方案并与团队确认。事务代理、传播与自调用语义按所用框架理解（Spring 见 spring-guide.md）。
 - 避免日志打印账户机密、令牌或用户私密资料；敏感字段标记/脱敏。
-- 业务表统一审计字段 `created_at`、`updated_at`、`created_by`、`updated_by`（及逻辑删除标记，按项目既有约定）并实现自动填充；时间按语义选型：绝对时刻用 `Instant` / `OffsetDateTime`（PostgreSQL `timestamptz`），业务日期用 `LocalDate`（`date`），不带时区的业务本地时间才用 `LocalDateTime`（`timestamp without time zone`）并明确所属业务时区；`timestamptz` 不保留原始时区标识，需要时另存 zone ID。不混用 `Date`；数据库列名一律 snake_case 命名，Java camelCase 字段通过 `@Column` 或等价注解显式映射，禁止依赖隐式命名策略。
+- 业务表统一审计字段 `created_at`、`updated_at`、`created_by`、`updated_by`（及逻辑删除标记）并实现自动填充；逻辑删除统一实体级 Hibernate `@SoftDelete`（默认 `deleted` 布尔列），不自写 `@SQLDelete` 加 `@SQLRestriction` 组合；时间按语义选型：绝对时刻用 `Instant` / `OffsetDateTime`（PostgreSQL `timestamptz`），业务日期用 `LocalDate`（`date`），不带时区的业务本地时间才用 `LocalDateTime`（`timestamp without time zone`）并明确所属业务时区；`timestamptz` 不保留原始时区标识，需要时另存 zone ID。不混用 `Date`；数据库列名一律 snake_case 命名，Java camelCase 字段通过 `@Column` 或等价注解显式映射，禁止依赖隐式命名策略。
 - 同一组审计字段只在公共基类声明一次：多个类重复声明同一审计字段时抽取公共基类，业务类继承取得，不在各类重复声明；JPA 承载写法见 spring-guide「JPA 数据访问」。
 - 主键策略（如雪花 ID）由项目/采用方统一后不混用其他方案；新项目未确立时先与团队确认，不擅自定方案。
 - 列表查询必须分页，不执行无边界全量查询；SQL 参数一律预编译占位符，不拼接。
@@ -201,7 +201,7 @@ shop-common/
 
 - 敏感配置（密钥、令牌、连接串）统一走环境变量或配置中心，不提交仓库、不硬编码；多环境差异用框架 profile 机制管理（Spring 见 spring-guide.md）。
 - CI 合并前检查点（编译、lint、单测、覆盖率、依赖安全扫描如 OWASP dependency-check）全绿后合并；静态分析用 SpotBugs/SonarQube，以项目既有流水线为准，不为规范而重建流水线。
-- 发布版本遵循语义化版本 `vMAJOR.MINOR.PATCH`，产物含 commit 溯源信息；分支模型与主分支保护按项目约定。
+- 发布版本遵循语义化版本 `vMAJOR.MINOR.PATCH`，产物含 commit 溯源信息；分支模型与主分支保护按 mv-git-publisher 团队 Git 基线执行：默认 `main`、线性提交历史、禁止 merge commit 与强制推送。
 - 运行期行为必须明确并文档化：schema 策略（如 create-drop 仅限临时环境，生产禁止自动重建）、惰性依赖（应用可独立于缓存/MQ 启动，依赖宕机时的失败范围）、调度任务周期与数据保留策略、重启后恢复运行态资源。
 
 ## 交付自查清单

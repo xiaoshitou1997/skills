@@ -39,7 +39,7 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*), Bash(git s
 4. 按依赖顺序逐组 `git add -- <explicit paths>`。同文件有多组修改时，交互式终端可用 `git add -p`；无人值守工具使用经过审查的 patch，`git apply --cached --check` 验证后再暂存。工作树脏到无法正常暂存时改走下文「树脏时的原地提交」。保留原始 index，审查最终暂存差异，不猜测修改边界。
 5. 逐组暂存审查：`git diff --cached --check`、`git diff --cached --name-status`、`git diff --cached --`，确认暂存内容**只**属于当前组。可运行 `python3 "${SKILL_ROOT}/scripts/stage_audit.py"` 检查常见 secret/大文件风险。
 6. 按涉及代码运行项目已有且可用的轻量检查（lint / typecheck / targeted tests）。没有配置的检查不虚构成功；失败时停止本组提交并报告。
-7. 提交信息只用一行概括本组 staged diff 对应的实际特性或变更目的，采用用户或仓库约定的语言与格式；没有既有约定时默认中文 Conventional Commits，例如 `feat(auth): 增加短信登录验证码校验`。不追加与变更目的无关的过程信息或尾注。
+7. 提交信息只用一行概括本组 staged diff 对应的实际特性或变更目的，统一用中文 Conventional Commits 格式：`<type>(<scope>): <概括>`，例如 `feat(auth): 增加短信登录验证码校验`；type 按变更性质选 `feat`/`fix`/`refactor`/`docs`/`chore`/`test`，scope 用模块或域词。用户明确指定语言或格式时按用户指定执行。不追加与变更目的无关的过程信息或尾注。
 8. `git commit -m '...'` 后再次查看状态及 SHA。
 9. **commit 与 push 是两个独立动作，用户要求到哪步就做到哪步**：「提交」停在本地 commit；「推送」单独要求时也先完成 pull --rebase 再 push；「提交并推送」则依次连续完成两个动作。push 前重新执行第 2 步的 pull --rebase，即使刚提交完——远端可能已在此窗口前进；push 被拒（非快进）说明 pull 之后窗口内远端又前进，本地提交无损，`git pull --rebase` 恢复后重试 push。上游缺失时先确认远端与分支再设置；推送失败如实报告，任何情况下不重试 `--force`。
 10. 汇报每组提交的 hash、type、变更目的、检查情况、push 结果，以及明确保留的未提交内容。

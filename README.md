@@ -1,6 +1,6 @@
 # MV 软件研发 Skills
 
-MV 以一组 Skills 提供软件研发生命周期的流程、工程标准与最佳实践；按任务触发，凡随项目而变的业务模型、法规与资质、客户约束和环境配置由各项目维护。
+MV 以一组 Skills 提供软件研发生命周期的流程与工程标准；按任务触发，凡随项目而变的业务模型、法规与资质、客户约束和环境配置由各项目维护。
 
 面向团队需求与设计、编码与测试、构建交付、稳态运维、Git 发布、工具链管理、应用安全的可独立安装 skills。每个目录包含自己的脚本与参考资料，通过 [skills CLI](https://github.com/vercel-labs/skills) 分发。
 
@@ -35,7 +35,7 @@ skills 按 description 触发，按任务需要协作加载，不为流程完整
 
 把 skills 安装到本机为可选项：需要时执行 `bash scripts/sync-installed.sh`（加 `--remote` 改从 GitHub 源安装），脚本安装全部并清理合并前旧版本，避免重复触发；是否安装由使用者决定。
 
-Skills 以内置最佳实践为默认基线，适用于不同项目；用户明确要求和已确认的项目约定优先，已有项目不因偏离默认而擅自改造。项目业务细节留在各项目中；团队 Git 规则中 commit 与 push 是可分开执行的两个动作，各自先 pull --rebase 并解决冲突，全程一颗 worktree（树脏导致同步失败时停止，不通过本地提交绕过同步），保持线性历史、禁止 merge commit。
+Skills 以内置团队基线为默认，适用于不同项目；用户明确要求优先，项目偏离基线须显式确认并记录，已有项目不因偏离默认而擅自改造。项目业务细节留在各项目中；团队 Git 规则中 commit 与 push 是可分开执行的两个动作，各自先 pull --rebase 并解决冲突，全程一颗 worktree（树脏导致同步失败时停止，不通过本地提交绕过同步），保持线性历史、禁止 merge commit。
 
 ## 规则归属
 
@@ -82,7 +82,7 @@ python3 "$SKILL_ROOT/scripts/stage_audit.py"
 bash "$SKILL_ROOT/scripts/pr.sh" view
 ```
 
-提交语言与格式优先遵循用户和仓库约定；没有约定时可默认中文 Conventional Commits。已有暂存内容先识别、审查，不擅自清空。
+提交信息统一用中文 Conventional Commits 格式，用户明确指定语言或格式时按用户执行。已有暂存内容先识别、审查，不擅自清空。
 
 ## 容器构建与部署
 
