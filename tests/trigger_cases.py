@@ -105,6 +105,8 @@ CASES = [
      'query': '这个模块的测试该怎么分层？哪些必须集成测试哪些单测就够，覆盖率口径是多少'},
     {'skill': 'mv-coding-standards', 'kind': 'positive',
      'query': '给下单接口设计一轮压测，确定并发和 P95 阈值'},
+    {'skill': 'mv-coding-standards', 'kind': 'positive',
+     'query': '前端项目要上线了，favicon、分享卡这些品牌触点还没接线，按规范补一下品牌化配置'},
     {'skill': 'mv-coding-standards', 'kind': 'negative', 'instead': 'mv-design-standards',
      'query': '新项目该选 MyBatis-Plus 还是 Spring Data JPA？'},
     {'skill': 'mv-coding-standards', 'kind': 'negative', 'instead': 'mv-design-standards',
@@ -117,6 +119,8 @@ CASES = [
      'query': '本地把 Next.js dev server 跑起来，热更新没生效，帮我排查'},
     {'skill': 'mv-coding-standards', 'kind': 'negative',
      'query': '本地把服务跑起来，我手动点一遍下单流程看看'},
+    {'skill': 'mv-coding-standards', 'kind': 'negative',
+     'query': '帮我们的产品设计一个新 logo 和品牌配色，只要设计方案不要代码'},
 
     # --- mv-delivery-standards：出包、镜像构建、部署契约与 Compose 编排 ---
     {'skill': 'mv-delivery-standards', 'kind': 'positive',

@@ -1,6 +1,6 @@
 ---
 name: mv-coding-standards
-description: 编写、修改、重构或审查业务代码与软件测试时使用，覆盖后端、前端、测试三个子领域。后端：写或审 Java 代码，团队基线 Spring Boot + JDK 21（Spring Framework 7、JPA、PostgreSQL），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、认证与权限（RBAC）、集合并发。前端：写或审 React/TypeScript 代码，含 Vite SPA、shadcn-admin 后台管理类项目、Next.js、Taro H5/小程序端，覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、路由、错误与国际化文案、构建环境变量、前端安全、页面交互体验基线、可访问性与性能预算。测试：规划、编写、审查或补齐软件测试，覆盖单测/集成/E2E 测试分层与各层范围、覆盖率口径、必测场景、性能与负载测试，及 JUnit/Testcontainers、Vitest/Testing Library、Playwright、Taro 端写法。需求、架构、系统设计与设计文档归 mv-design-standards；镜像构建与部署归 mv-delivery-standards。
+description: 编写、修改、重构或审查业务代码与软件测试时使用，覆盖后端、前端、测试三个子领域。后端：写或审 Java 代码，团队基线 Spring Boot + JDK 21（Spring Framework 7、JPA、PostgreSQL），覆盖分层、API、DTO/VO、错误码与国际化、枚举、异常、日志、事务、数据访问、认证与权限（RBAC）、集合并发。前端：写或审 React/TypeScript 代码，含 Vite SPA、shadcn-admin 后台管理类项目、Next.js、Taro H5/小程序端，覆盖组件分层、TypeScript 类型契约、数据获取与服务层、状态管理、路由、错误与国际化文案、构建环境变量、前端安全、页面交互体验基线、品牌触点接线与前端品牌化（favicon 与图标、标题、分享卡、系统页、小程序导航与转发配置）、可访问性与性能预算。测试：规划、编写、审查或补齐软件测试，覆盖单测/集成/E2E 测试分层与各层范围、覆盖率口径、必测场景、性能与负载测试，及 JUnit/Testcontainers、Vitest/Testing Library、Playwright、Taro 端写法。需求、架构、系统设计与设计文档归 mv-design-standards；镜像构建与部署归 mv-delivery-standards。
 ---
 
 # 编码规范：后端 Java、前端 React 与测试
