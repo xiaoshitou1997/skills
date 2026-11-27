@@ -1,4 +1,4 @@
-# 凭证生成与注入
+# 凭据生成与注入
 
 SKILL.md「Compose 编排」关键规则 10 的展开：分类型生成规则、.env 注入机制与轮换周期。基线：**凭据不进 Git**——真实值不入版本控制；生产/CI 环境用 secrets manager（Vault、Kubernetes Secrets、云厂商 Secrets Manager 等），本地开发环境 .env 可明文保存。跨栈凭据生命周期、泄露处置与数据保护政策见 mv-security-standards 的 credentials；本文件只定编排侧生成与注入。
 
@@ -46,4 +46,4 @@ SKILL.md「Compose 编排」关键规则 10 的展开：分类型生成规则、
 
 检测到透明加密/防泄密软件时，先核验当前宿主可用的透明读写通道，按宿主说明生成 `.env` 与 SQL，不把命令行或编辑器一概认定为明文通道。文件经 SSH 上传后，在目标服务器确认内容可读并执行配置解析；解析可能展开凭据，只在受控会话核对，不将完整输出写入日志。不使用 WSL 旁路读取或拷贝目标文件。
 
-本文只管编排侧凭证生成与注入；自研应用的配置与 Secret 分离基线归 mv-coding-standards，交付侧 env 预检（被跟踪 env 拦截）属本 skill 容器交付职责。
+本文只管编排侧凭据生成与注入；自研应用的配置与 Secret 分离基线归 mv-coding-standards，交付侧 env 预检（被跟踪 env 拦截）属本 skill 容器交付职责。

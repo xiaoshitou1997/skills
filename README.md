@@ -12,7 +12,7 @@ MV 以一组 Skills 提供软件研发生命周期的流程与工程标准；按
 | --- | --- | --- |
 | `mv-design-standards` | design | 需求与方案设计：业务规则与验收建模、架构决策与评审、技术栈选型与版本基线、PRD/HLD/LLD/RFC/API/MOP 工程文档、工程制图与插图编排、新项目从零初始化骨架 |
 | `mv-coding-standards` | impl | 编码与测试规范：Java 后端（基线 Spring Boot + JDK 21）、React/TypeScript 前端（Vite SPA/shadcn-admin/Next.js/Taro）、测试分层与各端测试写法 |
-| `mv-delivery-standards` | delivery | 镜像构建与容器交付：宿主出包、服务器构建瘦镜像、交付契约与部署诊断（部署/晋级/回滚入口当前关闭）、Compose 编排规范、探针与凭证分级 |
+| `mv-delivery-standards` | delivery | 镜像构建与容器交付：宿主出包、服务器构建瘦镜像、交付契约与部署诊断（部署/晋级/回滚入口当前关闭）、Compose 编排规范、探针与凭据分级 |
 | `mv-git-publisher` | 横切 | 按逻辑变更提交并推送、创建与检查 GitHub PR；纯起草/评审 commit 与 PR 短文本时只输出文稿 |
 | `mv-ops-standards` | operate | 交付后稳态运维：日志轮转、Actuator/Micrometer 指标、告警判据、数据库备份与恢复演练、镜像老化重扫、例行巡检与事故响应 |
 | `mv-security-standards` | 横切 | 应用安全与数据保护基线：威胁建模、认证授权原则、数据分级与脱敏、凭据与供应链、安全评审与测试、漏洞响应 |
@@ -28,7 +28,7 @@ skills 按 description 触发，按任务需要协作加载，不为流程完整
 | --- | --- |
 | 新项目从零 | `mv-design-standards`（选型与骨架）→ `mv-coding-standards` → `mv-delivery-standards`（构建）→ `mv-ops-standards` |
 | 新功能或变更 | `mv-design-standards`（新增或改变业务规则、架构或技术选型时）→ `mv-security-standards`（新入口、数据流、第三方集成、多租户或高敏数据变更时先行）→ `mv-coding-standards` → `mv-git-publisher`（仅按授权） |
-| 存量项目接管 | `mv-design-standards`（项目上下文与现状评估）→ `mv-security-standards`（安全评审）→ `mv-coding-standards` → `mv-git-publisher` |
+| 既有项目接管 | `mv-design-standards`（项目上下文与现状评估）→ `mv-security-standards`（安全评审）→ `mv-coding-standards` → `mv-git-publisher` |
 | 自托管第三方栈 | `mv-delivery-standards`（Compose 编排）→ `mv-ops-standards` |
 | 生产事故 | `mv-ops-standards`（事故响应）→ `mv-delivery-standards`（回滚契约，脚本当前关闭）→ `mv-design-standards`（复盘文档） |
 | 文档与图件 | `mv-design-standards`（写作、制图、插图编排） |

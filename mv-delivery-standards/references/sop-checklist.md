@@ -11,7 +11,7 @@ SKILL.md「Compose 编排」关键规则 14 的展开：新增栈按序执行的
 3. 定网络：声明 `networks.default.name: {栈名}-net`；跨栈通信逐连接走网络判定，仅访问宿主机进程才加 `extra_hosts`。
 4. 定端口：逐服务走端口判定步骤。
 5. 定镜像：固定具体版本；过 Alpine 兼容性判定；晋级时核对已验证镜像身份，记录环境间暂时的版本差异。
-6. 生成凭证：按凭证分级表选类型与命令生成，写入 `{栈名}/.env`；`db_user = db_name` 取栈名去连字符形式；确认 `.env` 已被 .gitignore 排除。
+6. 生成凭据：按凭据分级表选类型与命令生成，写入 `{栈名}/.env`；`db_user = db_name` 取栈名去连字符形式；确认 `.env` 已被 .gitignore 排除。
 7. 定数据卷：判定 `-data`/`-home` 与命名卷/bind。
 8. 定 healthcheck：走探针判定树；被依赖服务无探针时依赖方用 `service_started`。
 9. 定依赖与重启：`depends_on` + condition；每服务 `restart: unless-stopped`（初始化容器除外）。

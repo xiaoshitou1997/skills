@@ -11,7 +11,7 @@ description: 需求与方案设计时使用：需求分析与客户访谈材料�
 
 本 skill 覆盖 design 阶段四个子领域：需求分析、架构与选型、工程文档与图件、新项目初始化。优先级：用户明确需求和项目已确认约定 / ADR → 本规范 → 模板与生态默认；来源冲突显式列出，不将旧项目规则、通用行业经验或当前代码行为自动视为新需求。
 
-需求分析按变更规模裁剪：小变更补受影响的规则和验收即可，新系统或跨流程变更再建立完整上下文。架构决策先于实现：涉及跨模块、跨服务、跨团队、数据隔离或不可逆迁移的决策先写 ADR 再开工，能在单模块内解决的不上升为系统级决策。存量项目技术差异不自动触发改造，升级是独立决策。初始化只执行已确认范围，不默认全量端全量设施。
+需求分析按变更规模裁剪：小变更补受影响的规则和验收即可，新系统或跨流程变更再建立完整上下文。架构决策先于实现：涉及跨模块、跨服务、跨团队、数据隔离或不可逆迁移的决策先写 ADR 再开工，能在单模块内解决的不上升为系统级决策。既有项目技术差异不自动触发改造，升级是独立决策。初始化只执行已确认范围，不默认全量端全量设施。
 
 ## 脚本位置
 
@@ -71,12 +71,12 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 
 ### 技术栈基线
 
-先读取当前项目构建配置、README 与已采纳 ADR；新项目选默认栈，存量项目先盘点现状，技术差异不自动触发改造。项目业务与约束的取得按「需求分析」节执行。升级是独立决策，先评估影响面再列迁移计划，不搭车业务变更。
+先读取当前项目构建配置、README 与已采纳 ADR；新项目选默认栈，既有项目先盘点现状，技术差异不自动触发改造。项目业务与约束的取得按「需求分析」节执行。升级是独立决策，先评估影响面再列迁移计划，不搭车业务变更。
 
 | 类别 | 基线 | 说明 |
 | --- | --- | --- |
 | Java 版本 | JDK 21（LTS） |  |
-| Java 框架 | Spring Boot 4.0.x（Spring Framework 7、Jackson 3、Tomcat 11） | 框架条款见 mv-coding-standards；Boot 3 存量项目按项目基线维护，升级走「依赖引入与升级」流程 |
+| Java 框架 | Spring Boot 4.0.x（Spring Framework 7、Jackson 3、Tomcat 11） | 框架条款见 mv-coding-standards；Boot 3 既有项目按项目基线维护，升级走「依赖引入与升级」流程 |
 | 构建工具 | Maven | 优先 mvnw 锁版本 |
 | 镜像基线 | 基镜像 eclipse-temurin:21-jre、非 root 用户 10001、端口 8080 | 各栈 Dockerfile.delivery 基线，镜像定义随模块；构建与编排见 mv-delivery-standards |
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
@@ -340,7 +340,7 @@ Taro 是使用 React 等语法开发跨平台应用的框架，按目标平台�
 
 按需读取，不全文加载：
 
-- [references/project-context.md](references/project-context.md) — 项目上下文、来源优先级与存量项目接管。
+- [references/project-context.md](references/project-context.md) — 项目上下文、来源优先级与既有项目接管。
 - [references/business-rules.md](references/business-rules.md) — 术语、业务规则、流程与状态建模。
 - [references/acceptance-change.md](references/acceptance-change.md) — 验收标准、追溯关系与需求变更评审。
 - [references/decision-guide.md](references/decision-guide.md) — 系统形态、同步/异步、一致性、多租户与数据边界的判定表。

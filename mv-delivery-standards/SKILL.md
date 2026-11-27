@@ -5,7 +5,7 @@ description: 宿主出包并上传服务器构建镜像时使用（打镜像、�
 
 # 容器交付规范
 
-本 skill 负责 mv 团队自研应用的容器交付全链路与编排规范：宿主出包并上传服务器构建镜像、镜像身份与包校验、部署/晋级/回滚契约与诊断，以及 Docker Compose 编排文件的编写、审查与整改（含探针、凭证分级、k8s 映射）。宿主只编译二进制包，不安装 Docker，容器操作一律在服务器侧经 SSH 访问；编码与测试写法、交付后稳态运维不归本 skill。
+本 skill 负责 mv 团队自研应用的容器交付全链路与编排规范：宿主出包并上传服务器构建镜像、镜像身份与包校验、部署/晋级/回滚契约与诊断，以及 Docker Compose 编排文件的编写、审查与整改（含探针、凭据分级、k8s 映射）。宿主只编译二进制包，不安装 Docker，容器操作一律在服务器侧经 SSH 访问；编码与测试写法、交付后稳态运维不归本 skill。
 
 **当前 dev/prod 的部署、回滚和状态查询均关闭，目标端 plan 也关闭。** 部署脚本（宿主侧 deploy.sh 与目标侧 target-runner.sh）在参数校验后拒绝执行，不访问远端、不写目标文件、不生成收据。状态查询原会修改目标文件权限和创建目录，因此也不可用。宿主上传会覆盖共享配置，目标端锁无法保护上传；回滚历史排序和记录完整性也未得到保证。修复并验证这些问题后才能重新开放；需要交付时如实报告阻塞，不宣称部署可用。
 
@@ -21,7 +21,7 @@ description: 宿主出包并上传服务器构建镜像时使用（打镜像、�
 | 版本标识与上传 | 宿主 → 服务器 | 出包时生成包 Tag，包上传至构建点包目录并核对 SHA-256 |
 | 镜像构建 | 服务器 | 按模块内 `Dockerfile.delivery` 执行 `docker build`，输出 `IMAGE=` 与 `IMAGE_ID=` |
 | 部署、晋级与回滚 | 服务器 | 按交付契约部署、健康验证、同镜像晋级与回滚（入口当前关闭，见容器交付节） |
-| 编排文件 | 项目仓库 | Docker Compose 编写评审、探针、限额、凭证与 k8s 映射规范 |
+| 编排文件 | 项目仓库 | Docker Compose 编写评审、探针、限额、凭据与 k8s 映射规范 |
 
 - 构建点与部署目标同侧：单机部署为部署机自身；集群部署为镜像仓库所在节点，其余节点经镜像仓库分发。
 - 构建点统一经 SSH 通道访问（`FF_BUILD_TARGET=user@host`），开发服务器与生产服务器同一待遇；不设宿主侧容器构建或载入通道，宿主不安装 Docker。构建点的实际位置不进入流程判断——即使恰为本机 WSL，出包上传、SHA-256 核对与 `docker build` 仍全部经 SSH 执行，不使用 `wsl.exe`、`\\wsl$` 等宿主旁路直访或拷贝。
@@ -92,7 +92,7 @@ mvn -B package              # 或 ./gradlew bootJar / npm run build
 7. 启动顺序用 `depends_on` + `condition: service_healthy`；被依赖方无探针时退 `service_started`；一次性初始化容器不配探针、restart 省略，依赖方用 `service_completed_successfully` fail-closed；每服务 `restart: unless-stopped`（初始化容器除外）。
 8. YAML 写法：`command` 内联列表、`environment` map、`volumes`/`ports` 列表；service 键按 image→privileged→command→environment→volumes→ports→networks→extra_hosts→init→shm_size→stop_grace_period→secrets→healthcheck→depends_on→logging→restart→deploy 排列，顶层键 volumes→networks→secrets→services；删除注释掉的配置行，偏离注释与分块标题保留。
 9. 数据卷默认命名卷（`{用途}-data`/`{用途}-home`，判定见 [references/compose-rules.md](references/compose-rules.md)）；仅预置仓库配置与挂载宿主机资源两类例外用 bind，bind 源路径用 `./` 或绝对路径，禁 `~`。
-10. 凭证分级生成与注入：按 [references/credentials.md](references/credentials.md) 的分级表选强度与命令生成，统一 `.env` 插值注入；凭据不进 Git（真实值不入版本控制，生产/CI 环境用 secrets manager），分类型生成命令与轮换周期见 [references/credentials.md](references/credentials.md)。
+10. 凭据分级生成与注入：按 [references/credentials.md](references/credentials.md) 的分级表选强度与命令生成，统一 `.env` 插值注入；凭据不进 Git（真实值不入版本控制，生产/CI 环境用 secrets manager），分类型生成命令与轮换周期见 [references/credentials.md](references/credentials.md)。
 11. Spring Boot 项目经环境变量宽松绑定注入（`spring.datasource.url` → `SPRING_DATASOURCE_URL`），不走 PARAMS 转发或启动包装；禁止自定义 entrypoint 包装脚本改配置，配置走组件官方渠道，发现自建包装脚本即回归官方方式并删除脚本。
 12. 所有服务配 `deploy.resources.limits`（防止单服务耗尽宿主机）与 logging 限额（`max-size`/`max-file`）；参数按服务类型取值表执行，见 [references/resources-logging.md](references/resources-logging.md)。
 13. 检测到透明加密软件时，按当前宿主已验证的透明通道读写 `.env`、SQL 等文件，不预设所有命令行或编辑器具有相同行为；传输与部署仍经 SSH，在目标服务器验证文件可读、配置可解析，不以宿主读取正常代替目标侧验证。
@@ -101,7 +101,7 @@ mvn -B package              # 或 ./gradlew bootJar / npm run build
 
 ### 编排输出
 
-交付说明列出：栈名与目录、逐服务判定记录（端口、探针、卷形态、限额）、偏离项及行内注释位置、凭证生成与落点（不含值）、部署后校验结果；未执行的检查如实写「未执行」。
+交付说明列出：栈名与目录、逐服务判定记录（端口、探针、卷形态、限额）、偏离项及行内注释位置、凭据生成与落点（不含值）、部署后校验结果；未执行的检查如实写「未执行」。
 
 ## 硬约束
 
@@ -143,7 +143,7 @@ Compose 编排：
 - [references/deployment-contract.md](references/deployment-contract.md)：交付契约：项目输入、部署身份、双探针、交付流程、迁移与部署后验证、身份交接与回滚证据。
 - [references/deploy-security-model.md](references/deploy-security-model.md)：部署侧安全模型（授权、秘密信息、生产验证、失败恢复）。
 - [references/compose-rules.md](references/compose-rules.md)：命名、网络、端口、镜像、YAML 键序、数据卷形态与卷名后缀判定。
-- [references/credentials.md](references/credentials.md)：凭证分级生成表、.env 注入机制、轮换周期与透明加密环境注意。
+- [references/credentials.md](references/credentials.md)：凭据分级生成表、.env 注入机制、轮换周期与透明加密环境注意。
 - [references/healthcheck-probes.md](references/healthcheck-probes.md)：探针判定树、假绿清单、start_period 初始值表与实测回填。
 - [references/k8s-mapping.md](references/k8s-mapping.md)：compose 规则到 k3s/k8s 的映射与差异点。
 - [references/resources-logging.md](references/resources-logging.md)：资源限额表与日志轮转参数。
