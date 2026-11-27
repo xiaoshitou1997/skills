@@ -80,7 +80,7 @@ python3 "$SKILL_ROOT/scripts/office_figures.py" --help
 | 镜像基线 | 基镜像 eclipse-temurin:21-jre、非 root 用户 10001、端口 8080 | 各栈 Dockerfile.delivery 基线，镜像定义随模块；构建与编排见 mv-delivery-standards |
 | 持久层 | JPA | 禁止 MyBatis/MyBatis-Plus、tk-mapper |
 | JSON 序列化 | Jackson | 禁止 fastjson、gson |
-| 统一响应包络 | code/message/data 三段：code 为业务错误码枚举（一场景一码）；message 走 i18n messageKey；data 为强类型 VO | 新项目默认；项目既有包络优先；存量接口不擅自改造；HTTP 状态码保持语义，不一律 200 |
+| 统一响应包络 | 基线类名 `Result`，code/message/data 三段：code 为业务错误码枚举（一场景一码）；message 走 i18n messageKey；data 为强类型 VO | 新项目默认；项目既有包络连同类名优先；存量接口不擅自改造；HTTP 状态码保持语义，不一律 200 |
 | 工具类库 | JDK 标准库、Spring 自带工具类与 Apache Commons | 禁止 Hutool |
 | HTTP 客户端 | Spring 应用用 RestClient：优先声明式调用（Spring HTTP Interface，引擎仍是 RestClient），必须编程实现时才用编程式 RestClient；非 Spring 场景用 JDK 原生 HttpClient | 不用 RestTemplate（维护模式）；WebClient 仅响应式栈；不引 OpenFeign、Retrofit |
 | 第三方平台 SDK | 平台专属 SDK 默认不引：RestClient 直连 + 签名/验签自封装；行业标准协议的事实标准客户端放行（S3、SFTP、SMTP 等） | 试金石：换同类供应商客户端要不要跟着换；自封装签名配单测，平台测试环境联调验签通过为完成门；测试环境信息取得见 mv-coding-standards 的外部调用条款；真引入才写 ADR 并加防腐层 |

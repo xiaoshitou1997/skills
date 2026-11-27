@@ -33,7 +33,7 @@ description: 编写、修改、重构或审查业务代码与软件测试时使�
 
 6. DTO/VO/API Contract 不直接泄露持久层 Entity。
 7. 按项目既有 API 响应契约返回数据，不擅自把所有接口改为新的 `ApiResponse`。
-8. 项目无既有响应契约时按基线统一包络（`code`/`message`/`data`，见 mv-design-standards），不临时发明新包络。
+8. 项目无既有响应契约时按基线统一包络（类名 `Result`，`code`/`message`/`data`，见 mv-design-standards），不临时发明新包络。
 9. 每个独立业务失败场景对应唯一错误码枚举，不复用既有错误码扩展语义。
 10. 结构化业务数据用强类型 POJO 承载，不用 Map/JsonNode 替代。
 11. 项目已有错误码/文案体系优先。

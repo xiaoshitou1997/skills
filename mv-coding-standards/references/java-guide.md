@@ -82,7 +82,7 @@ shop-common/
 - 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不随本次变更重写。
 - Java 代码缩进一般 4 空格，行宽参考项目 Checkstyle/Spotless，不强制与既有格式化配置冲突；避免注释掉的旧实现。
 - DTO/Entity/VO 转换优先显式代码或项目既有 MapStruct；避免未受控的反射拷贝造成字段漏填/泄露。
-- JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 统一使用 Spring Boot 自动配置的 bean，定制经 `spring.jackson.*` 配置属性集中调整，不在业务代码散落自建实例；Jackson 3 下未知属性处理与日期序列化格式按项目契约显式验证，不依赖版本默认值。
+- JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 统一使用 Spring Boot 自动配置的 bean，定制经 `spring.jackson.*` 配置属性集中调整，不在业务代码散落自建实例；需要静态工具入口时经构造注入把该 bean 装进封装类，封装内部不自建 mapper；第三方库内部自建的 mapper 不受此限。Jackson 3 下未知属性处理与日期序列化格式按项目契约显式验证，不依赖版本默认值。
 - 工具方法优先 JDK 标准库、Spring 自带工具类与 Apache Commons（判空、集合、断言、IO 等）；不引入 Hutool（团队基线）。
 - 有状态组件按职责命名，避免伪装成工具类。使用 Lombok 等注解时检查嵌套类型是否遮蔽注解名。重复出现的拼写错误使用限定范围的扫描或重命名工具校验，并以编译结果确认引用完整。
 - 禁止通配符导入（`import xxx.*`），按类显式列出依赖；禁止在代码正文中使用全限定名（如 `java.util.List`），统一通过 `import` 语句引用，避免与同包同名类混淆并保持 import 顺序稳定。

@@ -35,7 +35,7 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 示例中的 `quantity` 与 `lines` 上限须替换为实际业务契约；Service 仍须确认商品可售、库存、服务端价格和主体是否有权操作。DTO 注解不会自动保护 MQ 消费、内部方法调用等其他入口，须在对应入口显式触发等价校验。
 - 用户可见文案统一维护在 `messages*.properties`，经 MessageSource 或 ErrorCode 关联的 messageKey 获取；国际化细则见下方「国际化」。
 - 路由用绑定具体 HTTP 方法的注解（`@GetMapping`、`@PostMapping` 等），不用未指定方法的 `@RequestMapping`。
-- 响应按统一包络返回（基线 `code`/`message`/`data`，项目既有包络优先）：成功路径 Controller 直接返回 VO，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
+- 响应按统一包络返回（基线类名 `Result`，`code`/`message`/`data`，项目既有包络连同类名优先）：成功路径 Controller 直接返回 VO，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
 
 ## 认证配置
 
