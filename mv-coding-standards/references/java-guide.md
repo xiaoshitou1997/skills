@@ -218,7 +218,7 @@ shop-common/
 
 - 敏感配置（密钥、令牌、连接串）统一走环境变量或配置中心，不提交仓库、不硬编码；多环境差异用框架 profile 机制管理（Spring 见 spring-guide.md）。
 - CI 合并前检查点（编译、lint、单测、覆盖率、依赖安全扫描如 OWASP dependency-check）全绿后合并；静态分析用 SpotBugs/SonarQube，以项目既有流水线为准，不为规范而重建流水线。
-- 发布版本遵循语义化版本 `vMAJOR.MINOR.PATCH`，产物含 commit 溯源信息；分支模型与主分支保护按 mv-git-publisher 团队 Git 基线执行：默认 `main`、线性提交历史、禁止 merge commit 与强制推送。
+- 发布版本遵循语义化版本 `vMAJOR.MINOR.PATCH`，产物含 commit 溯源信息；分支模型与主分支保护按 mv-git-publisher 团队 Git 基线执行：默认分支 `main`、日常开发在 `dev` 分支（开发提交不直接落 `main`）、线性提交历史、禁止 merge commit 与强制推送。
 - 运行期行为必须明确并文档化：schema 策略（如 create-drop 仅限临时环境，生产禁止自动重建）、惰性依赖（应用可独立于缓存/MQ 启动，依赖宕机时的失败范围）、调度任务周期与数据保留策略、重启后恢复运行态资源。
 
 ## 交付自查清单
