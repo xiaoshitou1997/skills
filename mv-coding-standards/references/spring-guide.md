@@ -12,14 +12,15 @@
 - 信任边界：浏览器、App、脚本、内部调用方、回调、消息和导入文件的输入均不可信；前端限制只用于交互体验，不能替代后端校验、认证或授权。各入口在解析与使用前独立检查来源、结构和约束；可信签名或认证只证明来源，不证明数据合法或已获业务授权。
 - 同一字段的必填、长度、取值域、唯一性在数据库约束、后端校验、前端校验三处对应落地且口径一致，后端契约为权威口径；后端做拆分、加密、派生等字段变换时在契约记录变换前后映射，前端与库层对变换后字段建模。变更字段口径时，三层约束与对应测试同变更提交。
 - HTTP 入口按接口契约约束必填、类型、长度、范围、集合数量及允许值；请求体 DTO 用 Bean Validation，Controller 的 `@RequestBody` 参数加 `@Valid`，嵌套对象与容器元素自身带约束注解时加 `@Valid`，并分别声明非空和数量上限。路径、查询、表单与文件等入口也须生效；方法参数校验按项目 Spring 版本配置并用实际请求验证。请求体及上传大小在网关或服务器配置上限，具体值按项目契约确定。
-- Service 层在真实事务边界检查跨字段关系、业务状态、资源归属及操作权限；从已认证安全上下文取得主体和租户，以服务端记录或可信配置确定价格、权限、状态等敏感事实，不以客户端提交值作最终依据。涉及并发的余额、库存、唯一性等不变量用数据库约束、条件更新或锁保证，不能只依赖先查后写。
+- 基础校验（必填、类型、长度、范围、格式、集合数量及允许值）一律以 Bean Validation 约束注解声明，不手写等价判断；每个约束注解 `message` 显式声明 `{messageKey}`（格式 `validation.{entity}.{field}.{constraint}`，如 `validation.user.username.notBlank`），不依赖内置默认英文文案；键随双语资源同批补齐，Validator 经 `LocalValidatorFactoryBean` 接入项目 `MessageSource` 按请求 locale 解析，字段级明细即该键的渲染结果；键译文按「国际化」错误响应双层条款的可定位判据执行，禁止「参数异常」「输入有误」「格式不正确」一类不定位字段与原因的通用提示。
+- Service 层在真实事务边界检查跨字段关系、业务状态、资源归属及操作权限，不重复基础校验——必填、长度、格式、范围已在入口经 Bean Validation 完成，方法体内手写等价判断即违规；基础校验在各自入口触发（HTTP 经 `@Valid`，MQ 消费与内部方法调用经 `@Validated` 方法级约束或 `Validator` 显式执行）。从已认证安全上下文取得主体和租户，以服务端记录或可信配置确定价格、权限、状态等敏感事实，不以客户端提交值作最终依据。涉及并发的余额、库存、唯一性等不变量用数据库约束、条件更新或锁保证，不能只依赖先查后写。
 - 校验失败按项目契约返回可定位字段及稳定错误码，不进入业务写入、不泄露堆栈或敏感输入；记录字段名、错误码与 requestId，避免输出 Token 和完整请求体。第三方响应、MQ 消息与回调按各自协议验证来源及结构，并在执行副作用前检查业务约束；文件内容校验不能只依赖扩展名或客户端声明的 MIME。
 
-示例（数值仅演示；已引入 Jakarta Bean Validation 实现，统一错误处理随项目统一包络与错误码骨架配置）：
+示例（数值仅演示；已引入 Jakarta Bean Validation 实现，Validator 经 `LocalValidatorFactoryBean` 接入 `MessageSource`，统一错误处理随项目统一包络与错误码骨架配置）：
 
 ```java
 public record CreateOrderRequest(
-    @NotNull @Positive Long productId,
+    @NotNull(message = "{validation.order.productId.notNull}") @Positive Long productId,
     @NotNull @Min(1) @Max(100) Integer quantity,
     @NotEmpty @Size(max = 20) List<@NotNull @Valid OrderLine> lines
 ) {}
@@ -39,7 +40,7 @@ public CreateOrderResponse create(@Valid @RequestBody CreateOrderRequest request
 - 错误码契约 Spring 定型：`ErrorCode` 接口成员 `HttpStatus status()`（类型 `org.springframework.http.HttpStatus`，不以 int/String 承载）、`String code()`、`String messageKey()`（接口内按 `error.` + `code` 派生，各枚举不存文案键）；各模块 `XxxErrorCodeEnum` 实现该接口，`-common` 模块提供 `CommonErrorCodeEnum` 承载无业务归属错误码：`COMMON_INTERNAL_ERROR`（HTTP 500，未捕获异常兜底）、`COMMON_PARAM_INVALID`（HTTP 400，入口校验失败）、`COMMON_UNAUTHORIZED`（HTTP 401，未认证——无会话/令牌、令牌无效或伪造）、`COMMON_SESSION_EXPIRED`（HTTP 401，会话/令牌过期）、`COMMON_LOGIN_FAILED`（HTTP 401，登录失败）、`COMMON_FORBIDDEN`（HTTP 403，无所需权限点）。
 - HTTP 状态取值一律用标准定义，不自定义：接口成员与 `ResponseEntity` 路径用 `org.springframework.http.HttpStatus` 枚举常量，过滤器等 servlet 层直写响应状态用 `jakarta.servlet.http.HttpServletResponse` 的 `SC_*` 常量；不另造状态数值、常量或枚举。
 - 全局异常处理器（类名 `GlobalExceptionHandler`，`@RestControllerAdvice`，落 `-common` 模块 `web/` 包）统一映射 `ServiceException`：HTTP 状态取 `status()`，包络 `code` 取 `code()`，`message` 按 `messageKey()` 经 `MessageSource` 以请求 locale 渲染、占位符参数取异常携带的 args；未捕获的其余异常兜底映射 `COMMON_INTERNAL_ERROR`，响应不带堆栈。
-- Bean Validation 入口校验失败（`MethodArgumentNotValidException` 一类）统一映射 `COMMON_PARAM_INVALID`，字段级明细以列表放包络 `data`（每项含字段名与按请求 locale 渲染的提示）；明细提示同样走语言资源，不在处理器逐字段拼成品句。
+- Bean Validation 入口校验失败（`MethodArgumentNotValidException` 一类）统一映射 `COMMON_PARAM_INVALID`，字段级明细以列表放包络 `data`（每项含字段名与按请求 locale 渲染的提示）；明细提示即约束 `messageKey` 的渲染结果，不在处理器逐字段拼成品句；校验失败必有字段明细，包络 message 与明细成对出现，不以通用提示替代明细。
 
 ## 认证配置
 
@@ -67,7 +68,7 @@ public CreateOrderResponse create(@Valid @RequestBody CreateOrderRequest request
 - 持久化形态：可能入库的系统生成文案（原因、备注、审计描述）落库存语义结构而非译文——`messageKey` + args；args 只装数据值（名称、单号、数量）与枚举型子原因（子原因同样 key 化），用户自由输入的原文属于数据，原样直存，不作为 i18n 对象。
 - 渲染时机：库内存 key，出库必渲染——接口默认按请求 locale 渲染为译文返回（前端原样展示），导出、邮件、第三方推送在后端渲染成目标语言；项目声明需要客户端即时切换语言时，接口改返 `{key, args}` 由前端渲染。
 - key 生命周期：key 只增不改语义，废弃 key 的译文长期保留，保证历史数据始终可渲染；仅审计强需求场景（要求留存「当时呈现的原话」）额外增加生成时快照字段并标注其 locale。
-- 错误响应双层：`code` 是契约，前端可映射通用文案；系统判定的 `reason` 等描述由后端按 locale 给译文，前端原样展示。
+- 错误响应双层：`code` 是契约，前端可映射通用文案；系统判定的 `reason` 等描述由后端按 locale 给译文，前端原样展示。错误译文须可定位——说明哪个对象、什么错、怎么改，或同响应携带定位明细（字段级明细、requestId）；「参数异常」「操作失败」「请求失败」一类两样皆无的通用提示禁止。
 - 载体：语言资源一律 `messages_zh_CN.properties` / `messages_en_US.properties`，与代码同源同审同回滚，不用数据库表存语言资源——表内改文案绕过审查与回滚、缺 key 无法静态发现。文案变更主语是运营的活动类内容属于内容数据，走内容管理方案，不冒充语言资源。
 - 放置判据：语言资源由可运行 `-service` 模块持有——单入口一对，按域切每服务一对、只装本服务渲染的 key；`-common`、`-api`、`-entity` 等库模块不携带 properties 文件——跨 jar 同名 basename 只有一个生效、另一个静默丢失（缺 key 不报错），公共库聚合全域 key 亦构成所有权错位；公共骨架键（`COMMON_*` 一类）的文案随各服务文件维护，齐备性按完整性条款逐服务核对。key 命名空间全局统一：类别前缀打头（`error.`、`status.`），模块信息全 key 只出现一次，不随文件拆分分家。
 - 枚举与数据字典：枚举展示名是语言资源，走 key 化 properties（如 `status.order.pending`）随代码维护；数据字典表中运营维护的业务配置值属于数据，名称列需要多语言时用多语言列或关联语言资源，按内容管理处理，与「语言资源不进库」不冲突。

@@ -122,7 +122,7 @@ shop-common/
 ## API 与错误
 
 - 约定统一的错误编码、HTTP 状态、参数校验和 requestId/traceId。
-- 使用 Bean Validation（如 `@Valid`/`@Validated`）做入口校验，业务规则同时在 Service 层确认；避免直接相信入参。
+- 使用 Bean Validation（如 `@Valid`/`@Validated`）做入口校验，基础校验一律约束注解声明且 `message` 一律 `{messageKey}` 引用语言资源，不手写等价判断，Service 不重复基础校验；业务规则同时在 Service 层确认，避免直接相信入参。
 - 生产错误仅返回错误码、message 与 requestId，不返回堆栈；错误经全局异常处理器统一记录，不制造日志风暴。
 - API 改动考虑兼容老客户端、分页约定、幂等请求、限流与鉴权权限边界。
 - 区分 HTTP 状态、平台包络码和内层业务码；HTTP 200 不保证业务成功。确认码的字符串/数值类型和真实响应结构，不凭字段名推断契约。
