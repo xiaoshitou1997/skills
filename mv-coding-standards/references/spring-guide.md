@@ -69,6 +69,7 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 - key 生命周期：key 只增不改语义，废弃 key 的译文长期保留，保证历史数据始终可渲染；仅审计强需求场景（要求留存「当时呈现的原话」）额外增加生成时快照字段并标注其 locale。
 - 错误响应双层：`code` 是契约，前端可映射通用文案；系统判定的 `reason` 等描述由后端按 locale 给译文，前端原样展示。
 - 载体：语言资源一律 `messages_zh_CN.properties` / `messages_en_US.properties`，与代码同源同审同回滚，不用数据库表存语言资源——表内改文案绕过审查与回滚、缺 key 无法静态发现。文案变更主语是运营的活动类内容属于内容数据，走内容管理方案，不冒充语言资源。
+- 放置判据：语言资源由可运行 `-service` 模块持有——单入口一对，按域切每服务一对、只装本服务渲染的 key；`-common`、`-api`、`-domain` 等库模块不携带 properties 文件——跨 jar 同名 basename 只有一个生效、另一个静默丢失（缺 key 不报错），公共库聚合全域 key 亦构成所有权错位；公共骨架键（`COMMON_*` 一类）的文案随各服务文件维护，齐备性按完整性条款逐服务核对。key 命名空间全局统一：类别前缀打头（`error.`、`status.`），模块信息全 key 只出现一次，不随文件拆分分家。
 - 枚举与数据字典：枚举展示名是语言资源，走 key 化 properties（如 `status.order.pending`）随代码维护；数据字典表中运营维护的业务配置值属于数据，名称列需要多语言时用多语言列或关联语言资源，按内容管理处理，与「语言资源不进库」不冲突。
 - 格式化与时区：日期、数字、货币按目标 locale 格式化（`DateTimeFormatter`/`NumberFormat` with locale），不硬编码格式模板；时间戳存储一律 UTC 或带时区，展示按目标受众 locale 与项目声明的展示时区换算，不存本地化字符串。复数等语法形态用 `MessageFormat`/ICU 机制表达，不靠拼接句子实现单复数。
 - 完整性：新增 messageKey 必须双语文件同批补齐；错误码枚举关联的 messageKey 双语齐备纳入项目检查；前端文案硬编码可用 lint 规则（如 eslint-plugin-i18n 类）机器拦截，作为规范补充。
