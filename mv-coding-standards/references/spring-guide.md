@@ -4,7 +4,7 @@
 
 ## 事务
 
-- `@Transactional` 置于 Service 真实业务边界，明确事务的传播、隔离与 checked exception 回滚语义；`rollbackFor = Exception.class` 在业务需要时指定，不模板式声明。
+- `@Transactional` 置于 Service 真实业务边界，明确事务的传播、隔离与 checked exception 回滚语义；业务方法抛 checked 异常且要求回滚事务时指定 `rollbackFor`（如 `rollbackFor = Exception.class`；Spring 默认仅回滚 `RuntimeException` 与 `Error`），不模板式声明。
 - 理解 Spring 代理与自调用问题：同类内部调用不经代理，事务等注解不生效；不在长事务中执行远程 HTTP 请求或慢操作。
 
 ## Web 与校验

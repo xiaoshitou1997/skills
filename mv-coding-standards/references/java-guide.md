@@ -194,7 +194,7 @@ shop-common/
 - 结构演进走 expand–contract，应用对上一版 schema 兼容：新增列先可空/带默认，回填或双写后切读，旧列延迟删除；回填按主键游标分批限速，收紧 `NOT NULL`/`UNIQUE` 前先回填查重。
 - 事务置于 Service 真实业务边界：不在长事务中执行远程 HTTP 或慢操作；分布式事务优先讨论 Outbox 等替代方案并与团队确认。事务代理、传播与自调用语义按所用框架理解（Spring 见 spring-guide.md）。
 - 避免日志打印账户机密、令牌或用户私密资料；敏感字段标记/脱敏。
-- 业务表统一审计字段 `created_at`、`updated_at`、`created_by`、`updated_by`（及逻辑删除标记）并实现自动填充；逻辑删除统一实体级 Hibernate `@SoftDelete`（默认 `deleted` 布尔列），不自写 `@SQLDelete` 加 `@SQLRestriction` 组合；时间按语义选型：绝对时刻用 `Instant` / `OffsetDateTime`（PostgreSQL `timestamptz`），业务日期用 `LocalDate`（`date`），不带时区的业务本地时间才用 `LocalDateTime`（`timestamp without time zone`）并明确所属业务时区；`timestamptz` 不保留原始时区标识，需要时另存 zone ID。不混用 `Date`；数据库列名一律 snake_case 命名，Java camelCase 字段通过 `@Column` 或等价注解显式映射，禁止依赖隐式命名策略。
+- 业务表统一审计字段 `created_at`、`updated_at`、`created_by`、`updated_by`（及逻辑删除标记）并实现自动填充；逻辑删除统一实体级 Hibernate `@SoftDelete`（默认 `deleted` 布尔列），不自写 `@SQLDelete` 加 `@SQLRestriction` 组合；时间按语义选型：绝对时刻用 `Instant` / `OffsetDateTime`（PostgreSQL `timestamptz`），业务日期用 `LocalDate`（`date`），不带时区的业务本地时间才用 `LocalDateTime`（`timestamp without time zone`）并明确所属业务时区；`timestamptz` 不保留原始时区标识，业务需要重现用户原始时区（如按用户本地时区展示）时另存 zone ID 列。不混用 `Date`；数据库列名一律 snake_case 命名，Java camelCase 字段通过 `@Column` 或等价注解显式映射，禁止依赖隐式命名策略。
 - 同一组审计字段只在公共基类声明一次：多个类重复声明同一审计字段时抽取公共基类，业务类继承取得，不在各类重复声明；JPA 承载写法见 spring-guide「JPA 数据访问」。
 - 主键策略（如雪花 ID）由项目/采用方统一后不混用其他方案；新项目未确立时先与团队确认，不擅自定方案。
 - 列表查询必须分页，不执行无边界全量查询；SQL 参数一律预编译占位符，不拼接。

@@ -20,7 +20,7 @@ mv-ops-standards 关键规则的落地做法：日志轮转、指标暴露、备
 ## 指标暴露
 
 - 依赖与端点：`spring-boot-starter-actuator` + `micrometer-registry-prometheus`，`management.endpoints.web.exposure.include` 最小化放开（health、prometheus）；`/actuator/prometheus` 不公网开放，经内网或网关侧采集。
-- 最小指标集核对：JVM（内存、GC 暂停）、HTTP（`http.server.requests` 量与耗时分位）、连接池（HikariCP active/idle）、RabbitMQ 队列深度；业务关键计数（如支付回调量）按需补充自定义 Counter。
+- 最小指标集核对：JVM（内存、GC 暂停）、HTTP（`http.server.requests` 量与耗时分位）、连接池（HikariCP active/idle）、RabbitMQ 队列深度；存在业务成败类关键流程（如支付回调）时逐流程补充自定义 Counter，随最小指标集一并核对。
 
 ## 备份与恢复演练
 
