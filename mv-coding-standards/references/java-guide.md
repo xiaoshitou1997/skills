@@ -29,7 +29,7 @@
 
 | 后缀 | 语义 | 形态与拆分判据 |
 |---|---|---|
-| `-common` | 通用异常、常量、工具 | 库；必建——统一包络、错误码契约（`ErrorCode`、`ServiceException`、`CommonErrorCodeEnum`）等横切骨架与跨模块公共契约落点，全部后端模块依赖，不并入 service（domain 的并入豁免不适用于此） |
+| `-common` | 公共异常、常量、工具 | 库；必建——统一包络、错误码契约（`ErrorCode`、`ServiceException`、`CommonErrorCodeEnum`）等横切骨架与跨模块公共契约落点，全部后端模块依赖，不并入 service（`-entity` 的并入豁免不适用于此） |
 | `-api` | 跨项目契约：服务接口 + DTO | 库；有外部集成方才拆 |
 | `-sdk` | 客户端封装（重试、鉴权、序列化） | 库；对外发布才拆 |
 | `-spring-boot-starter` | 技术组件自动装配 | 库；按 Spring 官方惯例命名 |
@@ -39,11 +39,11 @@
 
 切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切；接入层端入口（`user`/`admin` 切片）与域服务（域词切片）属两个功能层级，微服务双端项目可同时存在，端入口聚合域服务对外。
 
-**模块名与目录名逐字相同**：无论 Maven、Gradle 还是其他构建工具，工具侧定义的模块名必须与所在文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name`，都直接取目录名；根工程（父 POM、根 settings）的项目名与仓库根目录名同理。按本节公式命名的模块，目录同名（如 `shop-order-service/`）。
+**模块名与目录名逐字相同**：无论 Maven、Gradle 还是其他构建工具，工具侧定义的模块名必须与所在文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name`，都直接取目录名；根 POM、根 settings 的项目名与仓库根目录名同理。按本节公式命名的模块，目录同名（如 `shop-order-service/`）。
 
 ### 三种布局
 
-任意后端聚合工程最少两个 Maven 模块：一个 `-common`（必建，判据见上表）加至少一个可运行 `-service`；其余模块按上表拆分判据增拆。
+任意后端聚合 POM 最少两个 Maven 模块：一个 `-common`（必建，判据见上表）加至少一个可运行 `-service`；其余模块按上表拆分判据增拆。
 
 单入口——多数项目默认两端共用 `shop-service` 与 `shop-web`；两端按路径、布局和权限区分：
 
