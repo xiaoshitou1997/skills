@@ -130,7 +130,8 @@ description: 编写、修改、重构或审查业务代码与软件测试时使�
 8. 安全基线：不将未消毒内容注入 `dangerouslySetInnerHTML` 等等价通道；不把密钥、内网地址、调试开关打进前端包；新依赖先过 mv-design-standards 的依赖引入评估再进。跨栈安全政策、数据分级与安全评审见 mv-security-standards，本节只保留前端实现边界。
 9. 样式与设计系统：样式方案同一项目不混用多套；shadcn/ui 项目经 CLI 增改组件、走 CSS 变量主题令牌（语义色、间距），不硬编码色值绕开令牌；间距、色彩走项目设计令牌，不散落魔法数值；视觉还原以设计稿为准，本规范不定义视觉风格。
 10. 交互与体验基线：页面布局范式稳定、信息层级清晰；交互元素状态完整、操作即时反馈；空/错/加载异常页面完备；用词全站统一；色彩用于区分状态而非装饰；键盘可达并按项目约定适配多分辨率。页面级条款见 [references/ux-interaction-guide.md](references/ux-interaction-guide.md)。
-11. 最小变更与测试：改动现有系统保持最小必要变更，新产生的死代码、未用 import 一律删除；业务逻辑与行为改动写或更新对应测试（组件渲染/工具函数单测），使用项目现有测试框架，不为规范而更换框架；测试分层策略与覆盖口径按「测试」分节执行，组件与交互测试写法见 [references/frontend-testing.md](references/frontend-testing.md)。
+11. 品牌触点接线：标题体系（入口默认标题加路由级模板）、图标族（`favicon.ico` 之外的 SVG 图标与 `apple-touch-icon`）、可安装场景 Manifest、公开站点分享卡（Open Graph/Twitter Card）、系统页与登录页品牌化（404/403/500、维护页与登录页替换脚手架默认内容）、首屏静态品牌占位、Taro 端导航栏/tabBar/转发分享配置，接线清单按 [references/frontend-guide.md](references/frontend-guide.md)「品牌触点接线」逐项执行，未接线项在交付说明列明原因；配色、字体等视觉风格本身以设计稿为准，本条只管触点接线。
+12. 最小变更与测试：改动现有系统保持最小必要变更，新产生的死代码、未用 import 一律删除；业务逻辑与行为改动写或更新对应测试（组件渲染/工具函数单测），使用项目现有测试框架，不为规范而更换框架；测试分层策略与覆盖口径按「测试」分节执行，组件与交互测试写法见 [references/frontend-testing.md](references/frontend-testing.md)。
 
 前端参考：框架中立主体见 [references/frontend-guide.md](references/frontend-guide.md)；Vite SPA 与 shadcn-admin 衍生项目并读 [references/vite-spa-guide.md](references/vite-spa-guide.md)；Taro H5/小程序项目并读 [references/taro-guide.md](references/taro-guide.md)；使用 Next.js 时并读 [references/nextjs-guide.md](references/nextjs-guide.md)；涉及页面布局、交互流程、表单容错、异常态与可访问性时并读 [references/ux-interaction-guide.md](references/ux-interaction-guide.md)；涉及可访问性验收与性能预算时并读 [references/accessibility-performance.md](references/accessibility-performance.md)。规范中的举例和阈值不应覆盖项目实际框架版本、性能特征或已确立基线。
 
@@ -201,7 +202,7 @@ description: 编写、修改、重构或审查业务代码与软件测试时使�
 - [references/spring-guide.md](references/spring-guide.md) — Spring Boot 专属条款：事务、Web 校验、认证配置、国际化、配置绑定、JPA 数据访问、健康探测、LLM 集成
 - [references/schema-migrations.md](references/schema-migrations.md) — schema 迁移与大表 DDL：执行通道、脚本纪律、在线 DDL 方言写法、expand–contract
 - [references/readability-refactoring.md](references/readability-refactoring.md) — 交付前可读性修剪：结构信号判定标准、修剪流程与反目标
-- [references/frontend-guide.md](references/frontend-guide.md) — 前端框架中立条款：目录命名、类型契约、服务层、前后端联调信息固定入口、状态管理、安全与性能基线
+- [references/frontend-guide.md](references/frontend-guide.md) — 前端框架中立条款：目录命名、类型契约、服务层、前后端联调信息固定入口、状态管理、安全与性能基线、品牌触点接线
 - [references/vite-spa-guide.md](references/vite-spa-guide.md) — Vite SPA 与 shadcn-admin 衍生项目条款：路由、TanStack Query、表单、UI 体系、环境变量、开发代理
 - [references/taro-guide.md](references/taro-guide.md) — Taro H5/小程序条款：渲染目标、请求层、各端联调、平台差异、分包
 - [references/nextjs-guide.md](references/nextjs-guide.md) — Next.js 条款：渲染模式、服务端/客户端组件边界、Route Handlers、环境变量

@@ -96,6 +96,20 @@ node -e "const fs=require('fs'),path=require('path'),crypto=require('crypto');le
 - 静态资源按框架惯用机制引用（构建管线处理压缩与哈希），不手拼缓存破坏参数；图片按框架提供的组件/指令走懒加载与尺寸约束。
 - 依赖以按需引入为默认；引入整包只为一两个工具函数前先核对替代成本。
 
+## 品牌触点接线
+
+- 视觉风格本身（配色、字体、Logo 设计）以设计稿为准，本节只管品牌资产在各触点的接线：新项目初始化时逐项接线，既有项目交付前核对本次涉及的触点，项目不涉及的端或场景按条目判定不适用。
+- 标题体系：入口 HTML 默认标题为产品名，路由级标题由路由层统一设置（如「页面名 · 产品名」模板），不在各页面组件零散赋值。
+- 图标族：`favicon.ico` 之外配置 SVG 图标与 `apple-touch-icon`（180×180）；图标、Logo 与分享卡图集中存放并经构建管线引用，不在多目录散落副本。
+- `<meta name="theme-color">` 取品牌设计令牌中的主题色；暗色模式项目用 `media="(prefers-color-scheme: dark)"` 另配一套。
+- 可安装场景（PWA、添加到主屏幕）配置 Web App Manifest：`name`、`short_name`、192/512 图标、`theme_color`、`background_color`、`display`、`start_url`，取值与设计稿一致；不支持安装的端省略本条。
+- 公开站点配置分享卡：Open Graph 四项 `og:title`、`og:description`、`og:image`（1200×630）、`og:site_name` 加 Twitter Card `twitter:card`；仅内网使用的端不做分享卡。
+- 系统页品牌化：404/403/500/维护页与登录页使用项目 Logo、产品名与版权主体，替换脚手架默认示例内容；首屏加载画面在入口 HTML 内置静态品牌占位（背景色加 Logo），不以脚手架默认样式呈现首屏。
+- 页脚：公开站点页脚含版权主体，国内公开站点含 ICP 备案号；后台管理端版权主体按项目约定配置。
+- 细节着色走品牌设计令牌：文本选区（`::selection`）、focus ring、滚动条与加载指示器取令牌中的品牌色，不残留脚手架默认色。
+- 载体按端：Vite SPA 在 `index.html` 与 `public/`；Next.js 用 Metadata API（`metadata` 导出与 `app/icon.tsx` 一类约定文件）；Taro 在 `app.config.js` 配置全局 `navigationBarTitleText` 与导航栏颜色、逐页覆盖标题，tabBar 图标与选中色用品牌素材，转发经 `useShareAppMessage` 配置标题与分享卡图；小程序名称、头像、简介与隐私弹窗主体名在开放平台控制台维护并列入项目品牌资产清单，不在代码内配置。
+- 交付前逐端核对：本次涉及端逐项接线，未接线项在交付说明列明原因；品牌文案（标题模板、分享卡、系统页文案）属用户可见文案，走文案资源双语骨架，不在组件硬编码。
+
 ## 格式化与时区
 
 - 日期、数字、货币按当前 locale 用 `Intl` API（`DateTimeFormat`/`NumberFormat`）格式化，不手写格式模板与千分位逻辑。
