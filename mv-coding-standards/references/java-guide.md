@@ -29,7 +29,7 @@
 
 | 后缀 | 语义 | 形态与拆分判据 |
 |---|---|---|
-| `-common` | 通用异常、常量、工具 | 库 |
+| `-common` | 通用异常、常量、工具 | 库；必建——统一包络、错误码契约（`ErrorCode`、`ServiceException`、`CommonErrorCodeEnum`）等横切骨架与跨模块公共契约落点，全部后端模块依赖，不并入 service（domain 的并入豁免不适用于此） |
 | `-api` | 跨项目契约：服务接口 + DTO | 库；有外部集成方才拆 |
 | `-sdk` | 客户端封装（重试、鉴权、序列化） | 库；对外发布才拆 |
 | `-spring-boot-starter` | 技术组件自动装配 | 库；按 Spring 官方惯例命名 |
@@ -42,6 +42,8 @@
 **模块名与目录名逐字相同**：无论 Maven、Gradle 还是其他构建工具，工具侧定义的模块名必须与所在文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name`，都直接取目录名；根工程（父 POM、根 settings）的项目名与仓库根目录名同理。按本节公式命名的模块，目录同名（如 `shop-order-service/`）。
 
 ### 三种布局
+
+任意后端聚合工程最少两个 Maven 模块：一个 `-common`（必建，判据见上表）加至少一个可运行 `-service`；其余模块按上表拆分判据增拆。
 
 单入口——多数项目默认两端共用 `shop-service` 与 `shop-web`；两端按路径、布局和权限区分：
 
@@ -73,6 +75,8 @@ shop-common/
 ```
 
 单模块常见目录：`controller/`、`service/`、`mapper/` 或 `repository/`、`model/entity/`、`model/dto/`、`model/vo/`、`model/query/`、`config/`、`handler/`。
+
+`-common` 包结构固定：`web/` 承载 `Result`、`GlobalExceptionHandler` 与包络装配；`error/` 承载错误码契约三件（`ErrorCode`、`CommonErrorCodeEnum`、`ServiceException`）；`i18n/` 承载 locale 解析与 MessageSource 装配；`config/` 承载 `XxxProperties` 类型化配置骨架；`util/` 承载 Jackson 静态封装等纯工具，按需建。`-common` 的 Java 包根为 `{项目根包}.common`；启动类置于 `{项目根包}`（`-service` 模块内），默认组件扫描覆盖 common 组件，不另配扫描路径。
 
 ## 代码与命名
 
@@ -120,7 +124,11 @@ shop-common/
 - API 改动考虑兼容老客户端、分页约定、幂等请求、限流与鉴权权限边界。
 - 区分 HTTP 状态、平台包络码和内层业务码；HTTP 200 不保证业务成功。确认码的字符串/数值类型和真实响应结构，不凭字段名推断契约。
 - 每个独立业务失败场景对应唯一错误码枚举常量，一个 code 唯一映射一个业务语义；不复用既有错误码扩展语义，新增失败场景同步新增枚举。前端按 code 分支，前后端语义严格对齐。
-- 用户可见文案（异常提示、响应信息）不在业务代码中硬编码中英文字符串；统一维护在 i18n 资源文件，经项目国际化机制或 ErrorCode 关联的 messageKey 获取。
+- 用户可见文案（异常提示、响应信息）不在业务代码中硬编码中英文字符串；统一维护在 i18n 资源文件，经项目国际化机制或 `ErrorCode` 关联的 messageKey 获取。
+- 错误码载体定型：每模块一个错误码枚举，类名 `XxxErrorCodeEnum`（模块语义名），统一实现公共 `ErrorCode` 接口；接口声明三个成员——HTTP 状态、`code`、`messageKey`，是 `ServiceException`、全局异常处理器与文案解析共同依赖的唯一类型，处理器与框架接线不耦合具体模块枚举。
+- `code` 为字符串契约标识：等于枚举常量名，常量名以模块语义前缀开头（如 `ORDER_NOT_FOUND`、`USER_NOT_FOUND`），全集唯一；唯一性与「`code` 等于常量名」由单元测试扫描全部错误码枚举校验，不设人工维护的号段分配表，不以数字作 `code`。
+- `messageKey` 不作为枚举存储字段，由 `ErrorCode` 接口按固定规则派生：`error.` + `code`（如 `error.ORDER_NOT_FOUND`）；派生规则一处实现，文案键双语同批补齐按 spring-guide「国际化」完整性条款纳入项目检查。
+- 业务失败统一抛 `ServiceException`（`RuntimeException` 子类，落 `-common` 模块）：构造只接受 `ErrorCode` 与占位符 args，args 只装数据值（名称、单号、数量一类，同 spring-guide「国际化」持久化形态口径）；不提供裸文案构造——文案在输出时刻按 locale 渲染，异常携带成品文案即绕过国际化。
 - RESTful 动词语义清晰：查询 GET、新增 POST、更新 PUT、删除 DELETE，路由声明绑定具体 HTTP 方法；URL 小写名词复数、不含动词，可带版本前缀（`/api/v1/users`）。存量路由不批量改写，新端点按本条执行；确需偏离时显式记录。
 - 手机号、证件号等隐私数据在 VO 层脱敏后返回，不暴露原始敏感数据。
 
@@ -137,8 +145,8 @@ shop-common/
 - 多用户系统（有用户表、多个可登录账号）用户认证只走 OIDC 联邦登录，不建本地密码账号体系，对接项目已确认的 IdP；IdP 选型是多用户系统的设计前置（见 mv-design-standards），未确认不开建用户认证。单管理员工具端（无用户表）不受此限。OIDC 接入必须完整形态，四项缺一按未完成处理：授权码登录并校验 ID Token（签名、`iss`、`aud`、`exp`、`nonce`）；RP 发起登出跳 IdP `end_session_endpoint` 并同步失效本地会话，不以清本地会话冒充联邦登出；令牌生命周期闭环（过期刷新或重新授权，失效与过期令牌按未认证处理）；身份映射衔接（claims 映射本地用户与角色，审计操作人从 OIDC 主体解析）。不交付只含登录的半截接入；偏离基线（如客户强制要求本地登录）按「用户明确需求 → 本规范」优先级链记录理由；Spring 承载写法见 spring-guide「认证配置」。
 - 认证与授权分离：入口层校验令牌并建立可信主体，按 RBAC 统一校验功能权限点；Service 从安全上下文取主体，按「角色与权限」检查对象级授权，不自行解析令牌。
 - admin 端与 user 端会话相互独立：两端在 IdP 注册独立客户端（scope 区分授权边界），本地服务端会话各自建立互不互认；单端登出失效本端本地会话，IdP 统一会话注销后两端均需重新认证。
-- 管理员口令哈希用 BCrypt/Argon2 一类自适应慢散列，经环境变量注入哈希值（见「初始管理员」条款）；登录失败响应不区分「用户不存在」与「密码错误」，防账号枚举。
-- 会话过期返回约定错误码，前端据此引导重新认证；Spring 侧过滤器链配置见 spring-guide「认证配置」。
+- 管理员口令哈希用 BCrypt/Argon2 一类自适应慢散列，经环境变量注入哈希值（见「初始管理员」条款）；登录失败统一返回 `COMMON_LOGIN_FAILED`，不区分「用户不存在」与「密码错误」，防账号枚举。
+- 会话过期返回 `COMMON_SESSION_EXPIRED`，前端据此引导重新认证；Spring 侧过滤器链配置见 spring-guide「认证配置」。
 - 初始管理员凭据不进迁移脚本与代码默认值，经环境变量注入：变量名如实承载形态（`*_ADMIN_USERNAME`、`*_ADMIN_PASSWORD_HASH` 存 BCrypt 哈希，生成命令见 mv-delivery-standards credentials 分级表）。无后台工具端用内存用户认证，不建用户表；有后台项目由启动期初始化器按 env 为准幂等 upsert 管理员账号及角色授予，该账户不提供 UI 改密入口，改密=改 env 重启；账号缺失且 env 未配置时拒绝启动并明确报错，日志记 created/updated/skipped 不记凭据值。适用范围与毕业判据见 mv-security-standards「认证」；Spring 接线见 [spring-guide.md](spring-guide.md)「认证配置」。
 
 ## 枚举与类型安全
@@ -218,7 +226,7 @@ shop-common/
 - [ ] 集合与并发合规：toArray、Iterator 删除、entrySet、ThreadPoolExecutor 显式建池、ThreadLocal 用后 remove
 - [ ] 异常未用于流程控制，finally 无 return，无空 catch；日志 SLF4J 占位符，无敏感信息与 System.out
 - [ ] 分层单向依赖，无跨层调用与循环依赖；业务数据 POJO 化，无 Map/JsonNode 替代，无承载业务语义的内部类
-- [ ] 枚举字段全链路枚举类型；错误码一场景一码；用户可见文案走国际化资源
+- [ ] 枚举字段全链路枚举类型；错误码一场景一码，`code` 等于枚举常量名、全集唯一且有扫描校验；用户可见文案走国际化资源
 - [ ] 角色权限走 RBAC：功能权限点在入口层统一校验，Service 校验资源归属与数据范围；前后端共用权限点标识，权限点/菜单为种子数据、无运行时管理入口
 - [ ] 配置类型化绑定、kebab-case，配置项全部定义在配置文件（优先 YAML），含连字符 key 的环境变量用属性占位符显式声明、默认值不进代码、无 `@Value`，敏感配置外置
 - [ ] 审计字段、时间类型、分页、SQL 参数化符合项目基线；REST 动词/URL/DTO 校验/统一响应/VO 脱敏合规

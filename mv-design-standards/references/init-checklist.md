@@ -6,7 +6,7 @@
 
 1. 聚合工程：Maven + mvnw，模块按布局判据划分，版本对齐基线（Spring Boot 4.0.x、JDK 21）。
 2. 基础设施接线：按项目范围接入开发服务器公共 infra 的 PostgreSQL、Redis、RabbitMQ、RustFS 或 SFTPGo，申请项目专用资源及凭据；数据库使用 Flyway（`V1__init.sql`）。仅在业务允许且实现安全降级时，允许缓存、消息或文件依赖缺失启动，并明确受影响功能。
-3. 横切骨架：统一包络类 `Result`（code/message/data）、全局异常处理器、错误码枚举包、双语资源文件（`messages_zh_CN`/`messages_en_US`）、SLF4J 日志配置、`@ConfigurationProperties` 配置类骨架。
+3. 横切骨架：统一包络类 `Result`（code/message/data）、全局异常处理器（`GlobalExceptionHandler`）、错误码枚举包、双语资源文件（`messages_zh_CN`/`messages_en_US`）、SLF4J 日志配置、`@ConfigurationProperties` 配置类骨架。
 4. 安全骨架：RBAC 权限点模型与入口层校验机制（声明式注解或集中拦截器）；认证方案按项目确认：多用户系统走 OIDC 联邦（IdP 选型是设计前置，完整形态判据见 mv-coding-standards），单管理员工具端 env 哈希 + 内存用户。
 5. 健康探测：`management.endpoint.health.probes.enabled: true`，readiness/liveness 双探针。
 6. 交付文件：每个后端入口各自定义构建目标、配置、端口、探针与 `Dockerfile.delivery`（基线镜像、非 root 10001、EXPOSE 8080）；`.dockerignore` 排除 `.git`、`.env*`。
