@@ -22,7 +22,7 @@
 - `name`：kebab-case 小写，≤64 字符，必须与目录名一致，且以 `mv-` 前缀开头（校验覆盖；前缀见「命名先例」）。
 - `description`：≤1024 字符，写触发场景而非功能罗列；包含用户可能的表述关键词；写明负向边界（何时不适用、归哪个 skill 管），但只列与本职真实易混的 1–2 个去向，完整邻居归属图不进 description，需要时写进正文边界节。面向中文受众，使用中文描述，代码、标识符与必要技术词保留英文（校验覆盖非空与长度）。
 - frontmatter 使用仓库支持的标量字段子集：普通单行、引号字符串或块标量；字段唯一，`name`、`description` 必填。校验检查该子集的结构与字段，不宣称支持完整通用 YAML 语法。
-- 可选 `allowed-tools`：仅为只读、无副作用的命令预授权；写操作不预授权，不用同时包含写子命令的宽泛模式（如 `git branch:*`、`git remote:*`）。
+- 可选 `allowed-tools`：官方规范为空格分隔字符串；仅为只读、无副作用的命令预授权；写操作不预授权，不用同时包含写子命令的宽泛模式（如 `git branch:*`、`git remote:*`）。
 
 ## 正文（SKILL.md）
 
@@ -125,7 +125,7 @@
 
 形式规则的基准是 Anthropic 官方 Agent Skills 规范；修改形式规则前先对外核对，不自我循环：
 
-- Specification：name 匹配 `^[a-z0-9]+(-[a-z0-9]+)*$` 且 ≤64 字符；description 必填且 ≤1024 字符。
+- Specification：name 匹配 `^[a-z0-9]+(-[a-z0-9]+)*$` 且 ≤64 字符；description 必填且 ≤1024 字符；`allowed-tools` 为空格分隔字符串（experimental，宿主支持度可不同；Claude Code 兼容空格、逗号分隔与 YAML 列表）。
 - Best practices / Authoring：description 写触发场景（what + when + 触发词）；正文 <500 行，细节下沉 references；渐进披露三层（元数据 → 正文 → 按需加载）；反模式：空泛描述、时间敏感信息、假设不存在的上下文。
 - [Agent Skills Specification](https://agentskills.io/specification#name-field)：名称长度、字符、连字符位置与目录名一致性的格式要求。
 - [Skill authoring best practices · Naming conventions](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#naming-conventions)：建议考虑动名词，接受名词短语与动作式；避免模糊、过宽、保留词与集合内不一致的命名。
