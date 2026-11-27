@@ -33,11 +33,11 @@
 | `-api` | 跨项目契约：服务接口 + DTO | 库；有外部集成方才拆 |
 | `-sdk` | 客户端封装（重试、鉴权、序列化） | 库；对外发布才拆 |
 | `-spring-boot-starter` | 技术组件自动装配 | 库；按 Spring 官方惯例命名 |
-| `-domain` | 实体、仓储、业务用例 | 库；业务逻辑出现第二个可运行消费者才拆 |
+| `-entity` | 实体、仓储、业务用例 | 库；业务逻辑出现第二个可运行消费者才拆 |
 | `-service` | 可运行后端入口，唯一含 main | 应用 |
 | `-web` / `-mp` / `-mobile` | 浏览器前端 / 小程序 / App | 前端工程，不进后端聚合 pom；两端共用 Web 工程命名 `shop-web`，独立工程带端词（如 `shop-user-web`、`shop-admin-web`、`shop-user-mp`、`shop-user-mobile`） |
 
-切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切；接入层端入口（`user`/`admin` 切片）与领域服务（域词切片）属两个功能层级，微服务双端项目可同时存在，端入口聚合域服务对外。
+切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切；接入层端入口（`user`/`admin` 切片）与域服务（域词切片）属两个功能层级，微服务双端项目可同时存在，端入口聚合域服务对外。
 
 **模块名与目录名逐字相同**：无论 Maven、Gradle 还是其他构建工具，工具侧定义的模块名必须与所在文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name`，都直接取目录名；根工程（父 POM、根 settings）的项目名与仓库根目录名同理。按本节公式命名的模块，目录同名（如 `shop-order-service/`）。
 
@@ -49,7 +49,7 @@
 
 ```text
 shop-service/            唯一入口：controller/admin/（管理端）与 controller/uc/（用户端）分包
-shop-domain/             共享业务核心（出现第二个可运行消费者前可并入 service 内分包）
+shop-entity/            共享业务核心（出现第二个可运行消费者前可并入 service 内分包）
 shop-common/
 ```
 
@@ -61,31 +61,34 @@ shop-common/
 shop-user-service/       用户端入口
 shop-admin-service/      管理端入口
 shop-task-service/       定时任务与消息消费进程
-shop-domain/  shop-common/
+shop-entity/  shop-common/
 ```
 
-两个入口可调用同一领域实现，由该实现统一负责业务规则与数据写入；领域库不必然是独立运行的微服务。前端分别按需创建 `shop-user-web`、`shop-admin-web`，各入口和前端独立构建部署；仅有 H5/小程序时不强制创建用户 Web。
+两个入口可调用同一实体模块，由该模块统一负责业务规则与数据写入；实体库不必然是独立运行的微服务。前端分别按需创建 `shop-user-web`、`shop-admin-web`，各入口和前端独立构建部署；仅有 H5/小程序时不强制创建用户 Web。
 
 按域切——微服务化，每域一个可运行服务：
 
 ```text
 shop-order-service/  shop-member-service/  shop-product-service/
-shop-order-domain/       跨服务共享实现的域才拆；跨项目契约拆 shop-order-api
+shop-order-entity/      跨服务共享实现的域才拆；跨项目契约拆 shop-order-api
 shop-common/
 ```
 
-单模块常见目录：`controller/`、`service/`、`mapper/` 或 `repository/`、`model/entity/`、`model/dto/`、`model/vo/`、`model/query/`、`config/`、`handler/`。
+单模块常见目录：`controller/`、`service/`、`mapper/` 或 `repository/`、`model/entity/`、`model/request/`、`model/response/`、`model/query/`、`config/`、`handler/`。
 
-`-common` 包结构固定：`web/` 承载 `Result`、`GlobalExceptionHandler` 与包络装配；`error/` 承载错误码契约三件（`ErrorCode`、`CommonErrorCodeEnum`、`ServiceException`）；`i18n/` 承载 locale 解析与 MessageSource 装配；`config/` 承载 `XxxProperties` 类型化配置骨架；`util/` 承载 Jackson 静态封装等纯工具，首个纯工具类出现时建，无工具类不建空目录。`-common` 的 Java 包根为 `{项目根包}.common`；启动类置于 `{项目根包}`（`-service` 模块内），默认组件扫描覆盖 common 组件，不另配扫描路径。
+`-common` 包结构固定：`web/` 承载 `Result`、`Page`、`GlobalExceptionHandler` 与包络装配；`error/` 承载错误码契约三件（`ErrorCode`、`CommonErrorCodeEnum`、`ServiceException`）；`i18n/` 承载 locale 解析与 MessageSource 装配；`config/` 承载 `XxxProperties` 类型化配置骨架；`util/` 承载 Jackson 静态封装等纯工具，首个纯工具类出现时建，无工具类不建空目录。`-common` 的 Java 包根为 `{项目根包}.common`；启动类置于 `{项目根包}`（`-service` 模块内），默认组件扫描覆盖 common 组件，不另配扫描路径。
 
 ## 代码与命名
 
-- Controller `UserController`; Service `UserService`; Mapper `UserMapper`; DTO `CreateUserRequest` 或遵循项目既有 `CreateUserDTO`; VO `UserVO`。
-- 参数数量过多时封装对象；不含业务语义的万能词不作方法名（`deal`、`handleData`、`processData`、`manage`），判定标准：看名字与所在类说不出它处理什么、产出什么即换业务动词；非领域通用缩写不用；注释解释为何而非复述代码。
+- Controller `UserController`; Service `UserService`; Mapper `UserMapper`; 载体 `CreateUserRequest`/`CreateUserResponse`、`ListUserRequest`/`ListUserResponse`。
+- 载体命名 `${Action}${Entity}Request`/`${Action}${Entity}Response`，按端点成对出现（`CreateUserRequest`/`CreateUserResponse`、`ListUserRequest`/`ListUserResponse`、`GetUserRequest`/`GetUserResponse`）；裸 `UserRequest`/`UserResponse`（顶层实体名 + 后缀）禁止——名字须能回答「服务于哪个行为」。Model/DTO/VO/View 一律不作载体后缀，裸 `XxxRow`（实体名 + Row、不带动作）同样禁止；方向与行为由 Action 前缀加 Request/Response 后缀表达，存量项目沿用旧后缀的按「用户明确需求 → 本规范」偏离链记录理由；不用 `UpdatingXxx`/`UpdatedXxx` 一类时态对命名。
+- Request 与 Response 必须是对象，不作裸 List/Map 进出：单对象响应用字段承载（`GetUserResponse` 内 `user` 字段），批量入参同样以字段承载（`DeleteUsersRequest` 内 `ids` 字段）；列表端点响应载荷为固定分页结构 `Page<...Row>`（见下方分页条款）；形态相同的端点可复用同一载体类。
+- 分页机制分层各归其位：分页参数（`page`/`size`/`sort` 一类）作为普通字段进 `ListXxxRequest`，入口可用 `@PageableDefault` 绑定；`Pageable`/`PageRequest` 与 Spring 的 `Page<T>` 止步 Service 内部——仓库返回的 `Page<T>` 在 Service 消费并转成本方分页结构，`PageImpl` 不出 Service（序列化形态随版本漂移、等价性只按 content 与 total 判定）。列表端点响应载荷用固定分页结构 `Page<T>`（与 `Result` 同级的固定通用结构，落 `-common` `web/` 包，字段固定为 `rows`/`total`，行元素 `${Action}${Entity}Row`，包络 `data` 直接为 `Page<ListUserRow>`）；列表端点不另造 `ListXxxResponse` 类，其余端点仍按 `XxxRequest`/`XxxResponse` 成对。
+- 参数数量过多时封装对象；不含业务语义的万能词不作方法名（`deal`、`handleData`、`processData`、`manage`），判定标准：看名字与所在类说不出它处理什么、产出什么即换业务动词；非行业通用缩写不用；注释解释为何而非复述代码。
 - 命名按英文习惯表达语义，不做中文大白话直译：先定语义再选词，不以中文语序拼英文；布尔判断用 is/has/can + 形容词（如 `isNormal`），不写 `judgeIfNormal`、`checkIsNormal` 这类逐字翻译。
 - 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不随本次变更重写。
 - 项目无格式化配置时 Java 代码缩进 4 空格；行宽上限取项目 Checkstyle/Spotless 配置，有配置以配置为准；避免注释掉的旧实现。
-- DTO/Entity/VO 转换优先显式代码或项目既有 MapStruct；避免未受控的反射拷贝造成字段漏填/泄露。
+- Request/Response 载体与 Entity 转换优先显式代码或项目既有 MapStruct；避免未受控的反射拷贝造成字段漏填/泄露。
 - JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 统一使用 Spring Boot 自动配置的 bean，定制经 `spring.jackson.*` 配置属性集中调整，不在业务代码散落自建实例；需要静态工具入口时经构造注入把该 bean 装进封装类，封装内部不自建 mapper；第三方库内部自建的 mapper 不受此限。Jackson 3 下未知属性处理与日期序列化格式按项目契约显式验证，不依赖版本默认值。
 - 工具方法优先 JDK 标准库、Spring 自带工具类与 Apache Commons（判空、集合、断言、IO 等）；不引入 Hutool（团队基线）。
 - 有状态组件按职责命名，避免伪装成工具类。使用 Lombok 等注解时检查嵌套类型是否遮蔽注解名。重复出现的拼写错误使用限定范围的扫描或重命名工具校验，并以编译结果确认引用完整。
@@ -97,7 +100,7 @@ shop-common/
 - 接口的实现类以策略命名，不用 `Impl` 后缀：类名说明选择的路线（`JpaOrderRepository`、`InMemoryOrderRepository`、`DefaultUserService` 一类），`OrderServiceImpl` 式命名只说明"它是实现"，不说明是什么实现；策略不分化时不为命名造形式化接口+实现两件套（主规范「分层与命名」既有条款）。
 - `Manager` 仅限拥有某资源族生命周期的所有者角色（`TransactionManager`、`CacheManager` 一类），不作模糊职责词；说不出"拥有什么资源的生命周期"的类按角色词表另选词。
 - 对外方法薄封装，真实逻辑下沉到 `do` 前缀的内部工作方法（`AbstractBeanFactory.doGetBean`、`doResolveDependency` 一类），`do` 方法不直接对外暴露；静态工厂动词按语义从 `of`/`from`/`valueOf`/`for`/`parse` 选词——聚合组件用 `of`、转换既有值用 `from`/`valueOf`（`HttpStatus.valueOf`）、按已知上下文定位用 `for`（`ResolvableType.forClass`）、解析文本用 `parse`（`MediaType.parseMediaType`）；事件与回调方法用 `on` + 事件名（`onApplicationEvent` 式，业务侧如 `onOrderCreated`）；组件生命周期收口到框架注解或接口（`@PostConstruct`/`@PreDestroy`/`InitializingBean.afterPropertiesSet`），自定义生命周期对沿用成对动词条款。
-- 接口小而单一，接口名即能力名（`Ordered`、`InitializingBean`、`BeanNameAware` 一类，一句话说不出能力的不建接口）；能力通过组合与接口注入装配，不靠继承层级堆叠；常量定义在所属领域类上（`HttpStatus.OK`、`MediaType.APPLICATION_JSON`），随类组织不建 `XxxConstants` 收容类（衔接「不维护巨型 Constants」条款）。
+- 接口小而单一，接口名即能力名（`Ordered`、`InitializingBean`、`BeanNameAware` 一类，一句话说不出能力的不建接口）；能力通过组合与接口注入装配，不靠继承层级堆叠；常量定义在所属类上（`HttpStatus.OK`、`MediaType.APPLICATION_JSON`），随类组织不建 `XxxConstants` 收容类（衔接「不维护巨型 Constants」条款）。
 
 ## 常量、控制语句与注释
 
@@ -130,7 +133,7 @@ shop-common/
 - `messageKey` 不作为枚举存储字段，由 `ErrorCode` 接口按固定规则派生：`error.` + `code`（如 `error.ORDER_NOT_FOUND`）；派生规则一处实现，文案键双语同批补齐按 spring-guide「国际化」完整性条款纳入项目检查。
 - 业务失败统一抛 `ServiceException`（`RuntimeException` 子类，落 `-common` 模块）：构造只接受 `ErrorCode` 与占位符 args，args 只装数据值（名称、单号、数量一类，同 spring-guide「国际化」持久化形态口径）；不提供裸文案构造——文案在输出时刻按 locale 渲染，异常携带成品文案即绕过国际化。
 - RESTful 动词语义清晰：查询 GET、新增 POST、更新 PUT、删除 DELETE，路由声明绑定具体 HTTP 方法；URL 小写名词复数、不含动词，可带版本前缀（`/api/v1/users`）。存量路由不批量改写，新端点按本条执行；确需偏离时显式记录。
-- 手机号、证件号等隐私数据在 VO 层脱敏后返回，不暴露原始敏感数据。
+- 手机号、证件号等隐私数据在响应载体（Response/Row）层脱敏后返回，不暴露原始敏感数据。
 
 ## 角色与权限
 
@@ -160,7 +163,7 @@ shop-common/
 - 复杂流程策略化：行为需要依赖注入（Repository、RestClient 等容器 bean）或流程超出枚举方法承载时，升级为策略接口加每值一个 Handler/Adapter bean；枚举拿不到容器 bean，索引由 Spring 注入全部策略实现按 code 组装，枚举只作 key，不在枚举内持有 bean 或静态单例。新增封闭值 = 新枚举常量加新策略（如有）加 CHECK 迁移，一次发版完成。
 - 开放值域（真表承载）的取值与展示名经该值域的列表或字典接口按请求 locale 返回，供给形态与实体 list 接口一致；前端消费约束见 [frontend-guide.md](frontend-guide.md)「数据获取与服务层」。
 - 前端需要枚举取值全集的场景（筛选、下拉等）提供枚举字典端点，按请求 locale 返回取值与展示名（展示名渲染见 [spring-guide.md](spring-guide.md) 国际化条款）；取值全集以该端点为唯一来源，不在多个接口各自重复定义。
-- 结构化业务数据用 POJO/DTO/VO 强类型承载，不用 Map、JsonNode 替代真实类型；仅无固定 Schema 的三方协议载荷、JSON 转换字段允许动态结构。
+- 结构化业务数据用强类型载体（Request/Response/Row）承载，不用 Map、JsonNode 替代真实类型；仅无固定 Schema 的三方协议载荷、JSON 转换字段允许动态结构。
 - 具备独立业务语义的类定义为顶层类，不以嵌套类、静态内部类形式存在；一次性匿名实现不受限。
 - 字符串、对象、集合判空用 StringUtils/ObjectUtils/CollectionUtils 等标准工具类，不手写空值判断，不保留冗余判空；返回集合时返回空集合，不返回 null。
 
@@ -231,7 +234,7 @@ shop-common/
 - [ ] 枚举字段全链路枚举类型；错误码一场景一码，`code` 等于枚举常量名、全集唯一且有扫描校验；用户可见文案走国际化资源
 - [ ] 角色权限走 RBAC：功能权限点在入口层统一校验，Service 校验资源归属与数据范围；前后端共用权限点标识，权限点/菜单为种子数据、无运行时管理入口
 - [ ] 配置类型化绑定、kebab-case，配置项全部定义在配置文件（优先 YAML），含连字符 key 的环境变量用属性占位符显式声明、默认值不进代码、无 `@Value`，敏感配置外置
-- [ ] 审计字段、时间类型、分页、SQL 参数化符合项目基线；REST 动词/URL/DTO 校验/统一响应/VO 脱敏合规
+- [ ] 审计字段、时间类型、分页、SQL 参数化符合项目基线；REST 动词/URL/载体校验/统一响应/响应载体脱敏合规
 - [ ] 新增或改口径的字段：库层约束、后端校验、前端校验三处同口径落地，变换字段有映射记录，各层校验测试已补
 - [ ] 可运行服务暴露 readiness/liveness 双探针：liveness 不聚合外部依赖，readiness 聚合关键依赖并作为部署门禁探活地址
 - [ ] schema 全量版本化（空库一键拉起、脚本只追加、生产 migrate 与启动解耦），大表 DDL 走在线路径并设锁等待超时，应用与上一版 schema 兼容

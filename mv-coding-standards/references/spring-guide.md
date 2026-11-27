@@ -27,7 +27,7 @@ public record CreateOrderRequest(
 public record OrderLine(@NotBlank @Size(max = 64) String sku) {}
 
 @PostMapping("/orders")
-public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
+public CreateOrderResponse create(@Valid @RequestBody CreateOrderRequest request) {
     return orderService.create(request);
 }
 ```
@@ -35,7 +35,7 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 示例中的 `quantity` 与 `lines` 上限须替换为实际业务契约；Service 仍须确认商品可售、库存、服务端价格和主体是否有权操作。DTO 注解不会自动保护 MQ 消费、内部方法调用等其他入口，须在对应入口显式触发等价校验。
 - 用户可见文案统一维护在 `messages*.properties`，经 MessageSource 或 `ErrorCode` 关联的 messageKey 获取；国际化细则见下方「国际化」。
 - 路由用绑定具体 HTTP 方法的注解（`@GetMapping`、`@PostMapping` 等），不用未指定方法的 `@RequestMapping`。
-- 响应按统一包络返回（基线类名 `Result`，`code`/`message`/`data`，项目既有包络连同类名优先）：成功路径 Controller 直接返回 VO，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
+- 响应按统一包络返回（基线类名 `Result`，`code`/`message`/`data`，项目既有包络连同类名优先）：成功路径 Controller 直接返回 Response 载体，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
 - 错误码契约 Spring 定型：`ErrorCode` 接口成员 `HttpStatus status()`（类型 `org.springframework.http.HttpStatus`，不以 int/String 承载）、`String code()`、`String messageKey()`（接口内按 `error.` + `code` 派生，各枚举不存文案键）；各模块 `XxxErrorCodeEnum` 实现该接口，`-common` 模块提供 `CommonErrorCodeEnum` 承载无业务归属错误码：`COMMON_INTERNAL_ERROR`（HTTP 500，未捕获异常兜底）、`COMMON_PARAM_INVALID`（HTTP 400，入口校验失败）、`COMMON_UNAUTHORIZED`（HTTP 401，未认证——无会话/令牌、令牌无效或伪造）、`COMMON_SESSION_EXPIRED`（HTTP 401，会话/令牌过期）、`COMMON_LOGIN_FAILED`（HTTP 401，登录失败）、`COMMON_FORBIDDEN`（HTTP 403，无所需权限点）。
 - HTTP 状态取值一律用标准定义，不自定义：接口成员与 `ResponseEntity` 路径用 `org.springframework.http.HttpStatus` 枚举常量，过滤器等 servlet 层直写响应状态用 `jakarta.servlet.http.HttpServletResponse` 的 `SC_*` 常量；不另造状态数值、常量或枚举。
 - 全局异常处理器（类名 `GlobalExceptionHandler`，`@RestControllerAdvice`，落 `-common` 模块 `web/` 包）统一映射 `ServiceException`：HTTP 状态取 `status()`，包络 `code` 取 `code()`，`message` 按 `messageKey()` 经 `MessageSource` 以请求 locale 渲染、占位符参数取异常携带的 args；未捕获的其余异常兜底映射 `COMMON_INTERNAL_ERROR`，响应不带堆栈。
@@ -44,7 +44,7 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 ## 认证配置
 
 - Spring Security 过滤器链按端分段（`/admin/**` 与 `/uc/**` 独立配置或独立 `SecurityFilterChain`）；会话策略按认证形态定：多用户 OIDC 用服务端 session，无浏览器会话的纯 API 服务 STATELESS；CSRF 按 API 形态显式决策并记录理由。
-- 令牌校验在过滤器层完成，业务代码从安全上下文取当前主体；认证授权异常统一映射公共错误码——未认证映射 `COMMON_UNAUTHORIZED`，会话或令牌过期映射 `COMMON_SESSION_EXPIRED`，入口层功能授权失败（`AccessDeniedException` 一类）映射 `COMMON_FORBIDDEN`；登录端点失败响应统一 `COMMON_LOGIN_FAILED`，不区分账号不存在与凭据错误（口径见 java-guide「认证与会话」）；Service 层资源归属与数据范围失败按业务语义走业务错误码枚举，不统一吞成 `COMMON_FORBIDDEN`。不向客户端泄漏堆栈。认证与会话的领域条款（认证通道、双端隔离、会话）见 java-guide「认证与会话」。
+- 令牌校验在过滤器层完成，业务代码从安全上下文取当前主体；认证授权异常统一映射公共错误码——未认证映射 `COMMON_UNAUTHORIZED`，会话或令牌过期映射 `COMMON_SESSION_EXPIRED`，入口层功能授权失败（`AccessDeniedException` 一类）映射 `COMMON_FORBIDDEN`；登录端点失败响应统一 `COMMON_LOGIN_FAILED`，不区分账号不存在与凭据错误（口径见 java-guide「认证与会话」）；Service 层资源归属与数据范围失败按业务语义走业务错误码枚举，不统一吞成 `COMMON_FORBIDDEN`。不向客户端泄漏堆栈。认证与会话条款（认证通道、双端隔离、会话）见 java-guide「认证与会话」。
 - 密码编码器用 BCrypt（团队基线）；CORS 显式白名单来源，不放开 `*` 与凭据并用的组合；开发期跨域经前端 dev proxy 承担，不为此放宽生产 CORS。
 - 浏览器自动携带凭据（session cookie）保护的写入与登出端点须实施 CSRF 防护，并核对 Origin 与 SameSite 策略；仅手工设置 Authorization 头且不接受自动凭据的 API 可评估关闭对应 CSRF 检查，记录适用范围，不因 STATELESS 全局关闭。
 - 单管理员工具端（无用户表）：自定义 `InMemoryUserDetailsManager` bean，从环境变量取 `*_ADMIN_USERNAME` 与 `*_ADMIN_PASSWORD_HASH`（BCrypt 哈希，编码器 `matches` 做恒定时间比较）；该 bean 存在时 Boot 自动配置的随机密码默认用户退位。会话模型服务端 session（登出即失效自然成立），不自建令牌认证；CSRF 按 cookie 会话形态显式决策并记录理由；公网可达时登录端点加限流，登录成败留审计日志（政策见 mv-security-standards「认证」）。
@@ -69,7 +69,7 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 - key 生命周期：key 只增不改语义，废弃 key 的译文长期保留，保证历史数据始终可渲染；仅审计强需求场景（要求留存「当时呈现的原话」）额外增加生成时快照字段并标注其 locale。
 - 错误响应双层：`code` 是契约，前端可映射通用文案；系统判定的 `reason` 等描述由后端按 locale 给译文，前端原样展示。
 - 载体：语言资源一律 `messages_zh_CN.properties` / `messages_en_US.properties`，与代码同源同审同回滚，不用数据库表存语言资源——表内改文案绕过审查与回滚、缺 key 无法静态发现。文案变更主语是运营的活动类内容属于内容数据，走内容管理方案，不冒充语言资源。
-- 放置判据：语言资源由可运行 `-service` 模块持有——单入口一对，按域切每服务一对、只装本服务渲染的 key；`-common`、`-api`、`-domain` 等库模块不携带 properties 文件——跨 jar 同名 basename 只有一个生效、另一个静默丢失（缺 key 不报错），公共库聚合全域 key 亦构成所有权错位；公共骨架键（`COMMON_*` 一类）的文案随各服务文件维护，齐备性按完整性条款逐服务核对。key 命名空间全局统一：类别前缀打头（`error.`、`status.`），模块信息全 key 只出现一次，不随文件拆分分家。
+- 放置判据：语言资源由可运行 `-service` 模块持有——单入口一对，按域切每服务一对、只装本服务渲染的 key；`-common`、`-api`、`-entity` 等库模块不携带 properties 文件——跨 jar 同名 basename 只有一个生效、另一个静默丢失（缺 key 不报错），公共库聚合全域 key 亦构成所有权错位；公共骨架键（`COMMON_*` 一类）的文案随各服务文件维护，齐备性按完整性条款逐服务核对。key 命名空间全局统一：类别前缀打头（`error.`、`status.`），模块信息全 key 只出现一次，不随文件拆分分家。
 - 枚举与数据字典：枚举展示名是语言资源，走 key 化 properties（如 `status.order.pending`）随代码维护；数据字典表中运营维护的业务配置值属于数据，名称列需要多语言时用多语言列或关联语言资源，按内容管理处理，与「语言资源不进库」不冲突。
 - 格式化与时区：日期、数字、货币按目标 locale 格式化（`DateTimeFormatter`/`NumberFormat` with locale），不硬编码格式模板；时间戳存储一律 UTC 或带时区，展示按目标受众 locale 与项目声明的展示时区换算，不存本地化字符串。复数等语法形态用 `MessageFormat`/ICU 机制表达，不靠拼接句子实现单复数。
 - 完整性：新增 messageKey 必须双语文件同批补齐；错误码枚举关联的 messageKey 双语齐备纳入项目检查；前端文案硬编码可用 lint 规则（如 eslint-plugin-i18n 类）机器拦截，作为规范补充。
@@ -77,7 +77,7 @@ public OrderView create(@Valid @RequestBody CreateOrderRequest request) {
 ## 配置绑定与多环境
 
 - 配置文件优先 YAML（`application.yml`、`application-{profile}.yml`）；每个新增配置项必须先在配置文件定义，不在代码里散落。
-- 业务自定义配置用 `@ConfigurationProperties` 类型化绑定并按领域拆分，不合并为单一巨量配置类；key 用 kebab-case（如 `app.cache.expire-minutes`）。
+- 业务自定义配置用 `@ConfigurationProperties` 类型化绑定并按业务域拆分，不合并为单一巨量配置类；key 用 kebab-case（如 `app.cache.expire-minutes`）。
 - 环境变量覆盖默认经宽松绑定生效，名称转换规则为点换下划线、去连字符、转大写（`app.mail.host` → `APP_MAIL_HOST`）；不含连字符的 key 无需单独定义环境变量。
 - 含连字符的 key 在该转换中丢失词界（`expire-minutes` → `EXPIREMINUTES`），环境变量名与 key 分段不再对应：此类配置项在配置文件中用属性占位符显式声明环境变量与默认值（`cache-expire-minutes: ${CACHE_EXPIRE_MINUTES:30}`）。属性占位符是独立于宽松绑定的核心 Spring 机制，默认值随占位符定义在配置文件，不进代码。
 - 禁止 `@Value` 注入配置；代码（字段初始化、构造器默认参）不定义配置默认值。

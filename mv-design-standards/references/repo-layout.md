@@ -11,7 +11,7 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合本 skill�
 ├── pom.xml                  根父 POM：聚合后端模块，项目名 = 仓库根目录名
 ├── <project>-common/        共享设施：异常、常量、工具（不带端词）
 ├── <project>-service/       可运行入口：controller/admin/ 与 controller/uc/ 分包
-├── <project>-domain/        可选：第二个可运行消费者出现才拆，默认并入 service 分包
+├── <project>-entity/        可选：第二个可运行消费者出现才拆，默认并入 service 分包
 ├── <project>-web/           用户端网页（含按需 Portal）与运营管理后台共用的前端工程
 ├── <project>-user-mp/       用户端 Taro H5/小程序（按需，一工程双编译目标）
 ├── .env.example             环境变量样例（占位值）
@@ -28,13 +28,13 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合本 skill�
 <project>/
 ├── <project>-user-service/    用户端后端入口
 ├── <project>-admin-service/   管理端后端入口
-├── <project>-domain/          两入口共用的业务实现与数据访问
+├── <project>-entity/          两入口共用的业务实现与数据访问
 ├── <project>-user-web/        用户端网页（公开网站与按需 Portal）
 ├── <project>-admin-web/       运营管理后台界面
 └── <project>-user-mp/         用户 H5/小程序（按需）
 ```
 
-用户端公开网站与 Portal 可共用 `-user-web`，按路由、布局及权限区分；有独立发布或技术需求时可分别建立前端工程。`-user-service` 服务用户网站、Portal、小程序和 App，`-admin-service` 服务运营管理后台；后台指界面，后端入口指服务。每个入口及前端工程独立构建和部署，分别配置认证、授权、探针和发布回滚；业务规则与数据由同一个领域实现负责，不按端复制。两个进程共用领域库和数据库时，并发约束依靠数据库事务、约束或锁，不能依靠进程内锁；数据库迁移须兼容两端的独立发布。分离入口不要求拆分领域微服务；仅有小程序时不创建用户端网页。现有 mv-delivery-standards 契约要求同项目一个 stack，且多服务 Compose 不能完成生产晋级；项目交付方案须明确这一限制和可用交付方式，不能声称当前脚本已支持该拓扑。
+用户端公开网站与 Portal 可共用 `-user-web`，按路由、布局及权限区分；有独立发布或技术需求时可分别建立前端工程。`-user-service` 服务用户网站、Portal、小程序和 App，`-admin-service` 服务运营管理后台；后台指界面，后端入口指服务。每个入口及前端工程独立构建和部署，分别配置认证、授权、探针和发布回滚；业务规则与数据由同一个实体模块负责，不按端复制。两个进程共用实体库和数据库时，并发约束依靠数据库事务、约束或锁，不能依靠进程内锁；数据库迁移须兼容两端的独立发布。分离入口不要求拆分域服务；仅有小程序时不创建用户端网页。现有 mv-delivery-standards 契约要求同项目一个 stack，且多服务 Compose 不能完成生产晋级；项目交付方案须明确这一限制和可用交付方式，不能声称当前脚本已支持该拓扑。
 
 ### 双端微服务完整形态
 
@@ -48,7 +48,7 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合本 skill�
 ├── <project>-order-service/     服务层：订单域微服务
 ├── <project>-member-service/    服务层：会员域微服务
 ├── <project>-product-service/   服务层：商品域微服务
-├── <project>-order-domain/      仅跨服务共享实现的域才拆
+├── <project>-order-entity/      仅跨服务共享实现的域才拆
 ├── <project>-common/  <project>-user-api/  <project>-admin-api/
 ├── <project>-user-web/          用户端网页（shadcn-admin + Vite + React + TypeScript）
 ├── <project>-user-mp/           用户端小程序 + 移动端 H5（Taro 一工程双目标）
@@ -57,7 +57,7 @@ mv 团队项目仓库布局默认形态与共享契约约定；配合本 skill�
 └── .env.example  .github/workflows/
 ```
 
-接入层（端词切片的入口）与领域服务层（域词切片）是两个功能层级：端入口聚合域服务、对外提供 `/uc` 与 `/admin` 契约，域服务不对公网暴露；两者共存不构成「同一层级混用按端切与按域切」。归属单一端的模块带端词切片：网页走 `-user-web`，移动端 H5 与小程序是 `-user-mp` 的两个编译目标（一份代码两个部署物），App 壳按需使用 `-user-mobile` 并加载 Taro H5，壳与原生能力方案按项目确认；契约模块按端拆 `-user-api`/`-admin-api`（有外部集成的端才建）；`-common` 为跨端共享设施，不带端词。
+接入层（端词切片的入口）与域服务层（域词切片）是两个功能层级：端入口聚合域服务、对外提供 `/uc` 与 `/admin` 契约，域服务不对公网暴露；两者共存不构成「同一层级混用按端切与按域切」。归属单一端的模块带端词切片：网页走 `-user-web`，移动端 H5 与小程序是 `-user-mp` 的两个编译目标（一份代码两个部署物），App 壳按需使用 `-user-mobile` 并加载 Taro H5，壳与原生能力方案按项目确认；契约模块按端拆 `-user-api`/`-admin-api`（有外部集成的端才建）；`-common` 为跨端共享设施，不带端词。
 
 ## 共享契约与类型同步
 
