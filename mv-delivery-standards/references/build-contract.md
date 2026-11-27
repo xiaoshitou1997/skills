@@ -60,7 +60,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 | `FF_BUILD_TARGET` | 构建点 SSH 目标（`user@host`），必填；镜像统一在该服务器构建 |
 | `FF_ARTIFACT` | 显式指定宿主产物路径（文件→`app.jar`，目录→`app/`） |
 | `FF_IMAGE_REPO` | 镜像仓库前缀，默认应用名 |
-| `FF_RUNTIME_IMAGE` | 覆盖基镜像，以 `RUNTIME_IMAGE` build-arg 传入 `Dockerfile.delivery`。建议固定摘要 |
+| `FF_RUNTIME_IMAGE` | 覆盖基镜像，以 `RUNTIME_IMAGE` build-arg 传入 `Dockerfile.delivery`。默认固定摘要；确需浮动 tag 时在包清单补记实际解析摘要 |
 | `FF_REQUIRE_SECURITY_SCAN` | 设置为 1 时，构建点侧 Trivy 扫描镜像作硬门禁；源码另用 Gitleaks 扫描 |
 
 ## 上传与服务器构建

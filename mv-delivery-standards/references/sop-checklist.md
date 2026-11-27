@@ -19,7 +19,7 @@ SKILL.md「Compose 编排」关键规则 14 的展开：新增栈按序执行的
 11. 整理 YAML：键序、environment map、按需声明与分块、删除多余注释；逐 service 复核。
 12. 部署：`cd {栈名} && docker compose up -d`。
 13. 首启回填：观察 `docker inspect --format='{{.State.Health.Log}}' {容器名}`，按实测回填 start_period。
-14. 写栈级 README：「定位」与「官方资料」（官方文档入口 + 镜像）两节必写，config 说明、排障要点按栈复杂度按需编写。
+14. 写栈级 README：「定位」与「官方资料」（官方文档入口 + 镜像）两节必写；config 说明列出实际启用的环境变量及注入来源；排障要点至少覆盖启动失败、健康检查不过、凭据缺失三类通用项与本栈特有坑。
 
 ## 部署后校验清单
 

@@ -11,7 +11,7 @@
 
 - 信任边界：浏览器、App、脚本、内部调用方、回调、消息和导入文件的输入均不可信；前端限制只用于交互体验，不能替代后端校验、认证或授权。各入口在解析与使用前独立检查来源、结构和约束；可信签名或认证只证明来源，不证明数据合法或已获业务授权。
 - 同一字段的必填、长度、取值域、唯一性在数据库约束、后端校验、前端校验三处对应落地且口径一致，后端契约为权威口径；后端做拆分、加密、派生等字段变换时在契约记录变换前后映射，前端与库层对变换后字段建模。变更字段口径时，三层约束与对应测试同变更提交。
-- HTTP 入口按接口契约约束必填、类型、长度、范围、集合数量及允许值；请求体 DTO 用 Bean Validation，Controller 的 `@RequestBody` 参数加 `@Valid`，嵌套对象及容器元素按需加 `@Valid`，并分别声明非空和数量上限。路径、查询、表单与文件等入口也须生效；方法参数校验按项目 Spring 版本配置并用实际请求验证。请求体及上传大小在网关或服务器配置上限，具体值按项目契约确定。
+- HTTP 入口按接口契约约束必填、类型、长度、范围、集合数量及允许值；请求体 DTO 用 Bean Validation，Controller 的 `@RequestBody` 参数加 `@Valid`，嵌套对象与容器元素自身带约束注解时加 `@Valid`，并分别声明非空和数量上限。路径、查询、表单与文件等入口也须生效；方法参数校验按项目 Spring 版本配置并用实际请求验证。请求体及上传大小在网关或服务器配置上限，具体值按项目契约确定。
 - Service 层在真实事务边界检查跨字段关系、业务状态、资源归属及操作权限；从已认证安全上下文取得主体和租户，以服务端记录或可信配置确定价格、权限、状态等敏感事实，不以客户端提交值作最终依据。涉及并发的余额、库存、唯一性等不变量用数据库约束、条件更新或锁保证，不能只依赖先查后写。
 - 校验失败按项目契约返回可定位字段及稳定错误码，不进入业务写入、不泄露堆栈或敏感输入；记录字段名、错误码与 requestId，避免输出 Token 和完整请求体。第三方响应、MQ 消息与回调按各自协议验证来源及结构，并在执行副作用前检查业务约束；文件内容校验不能只依赖扩展名或客户端声明的 MIME。
 
@@ -97,7 +97,7 @@ JPA 为团队持久层基线，新项目与新模块默认采用；通用数据�
 
 ## 健康探测
 
-- 可运行服务暴露 readiness 与 liveness 双探针端点：`application.yml` 显式设置 `management.endpoint.health.probes.enabled: true`（部署到 k8s 时自动启用，Compose 等环境必须显式开启），端点为 `/actuator/health/readiness` 与 `/actuator/health/liveness`；`management.endpoints.web.exposure.include` 最小化放开（health 必开，其余按需）。
+- 可运行服务暴露 readiness 与 liveness 双探针端点：`application.yml` 显式设置 `management.endpoint.health.probes.enabled: true`（部署到 k8s 时自动启用，Compose 等环境必须显式开启），端点为 `/actuator/health/readiness` 与 `/actuator/health/liveness`；`management.endpoints.web.exposure.include` 最小化放开（health 必开，每多开一个端点须写明消费方——探针、监控台或运维脚本，默认不开）。
 - 两个端点检查内容分离：liveness 只反映进程内状态（死锁、关键线程停摆），不聚合任何外部依赖——基础设施抖动若进入 liveness 会放大成容器重启风暴；readiness 反映可接流状态，聚合关键依赖（连接池等）检查，失败时摘除流量、恢复后自动回归，不重启进程；可降级的非强依赖（缓存 Redis 等）不进 readiness 聚合，经运行指标与告警观测（告警判据见 mv-ops-standards）。
 - 自定义 `HealthIndicator` 只做组件可用性判定，不在健康检查里跑慢查询或重逻辑；镜像 HEALTHCHECK 用 `start_period` 覆盖启动期，防止启动中被判死。
 - readiness 端点同时是交付门禁探活地址：容器部署 `FF_HEALTH_URL` 指向它，语义与编排映射见 `mv-delivery-standards` 交付契约「双探针」。

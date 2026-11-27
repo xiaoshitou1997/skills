@@ -76,7 +76,7 @@ shop-common/
 
 单模块常见目录：`controller/`、`service/`、`mapper/` 或 `repository/`、`model/entity/`、`model/dto/`、`model/vo/`、`model/query/`、`config/`、`handler/`。
 
-`-common` 包结构固定：`web/` 承载 `Result`、`GlobalExceptionHandler` 与包络装配；`error/` 承载错误码契约三件（`ErrorCode`、`CommonErrorCodeEnum`、`ServiceException`）；`i18n/` 承载 locale 解析与 MessageSource 装配；`config/` 承载 `XxxProperties` 类型化配置骨架；`util/` 承载 Jackson 静态封装等纯工具，按需建。`-common` 的 Java 包根为 `{项目根包}.common`；启动类置于 `{项目根包}`（`-service` 模块内），默认组件扫描覆盖 common 组件，不另配扫描路径。
+`-common` 包结构固定：`web/` 承载 `Result`、`GlobalExceptionHandler` 与包络装配；`error/` 承载错误码契约三件（`ErrorCode`、`CommonErrorCodeEnum`、`ServiceException`）；`i18n/` 承载 locale 解析与 MessageSource 装配；`config/` 承载 `XxxProperties` 类型化配置骨架；`util/` 承载 Jackson 静态封装等纯工具，首个纯工具类出现时建，无工具类不建空目录。`-common` 的 Java 包根为 `{项目根包}.common`；启动类置于 `{项目根包}`（`-service` 模块内），默认组件扫描覆盖 common 组件，不另配扫描路径。
 
 ## 代码与命名
 
@@ -84,7 +84,7 @@ shop-common/
 - 参数数量过多时封装对象；不含业务语义的万能词不作方法名（`deal`、`handleData`、`processData`、`manage`），判定标准：看名字与所在类说不出它处理什么、产出什么即换业务动词；非领域通用缩写不用；注释解释为何而非复述代码。
 - 命名按英文习惯表达语义，不做中文大白话直译：先定语义再选词，不以中文语序拼英文；布尔判断用 is/has/can + 形容词（如 `isNormal`），不写 `judgeIfNormal`、`checkIsNormal` 这类逐字翻译。
 - 实现需求时禁止 import 未使用的类；新产生的多余 import、代码块与类一律删除，不依赖 IDE 自动清理兜底；存量冗余按最小变更原则不扩散、不随本次变更重写。
-- Java 代码缩进一般 4 空格，行宽参考项目 Checkstyle/Spotless，不强制与既有格式化配置冲突；避免注释掉的旧实现。
+- 项目无格式化配置时 Java 代码缩进 4 空格；行宽上限取项目 Checkstyle/Spotless 配置，有配置以配置为准；避免注释掉的旧实现。
 - DTO/Entity/VO 转换优先显式代码或项目既有 MapStruct；避免未受控的反射拷贝造成字段漏填/泄露。
 - JSON 序列化统一 Jackson（团队基线），不引入 fastjson、gson；ObjectMapper 统一使用 Spring Boot 自动配置的 bean，定制经 `spring.jackson.*` 配置属性集中调整，不在业务代码散落自建实例；需要静态工具入口时经构造注入把该 bean 装进封装类，封装内部不自建 mapper；第三方库内部自建的 mapper 不受此限。Jackson 3 下未知属性处理与日期序列化格式按项目契约显式验证，不依赖版本默认值。
 - 工具方法优先 JDK 标准库、Spring 自带工具类与 Apache Commons（判空、集合、断言、IO 等）；不引入 Hutool（团队基线）。
