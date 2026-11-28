@@ -45,7 +45,7 @@ public CreateOrderResponse create(@Valid @RequestBody CreateOrderRequest request
 示例中的 `quantity` 与 `lines` 上限须替换为实际业务契约；Service 仍须确认商品可售、库存、服务端价格和主体是否有权操作。DTO 注解不会自动保护 MQ 消费、内部方法调用等其他入口，须在对应入口显式触发等价校验。
 - 用户可见文案统一维护在 `messages*.properties`，经 MessageSource 或 `ErrorCode` 关联的 messageKey 获取；国际化细则见下方「国际化」。
 - 路由用绑定具体 HTTP 方法的注解（`@GetMapping`、`@PostMapping` 等），不用未指定方法的 `@RequestMapping`。
-- 响应按统一包络返回（基线类名 `Result`，`code`/`message`/`data`，项目既有包络连同类名优先）：成功路径 Controller 直接返回 Response 载体，业务错误经全局异常处理器统一映射，不在每个 Controller 手工组装包络。
+- 响应按统一包络返回（基线类名 `Result`，`code`/`message`/`data`，项目既有包络连同类名优先）：成功路径 Controller 直接返回 Response 载体，HTTP 状态固定 200，不手工构造 `ResponseEntity`、不在每个 Controller 手工组装包络（确需自定义响应头或流式输出的特殊场景按「用户明确需求 → 本规范」偏离链记录理由）；业务失败以异常表达——`throw new ServiceException(...)`，由全局异常处理器统一映射为真实 HTTP 状态与包络错误结构。
 - 错误码契约 Spring 定型：`ErrorCode` 接口成员 `HttpStatus status()`（类型 `org.springframework.http.HttpStatus`，不以 int/String 承载）、`String code()`、`String messageKey()`（接口内按 `error.` + `code` 派生，各枚举不存文案键）；各模块 `XxxErrorCodeEnum` 实现该接口，`-common` 模块提供 `CommonErrorCodeEnum` 承载无业务归属错误码：`COMMON_INTERNAL_ERROR`（HTTP 500，未捕获异常兜底）、`COMMON_PARAM_INVALID`（HTTP 400，入口校验失败）、`COMMON_UNAUTHORIZED`（HTTP 401，未认证——无会话/令牌、令牌无效或伪造）、`COMMON_SESSION_EXPIRED`（HTTP 401，会话/令牌过期）、`COMMON_LOGIN_FAILED`（HTTP 401，登录失败）、`COMMON_FORBIDDEN`（HTTP 403，无所需权限点）。
 - HTTP 状态取值一律用标准定义，不自定义：接口成员与 `ResponseEntity` 路径用 `org.springframework.http.HttpStatus` 枚举常量，过滤器等 servlet 层直写响应状态用 `jakarta.servlet.http.HttpServletResponse` 的 `SC_*` 常量；不另造状态数值、常量或枚举。
 - 全局异常处理器（类名 `GlobalExceptionHandler`，`@RestControllerAdvice`，落 `-common` 模块 `web/` 包）统一映射 `ServiceException`：HTTP 状态取 `status()`，包络 `code` 取 `code()`，`message` 按 `messageKey()` 经 `MessageSource` 以请求 locale 渲染、占位符参数取异常携带的 args；未捕获的其余异常兜底映射 `COMMON_INTERNAL_ERROR`，响应不带堆栈。
@@ -72,9 +72,10 @@ public CreateOrderResponse create(@Valid @RequestBody CreateOrderRequest request
 ## 国际化
 
 - 国际化是系统基本要求，不是可选项：任意系统最低支持双语——`zh-CN`（默认）与 `en-US`，从第一个对外接口起落地，不接受「先中文、后补英文」。
+- 工程文案不参与 i18n：代码注释与日志文案一律英文——注释面向读代码的人，日志面向统一检索、聚合与跨语言排障，都不按请求 locale 渲染；i18n 的对象是「出系统边界给人看」的文案（接口响应、页面、通知、导出），判据见下方生成方条款。
 - 请求语言解析：按 `Accept-Language`（或项目既定的 locale 载体）解析目标 locale，用户手动切换语言时以项目定义的覆盖载体（自定义 header 或参数）优先，解析失败回落 `zh-CN`；locale 一经解析，本次请求的全部用户可见输出（响应文案、错误 reason、导出与通知内容）使用同一语言，不混排。
 - 生成方判据：谁生成语义，谁负责翻译。前端界面文案由前端国际化；系统生成并在响应或载荷中输出的描述性文案（原因、备注、审批意见模板、通知、导出内容）由后端在生成时刻按目标 locale 输出译文，不以 messageKey 交前端二次翻译——这些文案会被持久化、异步消费或送出系统边界，生成时不翻译就没有可靠的翻译时机。
-- 持久化形态：可能入库的系统生成文案（原因、备注、审计描述）落库存语义结构而非译文——`messageKey` + args；args 只装数据值（名称、单号、数量）与枚举型子原因（子原因同样 key 化），用户自由输入的原文属于数据，原样直存，不作为 i18n 对象。
+- 持久化形态：可能入库的系统生成文案（原因、备注、审计描述）落库存语义结构而非译文——`messageKey` + args；`remark`、`description`、`reason` 一类描述字段由系统写入时必须存 messageKey + args，不以任何语种的成品文案入库，出库展示按请求 locale 渲染（见下方渲染时机条款）；args 只装数据值（名称、单号、数量）与枚举型子原因（子原因同样 key 化），用户自由输入的原文属于数据，原样直存，不作为 i18n 对象。
 - 渲染时机：库内存 key，出库必渲染——接口默认按请求 locale 渲染为译文返回（前端原样展示），导出、邮件、第三方推送在后端渲染成目标语言；项目声明需要客户端即时切换语言时，接口改返 `{key, args}` 由前端渲染。
 - key 生命周期：key 只增不改语义，废弃 key 的译文长期保留，保证历史数据始终可渲染；仅审计强需求场景（要求留存「当时呈现的原话」）额外增加生成时快照字段并标注其 locale。
 - 错误响应双层：`code` 是契约，前端可映射通用文案；系统判定的 `reason` 等描述由后端按 locale 给译文，前端原样展示。错误译文须可定位——说明哪个对象、什么错、怎么改，或同响应携带定位明细（字段级明细、requestId）；「参数异常」「操作失败」「请求失败」一类两样皆无的通用提示禁止。

@@ -39,7 +39,7 @@
 
 切片词 = 端词或域词。端词固定占用 `user`（用户端）、`admin`（管理端）；域词按业务划定（`order`、`member`、`product` 等），不得与端词重合（账号/会员域用 `member`，`user` 留给用户端）。同一层级不混用按端切与按域切；接入层端入口（`user`/`admin` 切片）与域服务（域词切片）属两个功能层级，微服务双端项目可同时存在，端入口聚合域服务对外。
 
-**模块名与目录名逐字相同**：无论 Maven、Gradle 还是其他构建工具，工具侧定义的模块名必须与所在文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name`，都直接取目录名；根 POM、根 settings 的项目名与仓库根目录名同理。按本节公式命名的模块，目录同名（如 `shop-order-service/`）。
+**五名同串**：服务名（serviceName）、Maven 模块名、目录名、构建产物包文件名前缀（`finalName` 去掉版本号的部分）、`spring.application.name` 五者同一字符串，逐字取目录名（如 `shop-order-service`），不另起名、不改写大小写与连字符；工具侧定义的模块名必须与文件夹名完全一致，不允许工具层重命名——Maven 的 `artifactId` 与聚合 `<module>`、Gradle settings 的 project 名与 `rootProject.name`、npm 的 `package.json` `name` 都直接取目录名，根 POM、根 settings 的项目名与仓库根目录名同理。Java 包名是语言标识符不在此列，按包根条款映射。
 
 ### 三种布局
 
@@ -76,7 +76,7 @@ shop-common/
 
 单模块常见目录：`controller/`、`service/`、`mapper/` 或 `repository/`、`model/entity/`、`model/request/`、`model/response/`、`model/query/`、`config/`、`handler/`。
 
-`-common` 包结构固定：`web/` 承载 `Result`、`Page`、`GlobalExceptionHandler` 与包络装配；`error/` 承载错误码契约三件（`ErrorCode`、`CommonErrorCodeEnum`、`ServiceException`）；`i18n/` 承载 locale 解析与 MessageSource 装配；`config/` 承载 `XxxProperties` 类型化配置骨架；`util/` 承载 Jackson 静态封装等纯工具，首个纯工具类出现时建，无工具类不建空目录。`-common` 的 Java 包根为 `{项目根包}.common`；启动类置于 `{项目根包}`（`-service` 模块内），默认组件扫描覆盖 common 组件，不另配扫描路径。
+`-common` 包结构固定：`web/` 承载 `Result`、`Page`、`GlobalExceptionHandler` 与包络装配；`error/` 承载错误码契约三件（`ErrorCode`、`CommonErrorCodeEnum`、`ServiceException`）与业务断言工具 `Asserts`；`i18n/` 承载 locale 解析与 MessageSource 装配；`config/` 承载 `XxxProperties` 类型化配置骨架；`util/` 承载 Jackson 静态封装等纯工具，首个纯工具类出现时建，无工具类不建空目录。`-common` 的 Java 包根为 `{项目根包}.common`；其余模块同一映射：包根 = `{项目根包}.{模块语义名}`，模块语义名 = 模块名去掉项目前缀段、余段去连字符小写拼接（`shop-order-service` → `shop.orderservice`、`shop-user-api` → `shop.userapi`、`shop-order-entity` → `shop.orderentity`）；单模块常见目录（`controller/`、`service/`、`model/` 等）作为子包挂各自模块包根之下。启动类置于 `{项目根包}`（`-service` 模块内），默认组件扫描覆盖全部模块组件，不另配扫描路径。
 
 ## 代码与命名
 
@@ -108,7 +108,7 @@ shop-common/
 - if/for/while/switch 即使单行也加花括号；switch 必须有 default，case 以 break/return 结束或显式注释 fall-through。
 - 嵌套超过 3 层用卫语句（early return）、策略或状态模式重构；少用取反逻辑；`Boolean` 对象用于条件前注意 null 语义（仅 getXxx/isXxx 场景可直接判断）。
 - 覆盖 `equals` 必须同时覆盖 `hashCode`；浮点数等值判断用 `BigDecimal` 或精度阈值，不用 `==`。
-- 类、类属性、类方法用 Javadoc 说明功能、参数、返回值与异常；枚举每个元素注释含义；注释解释"为什么"，不留废弃代码，历史追溯交给版本管理。
+- 注释一律英文：注释面向所有读代码的人，不参与 i18n；类、类属性、类方法用 Javadoc 说明功能、参数、返回值与异常，枚举每个元素注释含义；注释解释"为什么"，不留废弃代码，历史追溯交给版本管理。
 
 ## 集合与并发
 
@@ -131,7 +131,7 @@ shop-common/
 - 错误码载体定型：每模块一个错误码枚举，类名 `XxxErrorCodeEnum`（模块语义名），统一实现公共 `ErrorCode` 接口；接口声明三个成员——HTTP 状态、`code`、`messageKey`，是 `ServiceException`、全局异常处理器与文案解析共同依赖的唯一类型，处理器与框架接线不耦合具体模块枚举。
 - `code` 为字符串契约标识：等于枚举常量名，常量名以模块语义前缀开头（如 `ORDER_NOT_FOUND`、`USER_NOT_FOUND`），全集唯一；唯一性与「`code` 等于常量名」由单元测试扫描全部错误码枚举校验，不设人工维护的号段分配表，不以数字作 `code`。
 - `messageKey` 不作为枚举存储字段，由 `ErrorCode` 接口按固定规则派生：`error.` + `code`（如 `error.ORDER_NOT_FOUND`）；派生规则一处实现，文案键双语同批补齐按 spring-guide「国际化」完整性条款纳入项目检查。
-- 业务失败统一抛 `ServiceException`（`RuntimeException` 子类，落 `-common` 模块）：构造只接受 `ErrorCode` 与占位符 args，args 只装数据值（名称、单号、数量一类，同 spring-guide「国际化」持久化形态口径）；不提供裸文案构造——文案在输出时刻按 locale 渲染，异常携带成品文案即绕过国际化。
+- 业务失败统一抛 `ServiceException`（`RuntimeException` 子类，落 `-common` 模块）：构造只接受 `ErrorCode` 与占位符 args，args 只装数据值（名称、单号、数量一类，同 spring-guide「国际化」持久化形态口径）；不提供裸文案构造——文案在输出时刻按 locale 渲染，异常携带成品文案即绕过国际化。绝大部分异常即 `ServiceException`：业务代码不自建异常继承树（不定义 `XxxException` 家族），框架与第三方库自身异常原样抛出、由全局异常处理器兜底；需要携带业务语义时一律包装为 `ServiceException(ErrorCode, args)` 再抛。业务失败断言经 `Asserts` 表达，不手写 `throw new ServiceException(...)`：`isTrue(condition, code, args...)` 业务条件断言，`notNull(obj, code, args...)` 与 `notEmpty(collection, code, args...)` 存在性断言且返回原值供直接赋值（`User user = Asserts.notNull(repository.findById(id).orElse(null), UserErrorCodeEnum.USER_NOT_FOUND, id)`）；不提供字符串基础校验断言——必填、格式属入口 Bean Validation，Service 不重复；新增断言方法按同一签名规约扩展（条件在前、`ErrorCode` 与 args 在后，失败即抛 `ServiceException(code, args)`），不适用断言形态的复杂失败才直接 `throw`。
 - RESTful 动词语义清晰：查询 GET、新增 POST、更新 PUT、删除 DELETE，路由声明绑定具体 HTTP 方法；URL 小写名词复数、不含动词，可带版本前缀（`/api/v1/users`）。存量路由不批量改写，新端点按本条执行；确需偏离时显式记录。
 - 手机号、证件号等隐私数据在响应载体（Response/Row）层脱敏后返回，不暴露原始敏感数据。
 
