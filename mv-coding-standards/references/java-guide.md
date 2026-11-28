@@ -122,11 +122,11 @@ shop-common/
 ## API 与错误
 
 - 约定统一的错误编码、HTTP 状态、参数校验和 requestId/traceId。
-- 使用 Bean Validation（如 `@Valid`/`@Validated`）做入口校验，基础校验一律约束注解声明且 `message` 一律 `{messageKey}` 引用语言资源，不手写等价判断，Service 不重复基础校验；业务规则同时在 Service 层确认，避免直接相信入参。
+- 使用 Bean Validation（如 `@Valid`/`@Validated`）做入口校验，基础校验一律约束注解声明，且每个注解必须声明 `messageKey`（格式 `validation.{entity}.{field}.{constraint}`，禁 `param.invalid` 一类笼统键）引用语言资源，不手写等价判断，Service 不重复基础校验；业务规则同时在 Service 层确认，避免直接相信入参。
 - 生产错误仅返回错误码、message 与 requestId，不返回堆栈；错误经全局异常处理器统一记录，不制造日志风暴。
 - API 改动考虑兼容老客户端、分页约定、幂等请求、限流与鉴权权限边界。
 - 区分 HTTP 状态、平台包络码和内层业务码；HTTP 200 不保证业务成功。确认码的字符串/数值类型和真实响应结构，不凭字段名推断契约。
-- 每个独立业务失败场景对应唯一错误码枚举常量，一个 code 唯一映射一个业务语义；不复用既有错误码扩展语义，新增失败场景同步新增枚举。前端按 code 分支，前后端语义严格对齐。
+- 每个独立业务失败场景对应唯一错误码枚举常量，一个 code 唯一映射一个业务语义；不复用既有错误码扩展语义，新增失败场景同步新增枚举。常量名与语义必须落到具体失败场景（`ORDER_NOT_FOUND`、`INSUFFICIENT_STOCK` 一类），`OPERATION_FAILED`、`REQUEST_FAILED`、`BIZ_ERROR` 一类不指向具体场景的笼统常量禁止——它们天然一码多场景，直接违反唯一映射；系统级兜底由 `-common` 的公共枚举承担（`COMMON_INTERNAL_ERROR` 语义即「未捕获异常」），业务枚举内不自造同类兜底。前端按 code 分支，前后端语义严格对齐。
 - 用户可见文案（异常提示、响应信息）不在业务代码中硬编码中英文字符串；统一维护在 i18n 资源文件，经项目国际化机制或 `ErrorCode` 关联的 messageKey 获取。
 - 错误码载体定型：每模块一个错误码枚举，类名 `XxxErrorCodeEnum`（模块语义名），统一实现公共 `ErrorCode` 接口；接口声明三个成员——HTTP 状态、`code`、`messageKey`，是 `ServiceException`、全局异常处理器与文案解析共同依赖的唯一类型，处理器与框架接线不耦合具体模块枚举。
 - `code` 为字符串契约标识：等于枚举常量名，常量名以模块语义前缀开头（如 `ORDER_NOT_FOUND`、`USER_NOT_FOUND`），全集唯一；唯一性与「`code` 等于常量名」由单元测试扫描全部错误码枚举校验，不设人工维护的号段分配表，不以数字作 `code`。

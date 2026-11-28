@@ -12,7 +12,7 @@
 - 信任边界：浏览器、App、脚本、内部调用方、回调、消息和导入文件的输入均不可信；前端限制只用于交互体验，不能替代后端校验、认证或授权。各入口在解析与使用前独立检查来源、结构和约束；可信签名或认证只证明来源，不证明数据合法或已获业务授权。
 - 同一字段的必填、长度、取值域、唯一性在数据库约束、后端校验、前端校验三处对应落地且口径一致，后端契约为权威口径；后端做拆分、加密、派生等字段变换时在契约记录变换前后映射，前端与库层对变换后字段建模。变更字段口径时，三层约束与对应测试同变更提交。
 - HTTP 入口按接口契约约束必填、类型、长度、范围、集合数量及允许值；请求体 DTO 用 Bean Validation，Controller 的 `@RequestBody` 参数加 `@Valid`，嵌套对象与容器元素自身带约束注解时加 `@Valid`，并分别声明非空和数量上限。路径、查询、表单与文件等入口也须生效；方法参数校验按项目 Spring 版本配置并用实际请求验证。请求体及上传大小在网关或服务器配置上限，具体值按项目契约确定。
-- 基础校验（必填、类型、长度、范围、格式、集合数量及允许值）一律以 Bean Validation 约束注解声明，不手写等价判断；每个约束注解 `message` 显式声明 `{messageKey}`（格式 `validation.{entity}.{field}.{constraint}`，如 `validation.user.username.notBlank`），不依赖内置默认英文文案；键随双语资源同批补齐，Validator 经 `LocalValidatorFactoryBean` 接入项目 `MessageSource` 按请求 locale 解析，字段级明细即该键的渲染结果；键译文按「国际化」错误响应双层条款的可定位判据执行，禁止「参数异常」「输入有误」「格式不正确」一类不定位字段与原因的通用提示。
+- 基础校验（必填、类型、长度、范围、格式、集合数量及允许值）一律以 Bean Validation 约束注解声明，不手写等价判断；携带约束注解的参数必须声明 `message` 且无豁免，messageKey 格式 `validation.{entity}.{field}.{constraint}`（如 `validation.user.username.notBlank`），实体、字段、约束三段缺一不可，`param.invalid` 一类不落到具体字段与约束的笼统键禁止；不依赖内置默认英文文案；键随双语资源同批补齐，Validator 经 `LocalValidatorFactoryBean` 接入项目 `MessageSource` 按请求 locale 解析，字段级明细即该键的渲染结果；键译文按「国际化」错误响应双层条款的可定位判据执行，禁止「参数异常」「输入有误」「格式不正确」一类不定位字段与原因的通用提示。
 - Service 层在真实事务边界检查跨字段关系、业务状态、资源归属及操作权限，不重复基础校验——必填、长度、格式、范围已在入口经 Bean Validation 完成，方法体内手写等价判断即违规；基础校验在各自入口触发（HTTP 经 `@Valid`，MQ 消费与内部方法调用经 `@Validated` 方法级约束或 `Validator` 显式执行）。从已认证安全上下文取得主体和租户，以服务端记录或可信配置确定价格、权限、状态等敏感事实，不以客户端提交值作最终依据。涉及并发的余额、库存、唯一性等不变量用数据库约束、条件更新或锁保证，不能只依赖先查后写。
 - 校验失败按项目契约返回可定位字段及稳定错误码，不进入业务写入、不泄露堆栈或敏感输入；记录字段名、错误码与 requestId，避免输出 Token 和完整请求体。第三方响应、MQ 消息与回调按各自协议验证来源及结构，并在执行副作用前检查业务约束；文件内容校验不能只依赖扩展名或客户端声明的 MIME。
 
@@ -20,12 +20,21 @@
 
 ```java
 public record CreateOrderRequest(
-    @NotNull(message = "{validation.order.productId.notNull}") @Positive Long productId,
-    @NotNull @Min(1) @Max(100) Integer quantity,
-    @NotEmpty @Size(max = 20) List<@NotNull @Valid OrderLine> lines
+    @NotNull(message = "{validation.order.productId.notNull}")
+    @Positive(message = "{validation.order.productId.positive}")
+    Long productId,
+    @NotNull(message = "{validation.order.quantity.notNull}")
+    @Min(value = 1, message = "{validation.order.quantity.min}")
+    @Max(value = 100, message = "{validation.order.quantity.max}")
+    Integer quantity,
+    @NotEmpty(message = "{validation.order.lines.notEmpty}")
+    @Size(max = 20, message = "{validation.order.lines.size}")
+    List<@NotNull(message = "{validation.order.lines.notNull}") @Valid OrderLine> lines
 ) {}
 
-public record OrderLine(@NotBlank @Size(max = 64) String sku) {}
+public record OrderLine(
+    @NotBlank(message = "{validation.orderLine.sku.notBlank}") @Size(max = 64, message = "{validation.orderLine.sku.size}") String sku
+) {}
 
 @PostMapping("/orders")
 public CreateOrderResponse create(@Valid @RequestBody CreateOrderRequest request) {
